@@ -7,9 +7,8 @@ import type { Role } from '@/lib/session';
 
 export function Sidebar({ role }: { role: Role }) {
   const pathname = usePathname();
+  const isAdmin = role === 'admin' || role === 'super_admin';
   const superAdmin = role === 'super_admin';
-  const adminActive = pathname.startsWith('/admin');
-  const [open, setOpen] = useState(adminActive);
 
   const linkCls = (active: boolean) =>
     `mb-1 flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
@@ -32,37 +31,72 @@ export function Sidebar({ role }: { role: Role }) {
           <span className="text-base">💼</span> Jobs
         </Link>
 
+        {isAdmin && (
+          <NavGroup icon="🛠️" label="Admin" active={pathname.startsWith('/admin/profiles')}>
+            <Link
+              href="/admin/profiles"
+              className={linkCls(pathname.startsWith('/admin/profiles'))}
+            >
+              <span className="text-base">🧑‍💼</span> Profiles
+            </Link>
+          </NavGroup>
+        )}
+
         {superAdmin && (
-          <div className="mt-1">
-            <button
-              onClick={() => setOpen((o) => !o)}
-              aria-expanded={open}
-              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
-                adminActive ? 'text-white' : 'text-[var(--muted)] hover:bg-white/5 hover:text-white'
-              }`}
-            >
-              <span className="text-base">🛡️</span>
-              <span className="flex-1 text-left">Super Admin</span>
-              <span className={`transition-transform duration-200 ${open ? 'rotate-90' : ''}`} aria-hidden>
-                ›
-              </span>
-            </button>
-            <div
-              className="overflow-hidden pl-4 transition-[max-height] duration-300 ease-in-out"
-              style={{ maxHeight: open ? '140px' : '0px' }}
-            >
-              <Link href="/admin" className={`mt-1 ${linkCls(pathname === '/admin')}`}>
-                <span className="text-base">👥</span> Users
-              </Link>
-              <Link href="/admin/keywords" className={linkCls(pathname.startsWith('/admin/keywords'))}>
-                <span className="text-base">🏷️</span> Keywords
-              </Link>
-            </div>
-          </div>
+          <NavGroup
+            icon="🛡️"
+            label="Super Admin"
+            active={pathname === '/admin' || pathname.startsWith('/admin/keywords')}
+          >
+            <Link href="/admin" className={linkCls(pathname === '/admin')}>
+              <span className="text-base">👥</span> Users
+            </Link>
+            <Link href="/admin/keywords" className={linkCls(pathname.startsWith('/admin/keywords'))}>
+              <span className="text-base">🏷️</span> Keywords
+            </Link>
+          </NavGroup>
         )}
       </nav>
 
       <div className="px-5 py-4 text-xs text-[var(--muted)]">© 2026 JobHighLander</div>
     </aside>
+  );
+}
+
+/** Collapsible sidebar group; opens by default when one of its links is active. */
+function NavGroup({
+  icon,
+  label,
+  active,
+  children,
+}: {
+  icon: string;
+  label: string;
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(active);
+  return (
+    <div className="mt-1">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
+          active ? 'text-white' : 'text-[var(--muted)] hover:bg-white/5 hover:text-white'
+        }`}
+      >
+        <span className="text-base">{icon}</span>
+        <span className="flex-1 text-left">{label}</span>
+        <span className={`transition-transform duration-200 ${open ? 'rotate-90' : ''}`} aria-hidden>
+          ›
+        </span>
+      </button>
+      <div
+        className="overflow-hidden pl-4 transition-[max-height] duration-300 ease-in-out"
+        style={{ maxHeight: open ? '160px' : '0px' }}
+      >
+        {children}
+      </div>
+    </div>
   );
 }

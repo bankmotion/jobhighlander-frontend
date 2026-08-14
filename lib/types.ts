@@ -39,3 +39,46 @@ export interface Keyword {
   word: string;
   createdAt: string;
 }
+
+// ── Profiles (admin-managed candidate/bidding profiles) ──
+// Date fields arrive as ISO strings (@db.Date → 'YYYY-MM-DDT00:00:00.000Z') or null.
+export interface WorkExperience {
+  id?: number;
+  company: string | null;
+  location: string | null;
+  startDate: string | null;
+  endDate: string | null;
+}
+
+export interface Education {
+  id?: number;
+  university: string | null;
+  location: string | null;
+  degree: string | null;
+  startDate: string | null;
+  endDate: string | null;
+}
+
+export interface Profile {
+  id: number;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  linkedin: string | null;
+  location: string | null;
+  workExperiences: WorkExperience[];
+  educations: Education[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProfileSummary {
+  id: number;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  location: string | null;
+  updatedAt: string;
+  _count: { workExperiences: number; educations: number };
+}

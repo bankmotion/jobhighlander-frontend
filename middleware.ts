@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { verifyToken, isSuperAdmin } from './lib/session';
+import { verifyToken, isSuperAdmin, isAdminRole } from './lib/session';
 
 const PUBLIC_PATHS = ['/login', '/register'];
 
@@ -26,11 +26,17 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Admin area (user + keyword management) is super_admin only.
-  if (pathname.startsWith('/admin') && !isSuperAdmin(session.role)) {
-    const url = req.nextUrl.clone();
-    url.pathname = '/';
-    return NextResponse.redirect(url);
+  // /admin/profiles is open to admins (and super admins); the rest of /admin
+  // (user + keyword management) stays super_admin only.
+  if (pathname.startsWith('/admin')) {
+    const allowed = pathname.startsWith('/admin/profiles')
+      ? isAdminRole(session.role)
+      : isSuperAdmin(session.role);
+    if (!allowed) {
+      const url = req.nextUrl.clone();
+      url.pathname = '/';
+      return NextResponse.redirect(url);
+    }
   }
 
   return NextResponse.next();
