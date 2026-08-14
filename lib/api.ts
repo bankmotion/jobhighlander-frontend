@@ -5,8 +5,9 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 export interface JobQuery {
   q?: string;
-  site?: string;
-  location?: string;
+  sites?: string[];
+  /** When true, request only remote jobs. */
+  remote?: boolean;
   page?: number;
   pageSize?: number;
 }
@@ -20,8 +21,8 @@ async function authHeaders(): Promise<HeadersInit> {
 export async function fetchJobs(query: JobQuery = {}): Promise<Paginated<Job>> {
   const qs = new URLSearchParams();
   if (query.q) qs.set('q', query.q);
-  if (query.site) qs.set('site', query.site);
-  if (query.location) qs.set('location', query.location);
+  (query.sites ?? []).forEach((s) => qs.append('site', s));
+  if (query.remote) qs.set('remote', '1');
   if (query.page) qs.set('page', String(query.page));
   if (query.pageSize) qs.set('pageSize', String(query.pageSize));
 

@@ -3,14 +3,14 @@ import type { Pagination as PaginationInfo } from '@/lib/types';
 
 interface Props {
   pagination: PaginationInfo;
-  query: { q: string; site: string; location: string };
+  query: { q: string; sites: string[]; remote: boolean };
 }
 
 function href(page: number, query: Props['query']): string {
   const qs = new URLSearchParams();
   if (query.q) qs.set('q', query.q);
-  if (query.site) qs.set('site', query.site);
-  if (query.location) qs.set('location', query.location);
+  query.sites.forEach((s) => qs.append('site', s));
+  if (!query.remote) qs.set('remote', '0'); // remote-only is the default
   qs.set('page', String(page));
   return `/?${qs.toString()}`;
 }

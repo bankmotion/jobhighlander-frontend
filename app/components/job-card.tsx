@@ -53,8 +53,13 @@ export function JobCard({ job }: { job: Job }) {
             {job.company && meta.length > 0 && <span aria-hidden>·</span>}
             {meta.length > 0 && <span>{meta.join(' · ')}</span>}
           </div>
-          {(job.remote || job.jobType) && (
+          {(job.remote || job.jobType || job.salary) && (
             <div className="mt-2 flex flex-wrap gap-2">
+              {job.salary && (
+                <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-300">
+                  {job.salary}
+                </span>
+              )}
               {job.remote && (
                 <span className="rounded-md bg-green-500/15 px-2 py-0.5 text-xs font-medium text-green-300">
                   Remote

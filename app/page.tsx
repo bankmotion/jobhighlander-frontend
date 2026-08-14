@@ -11,9 +11,16 @@ function str(v: string | string[] | undefined): string {
   return (Array.isArray(v) ? v[0] : v)?.trim() ?? '';
 }
 
+function arr(v: string | string[] | undefined): string[] {
+  const list = Array.isArray(v) ? v : v === undefined ? [] : [v];
+  return list.map((s) => s.trim()).filter(Boolean);
+}
+
 export default async function Home({ searchParams }: { searchParams: SearchParams }) {
   const sp = await searchParams;
-  const query = { q: str(sp.q), site: str(sp.site), location: str(sp.location) };
+  // Remote-only is the DEFAULT (checkbox checked); only `remote=0` shows all.
+  const remote = str(sp.remote) !== '0';
+  const query = { q: str(sp.q), sites: arr(sp.site), remote };
   const page = Math.max(1, Number(str(sp.page)) || 1);
 
   let data;

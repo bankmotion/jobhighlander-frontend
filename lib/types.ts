@@ -11,6 +11,7 @@ export interface Job {
   jobType: string | null;
   remote: boolean;
   location: string | null;
+  salary: string | null;
   postedAt: string | null;
   createdAt: string;
   updatedAt: string;

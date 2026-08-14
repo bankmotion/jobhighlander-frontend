@@ -53,6 +53,11 @@ export default async function JobDetail({ params }: { params: Promise<{ id: stri
               {meta.length > 0 && <span>{meta.join(' · ')}</span>}
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
+              {job.salary && (
+                <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-semibold text-emerald-300">
+                  {job.salary}
+                </span>
+              )}
               {job.remote && (
                 <span className="rounded-md bg-green-500/15 px-2 py-0.5 text-xs font-medium text-green-300">
                   Remote
