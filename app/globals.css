@@ -35,3 +35,35 @@ body {
   background: var(--border-strong);
   border-radius: 999px;
 }
+
+/* Indeterminate loading bar — used by the route loading.tsx views. */
+@keyframes jh-loading-bar {
+  0% {
+    left: -40%;
+    width: 40%;
+  }
+  50% {
+    left: 25%;
+    width: 50%;
+  }
+  100% {
+    left: 100%;
+    width: 40%;
+  }
+}
+.jh-loading-track {
+  position: relative;
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+.jh-loading-track::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 999px;
+  background: var(--primary);
+  animation: jh-loading-bar 1.2s ease-in-out infinite;
+}
