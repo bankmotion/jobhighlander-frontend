@@ -1,7 +1,34 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { verifyToken, isSuperAdmin, isAdminRole } from './lib/session';
+import { verifyToken, isSuperAdmin, isAdminRole, type Role } from './lib/session';
 
 const PUBLIC_PATHS = ['/login', '/register'];
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+
+/**
+ * Ask the backend for the caller's *current* role (the source of truth) so a
+ * just-granted or just-revoked role is honored right away, instead of when the
+ * JWT is next reissued.
+ *  - { role }    → backend answered; use this fresh role
+ *  - { revoked } → backend rejected the token (revoked to guest / gone / bad)
+ *  - { offline } → backend unreachable; caller should fall back to the token
+ */
+async function currentRole(
+  token: string,
+): Promise<{ role: Role } | { revoked: true } | { offline: true }> {
+  try {
+    const res = await fetch(`${API}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    });
+    if (res.status === 401 || res.status === 403) return { revoked: true };
+    if (!res.ok) return { offline: true }; // 5xx etc. — don't lock the user out
+    const data = await res.json().catch(() => null);
+    const role = data?.user?.role as Role | undefined;
+    return role ? { role } : { offline: true };
+  } catch {
+    return { offline: true };
+  }
+}
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -27,11 +54,23 @@ export async function middleware(req: NextRequest) {
   }
 
   // /admin/profiles is open to admins (and super admins); the rest of /admin
-  // (user + keyword management) stays super_admin only.
+  // (user + keyword management) stays super_admin only. Re-check the role
+  // against the backend here so a just-granted or just-revoked role applies
+  // immediately, without waiting for a fresh login.
   if (pathname.startsWith('/admin')) {
+    const check = await currentRole(token!);
+    if ('revoked' in check) {
+      // Token no longer valid (e.g. revoked back to guest) → sign them out.
+      const url = req.nextUrl.clone();
+      url.pathname = '/login';
+      const res = NextResponse.redirect(url);
+      res.cookies.delete('token');
+      return res;
+    }
+    const role = 'role' in check ? check.role : session.role; // offline → trust token
     const allowed = pathname.startsWith('/admin/profiles')
-      ? isAdminRole(session.role)
-      : isSuperAdmin(session.role);
+      ? isAdminRole(role)
+      : isSuperAdmin(role);
     if (!allowed) {
       const url = req.nextUrl.clone();
       url.pathname = '/';
