@@ -49,7 +49,8 @@ export function Sidebar({ role }: { role: Role }) {
             active={
               pathname === '/admin' ||
               pathname.startsWith('/admin/keywords') ||
-              pathname.startsWith('/admin/scrape-runs')
+              pathname.startsWith('/admin/scrape-runs') ||
+              pathname.startsWith('/admin/scraper-settings')
             }
           >
             <Link href="/admin" className={linkCls(pathname === '/admin')}>
@@ -60,6 +61,12 @@ export function Sidebar({ role }: { role: Role }) {
             </Link>
             <Link href="/admin/scrape-runs" className={linkCls(pathname.startsWith('/admin/scrape-runs'))}>
               <span className="text-base">📊</span> Scrape Status
+            </Link>
+            <Link
+              href="/admin/scraper-settings"
+              className={linkCls(pathname.startsWith('/admin/scraper-settings'))}
+            >
+              <span className="text-base">⚙️</span> Scraper Settings
             </Link>
           </NavGroup>
         )}
@@ -100,7 +107,7 @@ function NavGroup({
       </button>
       <div
         className="overflow-hidden pl-4 transition-[max-height] duration-300 ease-in-out"
-        style={{ maxHeight: open ? '160px' : '0px' }}
+        style={{ maxHeight: open ? '260px' : '0px' }}
       >
         {children}
       </div>
