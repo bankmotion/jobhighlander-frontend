@@ -46,13 +46,20 @@ export function Sidebar({ role }: { role: Role }) {
           <NavGroup
             icon="🛡️"
             label="Super Admin"
-            active={pathname === '/admin' || pathname.startsWith('/admin/keywords')}
+            active={
+              pathname === '/admin' ||
+              pathname.startsWith('/admin/keywords') ||
+              pathname.startsWith('/admin/scrape-runs')
+            }
           >
             <Link href="/admin" className={linkCls(pathname === '/admin')}>
               <span className="text-base">👥</span> Users
             </Link>
             <Link href="/admin/keywords" className={linkCls(pathname.startsWith('/admin/keywords'))}>
               <span className="text-base">🏷️</span> Keywords
+            </Link>
+            <Link href="/admin/scrape-runs" className={linkCls(pathname.startsWith('/admin/scrape-runs'))}>
+              <span className="text-base">📊</span> Scrape Status
             </Link>
           </NavGroup>
         )}
