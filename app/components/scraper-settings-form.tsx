@@ -66,6 +66,15 @@ const GROUPS: Group[] = [
     ],
   },
   {
+    title: 'FindMyRemote',
+    fields: [
+      { key: 'enable_findmyremote', label: 'Enabled', type: 'bool' },
+      { key: 'findmyremote_search_url', label: 'Search URL', type: 'text', hint: 'site link; its filters are forwarded to the API' },
+      { key: 'findmyremote_role_regex', label: 'Role regex', type: 'text', hint: 'blank = every role' },
+      { key: 'findmyremote_use_proxy', label: 'Use proxy', type: 'bool' },
+    ],
+  },
+  {
     title: 'Himalayas',
     fields: [
       { key: 'enable_himalayas', label: 'Enabled', type: 'bool' },

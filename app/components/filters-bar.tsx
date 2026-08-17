@@ -19,6 +19,7 @@ const SITE_META: Record<string, { label: string; dot: string }> = {
   jobright: { label: 'JobRight', dot: '#8b5cf6' },
   weworkremotely: { label: 'WeWorkRemotely', dot: '#f59e0b' },
   himalayas: { label: 'Himalayas', dot: '#14b8a6' },
+  findmyremote: { label: 'FindMyRemote', dot: '#ec4899' },
 };
 function siteMeta(s: string) {
   return SITE_META[s] ?? { label: s.charAt(0).toUpperCase() + s.slice(1), dot: 'var(--primary)' };
