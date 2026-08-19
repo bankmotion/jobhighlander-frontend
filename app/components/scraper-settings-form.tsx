@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ScraperSetting } from '@/lib/scraper-settings';
 
-type FieldType = 'text' | 'number' | 'bool';
+type FieldType = 'text' | 'number' | 'bool' | 'textarea';
 interface Field {
   key: string;
   label: string;
@@ -82,6 +82,17 @@ const GROUPS: Group[] = [
       { key: 'jobicy_role_regex', label: 'Role regex', type: 'text', hint: 'blank = every role the listing returns' },
       { key: 'jobicy_use_proxy', label: 'Use proxy', type: 'bool' },
       { key: 'jobicy_delay_s', label: 'Delay between jobs (s)', type: 'number', hint: 'rate-limits hard — do not lower' },
+    ],
+  },
+  {
+    title: 'The Muse',
+    fields: [
+      { key: 'enable_themuse', label: 'Enabled', type: 'bool' },
+      { key: 'themuse_search_urls', label: 'Search URLs', type: 'textarea', hint: 'one per line; each is paginated with ?page=N' },
+      { key: 'themuse_us_only', label: 'US jobs only', type: 'bool', hint: 'expands the hidden city and drops non-US postings' },
+      { key: 'themuse_role_regex', label: 'Role regex', type: 'text', hint: 'blank = every role the listing returns' },
+      { key: 'themuse_use_proxy', label: 'Use proxy', type: 'bool' },
+      { key: 'themuse_delay_s', label: 'Delay between jobs (s)', type: 'number' },
     ],
   },
   {
@@ -179,6 +190,23 @@ function FieldRow({ field, value, onChange }: { field: Field; value: string; onC
           />
         </button>
       </label>
+    );
+  }
+  if (field.type === 'textarea') {
+    return (
+      <div className="sm:col-span-2">
+        <label className="mb-1 block text-sm text-[var(--text)]">
+          {field.label}
+          {field.hint && <span className="ml-2 text-xs text-[var(--muted)]">{field.hint}</span>}
+        </label>
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          rows={6}
+          spellCheck={false}
+          className="w-full resize-y rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 font-mono text-xs leading-relaxed outline-none transition focus:border-[var(--primary)]"
+        />
+      </div>
     );
   }
   return (
