@@ -48,6 +48,7 @@ export function Sidebar({ role }: { role: Role }) {
             label="Super Admin"
             active={
               pathname === '/admin' ||
+              pathname.startsWith('/admin/templates') ||
               pathname.startsWith('/admin/keywords') ||
               pathname.startsWith('/admin/scrape-runs') ||
               pathname.startsWith('/admin/scraper-settings')
@@ -55,6 +56,9 @@ export function Sidebar({ role }: { role: Role }) {
           >
             <Link href="/admin" className={linkCls(pathname === '/admin')}>
               <span className="text-base">👥</span> Users
+            </Link>
+            <Link href="/admin/templates" className={linkCls(pathname.startsWith('/admin/templates'))}>
+              Resume templates
             </Link>
             <Link href="/admin/keywords" className={linkCls(pathname.startsWith('/admin/keywords'))}>
               <span className="text-base">🏷️</span> Keywords
