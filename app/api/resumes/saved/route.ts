@@ -1,0 +1,16 @@
+import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+
+const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+
+export async function GET(req: Request) {
+  const qs = new URL(req.url).searchParams.toString();
+  const token = (await cookies()).get('token')?.value;
+  const res = await fetch(`${API}/api/resumes/saved?${qs}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    cache: 'no-store',
+  });
+  // 204 has no body — forward it as-is rather than trying to parse one.
+  if (res.status === 204) return new NextResponse(null, { status: 204 });
+  return NextResponse.json(await res.json().catch(() => ({})), { status: res.status });
+}

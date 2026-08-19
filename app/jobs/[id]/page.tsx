@@ -2,8 +2,11 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { fetchJob } from '@/lib/api';
 import { fetchKeywords } from '@/lib/keywords';
+import { fetchProfiles } from '@/lib/profiles';
 import { formatPostedRelative } from '@/lib/format';
 import { HighlightedText } from '@/app/components/highlighted-text';
+import { ResumeGenerator } from '@/app/components/resume-generator';
+import { JobTabs } from '@/app/components/job-tabs';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,12 +18,18 @@ export default async function JobDetail({ params }: { params: Promise<{ id: stri
   const job = await fetchJob(numId);
   if (!job) notFound();
 
-  const keywords = (await fetchKeywords()).map((k) => k.word);
+  const [keywords, profiles] = await Promise.all([
+    fetchKeywords().then((ks) => ks.map((k) => k.word)),
+    fetchProfiles(),
+  ]);
+
   const posted = formatPostedRelative(job.postedAt);
   const scraped = formatPostedRelative(job.createdAt);
   const meta = [job.location, posted && `Posted ${posted}`, scraped && `Scraped ${scraped}`].filter(
     Boolean,
   ) as string[];
+
+  const words = job.description ? job.description.trim().split(/\s+/).length : 0;
 
   return (
     <article>
@@ -81,20 +90,7 @@ export default async function JobDetail({ params }: { params: Promise<{ id: stri
           </a>
         </div>
 
-        <div className="mt-6 border-t border-[var(--border)] pt-5">
-          <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-            Description
-          </h2>
-          <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--text)]/90">
-            {job.description ? (
-              <HighlightedText text={job.description} words={keywords} />
-            ) : (
-              'No description captured.'
-            )}
-          </p>
-        </div>
-
-        <p className="mt-5 text-xs text-[var(--muted)]">
+        <p className="mt-5 border-t border-[var(--border)] pt-4 text-xs text-[var(--muted)]">
           <a
             href={job.jobUrl}
             target="_blank"
@@ -106,6 +102,30 @@ export default async function JobDetail({ params }: { params: Promise<{ id: stri
           · #{job.id}
         </p>
       </div>
+
+      <JobTabs
+        tabs={[
+          {
+            key: 'description',
+            label: 'Description',
+            badge: words > 0 ? `${words.toLocaleString()} words` : undefined,
+            content: (
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--text)]/90">
+                {job.description ? (
+                  <HighlightedText text={job.description} words={keywords} />
+                ) : (
+                  'No description captured.'
+                )}
+              </p>
+            ),
+          },
+          {
+            key: 'resume',
+            label: 'Tailored Resume',
+            content: <ResumeGenerator jobId={job.id} profiles={profiles} />,
+          },
+        ]}
+      />
     </article>
   );
 }
