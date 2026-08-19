@@ -75,6 +75,16 @@ const GROUPS: Group[] = [
     ],
   },
   {
+    title: 'Jobicy',
+    fields: [
+      { key: 'enable_jobicy', label: 'Enabled', type: 'bool' },
+      { key: 'jobicy_search_url', label: 'Search URL', type: 'text', hint: 'site link; page/N is appended for pagination' },
+      { key: 'jobicy_role_regex', label: 'Role regex', type: 'text', hint: 'blank = every role the listing returns' },
+      { key: 'jobicy_use_proxy', label: 'Use proxy', type: 'bool' },
+      { key: 'jobicy_delay_s', label: 'Delay between jobs (s)', type: 'number', hint: 'rate-limits hard — do not lower' },
+    ],
+  },
+  {
     title: 'Himalayas',
     fields: [
       { key: 'enable_himalayas', label: 'Enabled', type: 'bool' },
