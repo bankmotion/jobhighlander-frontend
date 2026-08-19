@@ -32,12 +32,24 @@ export function Sidebar({ role }: { role: Role }) {
         </Link>
 
         {isAdmin && (
-          <NavGroup icon="🛠️" label="Admin" active={pathname.startsWith('/admin/profiles')}>
+          <NavGroup
+            icon="🛠️"
+            label="Admin"
+            active={
+              pathname.startsWith('/admin/profiles') || pathname.startsWith('/admin/templates')
+            }
+          >
             <Link
               href="/admin/profiles"
               className={linkCls(pathname.startsWith('/admin/profiles'))}
             >
               <span className="text-base">🧑‍💼</span> Profiles
+            </Link>
+            <Link
+              href="/admin/templates"
+              className={linkCls(pathname.startsWith('/admin/templates'))}
+            >
+              <span className="text-base">📄</span> Resume Templates
             </Link>
           </NavGroup>
         )}
@@ -48,7 +60,6 @@ export function Sidebar({ role }: { role: Role }) {
             label="Super Admin"
             active={
               pathname === '/admin' ||
-              pathname.startsWith('/admin/templates') ||
               pathname.startsWith('/admin/keywords') ||
               pathname.startsWith('/admin/scrape-runs') ||
               pathname.startsWith('/admin/scraper-settings')
@@ -56,9 +67,6 @@ export function Sidebar({ role }: { role: Role }) {
           >
             <Link href="/admin" className={linkCls(pathname === '/admin')}>
               <span className="text-base">👥</span> Users
-            </Link>
-            <Link href="/admin/templates" className={linkCls(pathname.startsWith('/admin/templates'))}>
-              Resume templates
             </Link>
             <Link href="/admin/keywords" className={linkCls(pathname.startsWith('/admin/keywords'))}>
               <span className="text-base">🏷️</span> Keywords

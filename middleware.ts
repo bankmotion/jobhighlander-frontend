@@ -53,8 +53,9 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // /admin/profiles is open to admins (and super admins); the rest of /admin
-  // (user + keyword management) stays super_admin only. Re-check the role
+  // /admin/profiles and /admin/templates are open to admins (and super admins):
+  // both are about a bidder's own resume output. The rest of /admin (users,
+  // keywords, scraper config) stays super_admin only. Re-check the role
   // against the backend here so a just-granted or just-revoked role applies
   // immediately, without waiting for a fresh login.
   if (pathname.startsWith('/admin')) {
@@ -68,7 +69,8 @@ export async function middleware(req: NextRequest) {
       return res;
     }
     const role = 'role' in check ? check.role : session.role; // offline → trust token
-    const allowed = pathname.startsWith('/admin/profiles')
+    const ADMIN_LEVEL = ['/admin/profiles', '/admin/templates'];
+    const allowed = ADMIN_LEVEL.some((p) => pathname.startsWith(p))
       ? isAdminRole(role)
       : isSuperAdmin(role);
     if (!allowed) {
@@ -81,7 +83,10 @@ export async function middleware(req: NextRequest) {
   return NextResponse.next();
 }
 
+// `template-thumbs` holds pre-rendered previews of a FICTIONAL sample resume —
+// no user data — and must be exempt: next/image fetches the source URL itself
+// with no session cookie, so a redirect here turns every preview into a 400.
 export const config = {
   // Gate everything except Next internals and the auth route handlers.
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/auth).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|template-thumbs|api/auth).*)'],
 };
