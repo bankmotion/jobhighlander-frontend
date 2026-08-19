@@ -44,6 +44,29 @@ const numOn =
 export function Pagination({ pagination, query }: Props) {
   const { page, totalPages, total } = pagination;
   if (total === 0) return null;
+  return (
+    <PageNav
+      page={page}
+      totalPages={totalPages}
+      label={`Page ${page} of ${totalPages} · ${total} job${total === 1 ? '' : 's'}`}
+      hrefFor={(p) => href(p, query)}
+    />
+  );
+}
+
+/** The sticky pager itself — page numbers with ellipses, driven by whatever
+ *  href builder the caller supplies (jobs list, scrape status, …). */
+export function PageNav({
+  page,
+  totalPages,
+  label,
+  hrefFor,
+}: {
+  page: number;
+  totalPages: number;
+  label: string;
+  hrefFor: (page: number) => string;
+}) {
   const pages = pageList(page, totalPages);
 
   return (
@@ -51,13 +74,11 @@ export function Pagination({ pagination, query }: Props) {
     // (globals.css) gives it an elevated surface + accent edge so it reads as a
     // floating control bar rather than part of the page.
     <nav className="jh-sticky-bar sticky bottom-0 z-10 mt-6 flex flex-wrap items-center justify-between gap-3 rounded-t-xl px-4 py-3 text-sm text-[var(--muted)]">
-      <span className="shrink-0">
-        Page {page} of {totalPages} · {total} job{total === 1 ? '' : 's'}
-      </span>
+      <span className="shrink-0">{label}</span>
 
       <div className="flex flex-wrap items-center gap-1.5">
         {page > 1 ? (
-          <Link href={href(page - 1, query)} className={nav} aria-label="Previous page">
+          <Link href={hrefFor(page - 1)} className={nav} aria-label="Previous page">
             ← Prev
           </Link>
         ) : (
@@ -74,14 +95,14 @@ export function Pagination({ pagination, query }: Props) {
               {p}
             </span>
           ) : (
-            <Link key={p} href={href(p, query)} className={num}>
+            <Link key={p} href={hrefFor(p)} className={num}>
               {p}
             </Link>
           ),
         )}
 
         {page < totalPages ? (
-          <Link href={href(page + 1, query)} className={nav} aria-label="Next page">
+          <Link href={hrefFor(page + 1)} className={nav} aria-label="Next page">
             Next →
           </Link>
         ) : (

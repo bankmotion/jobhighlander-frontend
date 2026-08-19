@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { JobFilters } from '@/lib/types';
+import { MultiSelect } from './multi-select';
 
 interface Props {
   filters: JobFilters;
@@ -13,7 +14,7 @@ const inputCls =
   'rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--muted)] outline-none transition focus:border-[var(--primary)]';
 
 /** Per-source display name + accent dot. Falls back to a capitalised label. */
-const SITE_META: Record<string, { label: string; dot: string }> = {
+export const SITE_META: Record<string, { label: string; dot: string }> = {
   indeed: { label: 'Indeed', dot: '#4f74e3' },
   glassdoor: { label: 'Glassdoor', dot: '#22c55e' },
   jobright: { label: 'JobRight', dot: '#8b5cf6' },
@@ -23,7 +24,7 @@ const SITE_META: Record<string, { label: string; dot: string }> = {
   jobicy: { label: 'Jobicy', dot: '#eab308' },
   themuse: { label: 'The Muse', dot: '#06b6d4' },
 };
-function siteMeta(s: string) {
+export function siteMeta(s: string) {
   return SITE_META[s] ?? { label: s.charAt(0).toUpperCase() + s.slice(1), dot: 'var(--primary)' };
 }
 
@@ -118,74 +119,17 @@ export function FiltersBar({ filters, current }: Props) {
         />
       </div>
 
-      {/* Sources multi-select */}
-      <div ref={menuRef} className="relative">
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          aria-haspopup="listbox"
-          aria-expanded={open}
-          className={`flex items-center gap-2 ${inputCls} ${open ? 'border-[var(--primary)]' : ''}`}
-        >
-          {sites.length === 0 ? (
-            <span className="text-[var(--muted)]">All sources</span>
-          ) : (
-            <span className="flex items-center gap-1.5">
-              {sites.slice(0, 2).map((s) => {
-                const m = siteMeta(s);
-                return (
-                  <span key={s} className="flex items-center gap-1 text-[var(--text)]">
-                    <span className="h-2 w-2 rounded-full" style={{ background: m.dot }} />
-                    {m.label}
-                  </span>
-                );
-              })}
-              {sites.length > 2 && <span className="text-[var(--muted)]">+{sites.length - 2}</span>}
-            </span>
-          )}
-          <svg
-            viewBox="0 0 24 24"
-            className={`h-4 w-4 text-[var(--muted)] transition-transform ${open ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-
-        {open && (
-          <div
-            role="listbox"
-            className="absolute right-0 z-20 mt-2 w-60 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-2xl"
-          >
-            <RowButton selected={sites.length === 0} onClick={clearSites}>
-              <span className="flex h-4 w-4 items-center justify-center">
-                <span className="h-2 w-2 rounded-full bg-[var(--muted)]" />
-              </span>
-              All sources
-            </RowButton>
-            <div className="my-1 h-px bg-[var(--border)]" />
-            {filters.sites.length === 0 && (
-              <p className="px-3 py-2 text-xs text-[var(--muted)]">No sources yet</p>
-            )}
-            {filters.sites.map((s) => {
-              const m = siteMeta(s);
-              return (
-                <RowButton key={s} selected={sites.includes(s)} onClick={() => toggleSite(s)}>
-                  <span className="h-2.5 w-2.5 rounded-full" style={{ background: m.dot }} />
-                  <span className="flex-1 text-left">{m.label}</span>
-                  {sites.includes(s) && (
-                    <svg viewBox="0 0 24 24" className="h-4 w-4 text-[var(--primary)]" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <path d="m5 13 4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  )}
-                </RowButton>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      {/* Sources — shared control, so this and the scrape-status filters behave
+          identically (including Select all / Clear all). */}
+      <MultiSelect
+        placeholder="All sources"
+        options={filters.sites.map((x) => ({ value: x, ...siteMeta(x) }))}
+        selected={sites}
+        onChange={(next) => {
+          setSites(next);
+          navigate({ q, sites: next, remote });
+        }}
+      />
 
       {/* Remote-only toggle (checked by default) */}
       <button

@@ -16,10 +16,22 @@ export interface ScrapeRun {
   createdAt: string;
 }
 
-/** Recent scraper runs (server-side, forwards the session JWT). Super-admin only. */
-export async function fetchScrapeRuns(): Promise<ScrapeRun[]> {
+export interface ScrapeRunPage {
+  runs: ScrapeRun[];
+  filters: { sites: string[] };
+  pagination: { page: number; pageSize: number; total: number; totalPages: number };
+}
+
+/** One page of scraper runs (server-side, forwards the session JWT). Super-admin only. */
+export async function fetchScrapeRuns(
+  page = 1,
+  filters: { sites?: string[]; statuses?: string[] } = {},
+): Promise<ScrapeRunPage> {
   const token = await getToken();
-  const res = await fetch(`${API_URL}/api/scrape-runs`, {
+  const qs = new URLSearchParams({ page: String(page) });
+  (filters.sites ?? []).forEach((s) => qs.append('site', s));
+  (filters.statuses ?? []).forEach((s) => qs.append('status', s));
+  const res = await fetch(`${API_URL}/api/scrape-runs?${qs.toString()}`, {
     cache: 'no-store',
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });

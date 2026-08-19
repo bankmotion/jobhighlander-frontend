@@ -4,12 +4,15 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ScraperSetting } from '@/lib/scraper-settings';
 
-type FieldType = 'text' | 'number' | 'bool' | 'textarea';
+type FieldType = 'text' | 'number' | 'bool';
 interface Field {
   key: string;
   label: string;
   type: FieldType;
   hint?: string;
+  /** Show an "open" button — only for links you can actually browse. NOT for
+   *  API endpoints (they return JSON) or proxy_url (it carries credentials). */
+  link?: boolean;
 }
 interface Group {
   title: string;
@@ -30,7 +33,7 @@ const GROUPS: Group[] = [
     title: 'Indeed',
     fields: [
       { key: 'enable_indeed', label: 'Enabled', type: 'bool' },
-      { key: 'indeed_search_url', label: 'Search URL', type: 'text' },
+      { key: 'indeed_search_url', label: 'Search URL', type: 'text' , link: true },
       { key: 'indeed_max_pages', label: 'Max pages', type: 'number' },
     ],
   },
@@ -38,14 +41,14 @@ const GROUPS: Group[] = [
     title: 'Glassdoor',
     fields: [
       { key: 'enable_glassdoor', label: 'Enabled', type: 'bool' },
-      { key: 'glassdoor_search_url', label: 'Search URL', type: 'text' },
+      { key: 'glassdoor_search_url', label: 'Search URL', type: 'text' , link: true },
     ],
   },
   {
     title: 'JobRight',
     fields: [
       { key: 'enable_jobright', label: 'Enabled', type: 'bool' },
-      { key: 'jobright_recommend_url', label: 'Recommend URL', type: 'text' },
+      { key: 'jobright_recommend_url', label: 'Recommend URL', type: 'text' , link: true },
       { key: 'jobright_recommend_api', label: 'Recommend API', type: 'text' },
     ],
   },
@@ -53,8 +56,7 @@ const GROUPS: Group[] = [
     title: 'WeWorkRemotely',
     fields: [
       { key: 'enable_weworkremotely', label: 'Enabled', type: 'bool' },
-      { key: 'weworkremotely_search_url', label: 'Search URL', type: 'text' },
-      { key: 'weworkremotely_use_proxy', label: 'Use proxy', type: 'bool' },
+      { key: 'weworkremotely_search_url', label: 'Search URL', type: 'text' , link: true },
       { key: 'weworkremotely_max_per_company', label: 'Max per company', type: 'number' },
     ],
   },
@@ -69,18 +71,16 @@ const GROUPS: Group[] = [
     title: 'FindMyRemote',
     fields: [
       { key: 'enable_findmyremote', label: 'Enabled', type: 'bool' },
-      { key: 'findmyremote_search_url', label: 'Search URL', type: 'text', hint: 'site link; its filters are forwarded to the API' },
+      { key: 'findmyremote_search_url', label: 'Search URL', type: 'text', hint: 'site link; its filters are forwarded to the API' , link: true },
       { key: 'findmyremote_role_regex', label: 'Role regex', type: 'text', hint: 'blank = every role' },
-      { key: 'findmyremote_use_proxy', label: 'Use proxy', type: 'bool' },
     ],
   },
   {
     title: 'Jobicy',
     fields: [
       { key: 'enable_jobicy', label: 'Enabled', type: 'bool' },
-      { key: 'jobicy_search_url', label: 'Search URL', type: 'text', hint: 'site link; page/N is appended for pagination' },
+      { key: 'jobicy_search_url', label: 'Search URL', type: 'text', hint: 'site link; page/N is appended for pagination' , link: true },
       { key: 'jobicy_role_regex', label: 'Role regex', type: 'text', hint: 'blank = every role the listing returns' },
-      { key: 'jobicy_use_proxy', label: 'Use proxy', type: 'bool' },
       { key: 'jobicy_delay_s', label: 'Delay between jobs (s)', type: 'number', hint: 'rate-limits hard — do not lower' },
     ],
   },
@@ -88,10 +88,9 @@ const GROUPS: Group[] = [
     title: 'The Muse',
     fields: [
       { key: 'enable_themuse', label: 'Enabled', type: 'bool' },
-      { key: 'themuse_search_urls', label: 'Search URLs', type: 'textarea', hint: 'one per line; each is paginated with ?page=N' },
+      { key: 'themuse_search_url', label: 'Search URL', type: 'text', hint: 'site link; ?page=N is appended. Keep the date-posted filter' , link: true },
       { key: 'themuse_us_only', label: 'US jobs only', type: 'bool', hint: 'expands the hidden city and drops non-US postings' },
       { key: 'themuse_role_regex', label: 'Role regex', type: 'text', hint: 'blank = every role the listing returns' },
-      { key: 'themuse_use_proxy', label: 'Use proxy', type: 'bool' },
       { key: 'themuse_delay_s', label: 'Delay between jobs (s)', type: 'number' },
     ],
   },
@@ -192,35 +191,42 @@ function FieldRow({ field, value, onChange }: { field: Field; value: string; onC
       </label>
     );
   }
-  if (field.type === 'textarea') {
-    return (
-      <div className="sm:col-span-2">
-        <label className="mb-1 block text-sm text-[var(--text)]">
-          {field.label}
-          {field.hint && <span className="ml-2 text-xs text-[var(--muted)]">{field.hint}</span>}
-        </label>
-        <textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          rows={6}
-          spellCheck={false}
-          className="w-full resize-y rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 font-mono text-xs leading-relaxed outline-none transition focus:border-[var(--primary)]"
-        />
-      </div>
-    );
-  }
+  // Only offer the button once the current value is a browsable http(s) URL —
+  // it opens what's typed, not what was last saved.
+  const openable = field.link && /^https?:\/\//i.test(value.trim());
   return (
     <div className={field.type === 'text' ? 'sm:col-span-2' : ''}>
       <label className="mb-1 block text-sm text-[var(--text)]">
         {field.label}
         {field.hint && <span className="ml-2 text-xs text-[var(--muted)]">{field.hint}</span>}
       </label>
-      <input
-        type={field.type === 'number' ? 'number' : 'text'}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm outline-none transition focus:border-[var(--primary)]"
-      />
+      <div className="flex items-center gap-2">
+        <input
+          type={field.type === 'number' ? 'number' : 'text'}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm outline-none transition focus:border-[var(--primary)]"
+        />
+        {field.link &&
+          (openable ? (
+            <a
+              href={value.trim()}
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Open this search in a new tab"
+              className="shrink-0 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--muted)] transition hover:border-[var(--primary)] hover:text-white"
+            >
+              Open ↗
+            </a>
+          ) : (
+            <span
+              title="Enter a valid http(s) URL to enable"
+              className="shrink-0 cursor-not-allowed rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--muted)] opacity-40"
+            >
+              Open ↗
+            </span>
+          ))}
+      </div>
     </div>
   );
 }
