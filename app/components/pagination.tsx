@@ -47,8 +47,10 @@ export function Pagination({ pagination, query }: Props) {
   const pages = pageList(page, totalPages);
 
   return (
-    // Sticky so the controls stay visible while scrolling the list.
-    <nav className="sticky bottom-0 z-10 mt-6 flex flex-wrap items-center justify-between gap-3 rounded-t-xl border-t border-[var(--border)] bg-[var(--bg)]/90 py-3 text-sm text-[var(--muted)] backdrop-blur">
+    // Sticky so the controls stay visible while scrolling the list. `jh-sticky-bar`
+    // (globals.css) gives it an elevated surface + accent edge so it reads as a
+    // floating control bar rather than part of the page.
+    <nav className="jh-sticky-bar sticky bottom-0 z-10 mt-6 flex flex-wrap items-center justify-between gap-3 rounded-t-xl px-4 py-3 text-sm text-[var(--muted)]">
       <span className="shrink-0">
         Page {page} of {totalPages} · {total} job{total === 1 ? '' : 's'}
       </span>

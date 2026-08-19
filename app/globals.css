@@ -36,6 +36,31 @@ body {
   border-radius: 999px;
 }
 
+/* Sticky action bars (jobs pagination, settings save bar).
+   These used to paint `var(--bg)/90` — literally the page background — so on this
+   near-black theme they were indistinguishable from the content scrolling behind
+   them. Read as an ELEVATED surface instead: lighter panel, an accent top edge,
+   and a shadow that lifts it off the list. */
+.jh-sticky-bar {
+  background: rgba(22, 22, 32, 0.94);
+  border-top: 1px solid rgba(108, 92, 255, 0.55);
+  box-shadow:
+    0 -14px 34px -12px rgba(0, 0, 0, 0.95),
+    0 -1px 0 0 rgba(108, 92, 255, 0.22) inset;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* Primary call-to-action that must not blend into the panel behind it. */
+.jh-cta {
+  background: var(--primary);
+  box-shadow: 0 4px 18px -4px rgba(108, 92, 255, 0.65);
+}
+.jh-cta:hover:not(:disabled) {
+  background: var(--primary-hover);
+  box-shadow: 0 6px 22px -4px rgba(108, 92, 255, 0.8);
+}
+
 /* Indeterminate loading bar — used by the route loading.tsx views. */
 @keyframes jh-loading-bar {
   0% {

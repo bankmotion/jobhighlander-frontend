@@ -128,8 +128,9 @@ export function ScraperSettingsForm({ initial }: { initial: ScraperSetting[] }) 
         </section>
       ))}
 
-      {/* Sticky save bar */}
-      <div className="sticky bottom-0 z-10 flex items-center justify-between gap-3 rounded-t-xl border-t border-[var(--border)] bg-[var(--bg)]/90 py-3 backdrop-blur">
+      {/* Sticky save bar — elevated (see `.jh-sticky-bar` in globals.css) so it
+          stands off the form instead of blending into the dark background. */}
+      <div className="jh-sticky-bar sticky bottom-0 z-10 flex items-center justify-between gap-3 rounded-t-xl px-4 py-3">
         {msg ? (
           <span className={`text-sm ${msg.ok ? 'text-green-300' : 'text-red-400'}`}>{msg.text}</span>
         ) : (
@@ -138,7 +139,7 @@ export function ScraperSettingsForm({ initial }: { initial: ScraperSetting[] }) 
         <button
           onClick={save}
           disabled={saving}
-          className="rounded-lg bg-[var(--primary)] px-5 py-2 text-sm font-medium text-white transition hover:bg-[var(--primary-hover)] disabled:opacity-60"
+          className="jh-cta rounded-lg px-5 py-2 text-sm font-semibold text-white transition disabled:opacity-60"
         >
           {saving ? 'Saving…' : 'Save settings'}
         </button>

@@ -129,29 +129,12 @@ export function ProfileEditor({
 
   return (
     <div className="space-y-5">
-      {/* Header / actions */}
+      {/* Header — navigation only; the actions live in the sticky bar below, so
+          they stay reachable on a long profile instead of scrolling away. */}
       <div className="flex items-center justify-between gap-3">
         <button onClick={onCancel} className="text-sm text-[var(--muted)] transition hover:text-white">
           ← Back to profiles
         </button>
-        <div className="flex items-center gap-2">
-          {onDelete && (
-            <button
-              onClick={() => setConfirming(true)}
-              disabled={busy}
-              className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm text-red-400 transition hover:border-red-500/50 hover:bg-red-500/10 disabled:opacity-50"
-            >
-              Delete
-            </button>
-          )}
-          <button
-            onClick={save}
-            disabled={busy}
-            className="rounded-lg bg-[var(--primary)] px-4 py-1.5 text-sm font-medium text-white transition hover:bg-[var(--primary-hover)] disabled:opacity-60"
-          >
-            {busy ? 'Saving…' : 'Save profile'}
-          </button>
-        </div>
       </div>
 
       <h2 className="text-xl font-bold tracking-tight text-white">{fullName}</h2>
@@ -241,6 +224,30 @@ export function ProfileEditor({
           ))}
         </div>
       </Section>
+
+      {/* Sticky action bar — same treatment as the jobs pagination and the
+          scraper-settings save bar (`.jh-sticky-bar` in globals.css). */}
+      <div className="jh-sticky-bar sticky bottom-0 z-10 flex items-center justify-between gap-3 rounded-t-xl px-4 py-3">
+        <span className="truncate text-sm text-[var(--muted)]">{fullName}</span>
+        <div className="flex shrink-0 items-center gap-2">
+          {onDelete && (
+            <button
+              onClick={() => setConfirming(true)}
+              disabled={busy}
+              className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-red-400 transition hover:border-red-500/50 hover:bg-red-500/10 disabled:opacity-50"
+            >
+              Delete
+            </button>
+          )}
+          <button
+            onClick={save}
+            disabled={busy}
+            className="jh-cta rounded-lg px-5 py-2 text-sm font-semibold text-white transition disabled:opacity-60"
+          >
+            {busy ? 'Saving…' : 'Save profile'}
+          </button>
+        </div>
+      </div>
 
       <ConfirmModal
         open={confirming}
