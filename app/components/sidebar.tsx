@@ -132,14 +132,26 @@ export function Sidebar({ role, profiles }: { role: Role; profiles: ProfileSumma
             label="Super Admin"
             active={
               pathname === '/admin' ||
+              pathname.startsWith('/admin/ai-usage') ||
               pathname.startsWith('/admin/prompts') ||
               pathname.startsWith('/admin/keywords') ||
               pathname.startsWith('/admin/scrape-runs') ||
               pathname.startsWith('/admin/scraper-settings')
             }
+            // Six entries now; the default open height clips the last one.
+            maxHeight={300}
           >
             <Link href="/admin" className={linkCls(pathname === '/admin')}>
               <span className="text-base">👥</span> Users
+            </Link>
+            {/* All users, all profiles. "My AI Usage" above is the same figures
+                scoped to the caller; this is the shared key's whole bill, which
+                is why it sits behind super admin rather than next to it. */}
+            <Link
+              href="/admin/ai-usage"
+              className={linkCls(pathname.startsWith('/admin/ai-usage'))}
+            >
+              <span className="text-base">💸</span> AI Usage (all)
             </Link>
             <Link href="/admin/prompts" className={linkCls(pathname.startsWith('/admin/prompts'))}>
               <span className="text-base">🗣</span> Prompts

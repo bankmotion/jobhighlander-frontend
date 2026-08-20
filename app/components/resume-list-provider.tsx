@@ -158,6 +158,19 @@ export function ResumeListProvider({
   // Card-level downloads, keyed by job. An array rather than a Set in state so
   // each change is a new reference React can actually see.
   const [downloadingIds, setDownloadingIds] = useState<number[]>([]);
+
+  /**
+   * The dialog shows BOTH documents, because one generation writes both.
+   *
+   * The letter is fetched here rather than read from `useCoverLetters()`:
+   * CoverLetterProvider is nested INSIDE this one (see app/page.tsx), so its
+   * context does not reach this component. One endpoint, loaded lazily the
+   * first time the tab is opened — a letter nobody looks at costs nothing.
+   */
+  const [docTab, setDocTab] = useState<'resume' | 'letter'>('resume');
+  const [letterBody, setLetterBody] = useState<string | null>(null);
+  const [letterLoading, setLetterLoading] = useState(false);
+  const [letterError, setLetterError] = useState<string | null>(null);
   const { toast, show, dismiss } = useToast();
 
   useSyncExternalStore(subscribeRuns, runsVersion, runsServerVersion);
@@ -393,6 +406,11 @@ export function ResumeListProvider({
       setConfirmRegen(false);
       setPdfError(null);
       replacePdfUrl(null);
+      // A dialog that opened on the letter tab of the PREVIOUS job, showing
+      // that job's letter, is the worst possible stale state here.
+      setDocTab('resume');
+      setLetterBody(null);
+      setLetterError(null);
     },
     [replacePdfUrl],
   );
@@ -527,7 +545,46 @@ export function ResumeListProvider({
     targetRef.current = null;
     setConfirmRegen(false);
     replacePdfUrl(null);
+    setDocTab('resume');
+    setLetterBody(null);
+    setLetterError(null);
   }, [replacePdfUrl]);
+
+  /** Fetch the letter for the open job, once, when its tab is first shown. */
+  const showLetter = useCallback(async () => {
+    setDocTab('letter');
+    const t = targetRef.current;
+    if (!t || !profileId || letterBody !== null || letterLoading) return;
+    setLetterLoading(true);
+    setLetterError(null);
+    try {
+      const res = await fetch(`/api/cover-letters?jobId=${t.jobId}&profileId=${profileId}`, {
+        cache: 'no-store',
+      });
+      const row = res.ok ? ((await res.json()) as { body?: string } | null) : null;
+      // Guard against a switch to another card while this was in flight.
+      if (targetRef.current?.jobId !== t.jobId) return;
+      if (!row?.body) {
+        setLetterError('No cover letter saved for this posting yet.');
+        return;
+      }
+      setLetterBody(row.body);
+    } catch {
+      if (targetRef.current?.jobId === t.jobId) setLetterError('Could not load the cover letter.');
+    } finally {
+      if (mountedRef.current) setLetterLoading(false);
+    }
+  }, [letterBody, letterLoading, profileId]);
+
+  const copyOpenLetter = useCallback(async () => {
+    if (!letterBody) return;
+    try {
+      await navigator.clipboard.writeText(letterBody);
+      show('Cover letter copied');
+    } catch {
+      show('Could not copy — select the text and copy manually.', 'error');
+    }
+  }, [letterBody, show]);
 
   const ctx: Ctx = {
     profileId,
@@ -717,13 +774,83 @@ export function ResumeListProvider({
             </p>
           )}
 
-          {!generating && pdfLoading && !pdfUrl && (
+          {/* One generation writes both documents, so one dialog shows both.
+              Tabs rather than side by side: a PDF at half width is unreadable,
+              and these are read one at a time anyway. */}
+          {!generating && !failed && st && (
+            <div
+              role="tablist"
+              aria-label="Documents"
+              className="mb-3 flex gap-1 border-b border-[var(--border)]"
+            >
+              <button
+                role="tab"
+                aria-selected={docTab === 'resume'}
+                onClick={() => setDocTab('resume')}
+                className={`-mb-px rounded-t-lg px-4 py-2 text-sm font-medium transition ${
+                  docTab === 'resume'
+                    ? 'border-b-2 border-[var(--primary)] text-white'
+                    : 'text-[var(--muted)] hover:text-[var(--text)]'
+                }`}
+              >
+                Resume
+              </button>
+              <button
+                role="tab"
+                aria-selected={docTab === 'letter'}
+                onClick={() => void showLetter()}
+                className={`-mb-px rounded-t-lg px-4 py-2 text-sm font-medium transition ${
+                  docTab === 'letter'
+                    ? 'border-b-2 border-[var(--primary)] text-white'
+                    : 'text-[var(--muted)] hover:text-[var(--text)]'
+                }`}
+              >
+                Cover letter
+              </button>
+            </div>
+          )}
+
+          {!generating && docTab === 'letter' && (
+            <div className="h-[65vh] overflow-auto">
+              {letterLoading && (
+                <div className="flex h-full items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-sm text-[var(--muted)]">
+                  Loading the letter…
+                </div>
+              )}
+              {!letterLoading && letterError && (
+                <p className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-4 py-6 text-center text-sm text-[var(--muted)]">
+                  {letterError}
+                </p>
+              )}
+              {!letterLoading && letterBody && (
+                <>
+                  <div className="mb-2 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => void copyOpenLetter()}
+                      className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-xs text-[var(--text)] transition hover:border-[var(--border-strong)] hover:text-white"
+                    >
+                      Copy to clipboard
+                    </button>
+                  </div>
+                  {/* Monospace and pre-wrap: this is the text as it will be
+                      pasted, and a proportional font hides the blank-line
+                      structure that makes a letter read as a letter. */}
+                  <pre className="whitespace-pre-wrap rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-4 font-mono text-[13px] leading-relaxed text-[var(--text)]">
+                    {letterBody}
+                  </pre>
+                </>
+              )}
+            </div>
+          )}
+
+          {!generating && docTab === 'resume' && pdfLoading && !pdfUrl && (
             <div className="flex h-[60vh] items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-sm text-[var(--muted)]">
               Rendering PDF…
             </div>
           )}
 
-          {!generating && pdfUrl && (
+          {!generating && docTab === 'resume' && pdfUrl && (
             <>
               {!!st?.inferredCount && (
                 <p className="mb-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">

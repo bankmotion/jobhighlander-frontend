@@ -13,11 +13,13 @@ import { BOX, ICON_BOX, TONE } from './resume-action';
  * offering them separately would be describing a shape the backend no longer
  * has — and a second click would pay for the whole pair again.
  *
- * NO DIALOG ON CLICK. The button itself carries the wait. A modal opening over
- * the list interrupts a scan to show a document nobody asked to read yet, and
- * the full text of both lives on the job detail page, one click away. What the
- * card owes you is the two things you actually want without leaving it: the
- * resume as a PDF, and the letter on your clipboard.
+ * NO DIALOG WHILE GENERATING. The button itself carries the wait — a modal
+ * opening the moment you click interrupts a scan of the list to show something
+ * you have not asked to read yet. Viewing is a separate, deliberate click.
+ *
+ * Once both documents exist the card offers all four things you want from them
+ * without leaving the list: view (the PDF and the letter, tabbed in one
+ * dialog), download the PDF, and copy the letter.
  */
 function IconSparkle() {
   return (
@@ -53,6 +55,25 @@ function IconCheck() {
     >
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <path d="M14 2v6h6M9 15l2 2 4-4" />
+    </svg>
+  );
+}
+
+function IconEye() {
+  return (
+    <svg
+      aria-hidden
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" />
+      <circle cx="12" cy="12" r="3" />
     </svg>
   );
 }
@@ -124,7 +145,8 @@ function Spinner() {
 }
 
 export function ApplicationAction({ jobId, title, company }: ResumeTarget) {
-  const { profileId, statusOf, runOf, generateQuiet, download, isDownloading } = useResumeList();
+  const { profileId, statusOf, runOf, generateQuiet, view, download, isDownloading } =
+    useResumeList();
   const { hasLetter, noteLetterWritten, copyLetter, isCopying } = useCoverLetters();
 
   const target: ResumeTarget = { jobId, title, company };
@@ -192,21 +214,36 @@ export function ApplicationAction({ jobId, title, company }: ResumeTarget) {
 
     return (
       <span className="inline-flex shrink-0 items-center gap-1.5">
-        <span
+        <button
+          type="button"
           data-resume-trigger={jobId}
-          className={`${BOX} ${TONE.ready} cursor-default`}
-          aria-label={`Application ready for ${where}`}
+          onClick={() => view(target)}
+          aria-label={`View the resume and cover letter for ${where}`}
+          className={`${BOX} ${TONE.ready}`}
         >
           <IconCheck />
           {draft ? 'Draft' : 'Ready'}
           {draft && (
             <span
               aria-hidden
-              title="Contains AI-drafted content — review it on the job page"
+              title="Contains AI-drafted content — check it before sending"
               className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-amber-400"
             />
           )}
-        </span>
+        </button>
+
+        {/* The chip opens the viewer too, but a coloured word does not read as
+            a control at a glance, so the thing you most often want gets its own
+            affordance beside the download and copy icons. */}
+        <button
+          type="button"
+          onClick={() => view(target)}
+          title="View the resume PDF and the cover letter"
+          aria-label={`View the resume and cover letter for ${where}`}
+          className={ICON_BOX}
+        >
+          <IconEye />
+        </button>
 
         <button
           type="button"
