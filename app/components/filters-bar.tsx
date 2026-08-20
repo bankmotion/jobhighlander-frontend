@@ -7,7 +7,7 @@ import { MultiSelect } from './multi-select';
 
 interface Props {
   filters: JobFilters;
-  current: { q: string; sites: string[]; remote: boolean };
+  current: { q: string; sites: string[]; remote: boolean; profile?: number };
 }
 
 const inputCls =
@@ -57,6 +57,9 @@ export function FiltersBar({ filters, current }: Props) {
     if (next.q.trim()) qs.set('q', next.q.trim());
     next.sites.forEach((s) => qs.append('site', s));
     if (!next.remote) qs.set('remote', '0'); // remote-only is the default
+    // Filters change WHAT is listed; they must never change WHOSE resumes are
+    // reported alongside it.
+    if (current.profile) qs.set('profile', String(current.profile));
     const s = qs.toString();
     router.push(s ? `/?${s}` : '/');
   }
@@ -87,7 +90,8 @@ export function FiltersBar({ filters, current }: Props) {
     setQ('');
     setSites([]);
     setRemote(true); // back to the default (remote-only)
-    router.push('/');
+    // Clearing FILTERS must not also reset the selected profile.
+    router.push(current.profile ? `/?profile=${current.profile}` : '/');
   }
 
   // "Filtered" = anything other than the default (remote-only, no query/sources).

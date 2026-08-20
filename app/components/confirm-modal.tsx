@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect } from 'react';
+
 export function ConfirmModal({
   open,
   title,
@@ -17,6 +19,18 @@ export function ConfirmModal({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  // Escape closes it, matching the backdrop click. Ignored while busy: the
+  // request is already in flight and dismissing would leave the user unsure
+  // whether the delete happened.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !busy) onCancel();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, busy, onCancel]);
+
   if (!open) return null;
   return (
     <div

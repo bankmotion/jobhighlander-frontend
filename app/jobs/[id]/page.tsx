@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { fetchJob } from '@/lib/api';
 import { fetchKeywords } from '@/lib/keywords';
 import { fetchProfiles } from '@/lib/profiles';
+import { fetchPresets } from '@/lib/templates';
 import { formatPostedRelative } from '@/lib/format';
 import { HighlightedText } from '@/app/components/highlighted-text';
 import { ResumeGenerator } from '@/app/components/resume-generator';
@@ -10,17 +11,24 @@ import { JobTabs } from '@/app/components/job-tabs';
 
 export const dynamic = 'force-dynamic';
 
-export default async function JobDetail({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function JobDetail({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
+}) {
+  const [{ id }, { tab }] = await Promise.all([params, searchParams]);
   const numId = Number(id);
   if (!Number.isInteger(numId) || numId <= 0) notFound();
 
   const job = await fetchJob(numId);
   if (!job) notFound();
 
-  const [keywords, profiles] = await Promise.all([
+  const [keywords, profiles, presets] = await Promise.all([
     fetchKeywords().then((ks) => ks.map((k) => k.word)),
     fetchProfiles(),
+    fetchPresets(),
   ]);
 
   const posted = formatPostedRelative(job.postedAt);
@@ -104,6 +112,7 @@ export default async function JobDetail({ params }: { params: Promise<{ id: stri
       </div>
 
       <JobTabs
+        initialTab={tab}
         tabs={[
           {
             key: 'description',
@@ -122,7 +131,7 @@ export default async function JobDetail({ params }: { params: Promise<{ id: stri
           {
             key: 'resume',
             label: 'Tailored Resume',
-            content: <ResumeGenerator jobId={job.id} profiles={profiles} />,
+            content: <ResumeGenerator jobId={job.id} profiles={profiles} presets={presets} />,
           },
         ]}
       />

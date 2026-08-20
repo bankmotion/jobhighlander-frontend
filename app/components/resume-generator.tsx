@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { ProfileSummary } from '@/lib/types';
+import type { Preset } from '@/lib/templates';
+import { Toast, useToast } from './toast';
 
 interface Flagged {
   text: string;
@@ -25,6 +27,15 @@ export interface TailoredResume {
   reviewNotes: string[];
 }
 
+/** The single stored resume for a (profile, job), as the API returns it. */
+interface SavedResume {
+  id: number;
+  data: TailoredResume;
+  templateKey: string;
+  model: string;
+  updatedAt: string;
+}
+
 const NOTES_KEY = 'jh:resume-notes';
 
 /** Dotted underline marks text the model drafted rather than read from notes. */
@@ -40,7 +51,15 @@ function Inferred({ on, children }: { on: boolean; children: React.ReactNode }) 
   );
 }
 
-export function ResumeGenerator({ jobId, profiles }: { jobId: number; profiles: ProfileSummary[] }) {
+export function ResumeGenerator({
+  jobId,
+  profiles,
+  presets,
+}: {
+  jobId: number;
+  profiles: ProfileSummary[];
+  presets: Preset[];
+}) {
   const [profileId, setProfileId] = useState<number | ''>(profiles[0]?.id ?? '');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
@@ -48,8 +67,13 @@ export function ResumeGenerator({ jobId, profiles }: { jobId: number; profiles: 
   const [resume, setResume] = useState<TailoredResume | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
-  // When set, this draft came from the database rather than a fresh run.
-  const [restoredAt, setRestoredAt] = useState<string | null>(null);
+  // Two keys, deliberately: `templateKey` is what the preview is showing and
+  // changes on every pick, `savedTemplateKey` is what the database holds. The
+  // gap between them is exactly what the Apply button offers to close.
+  const [templateKey, setTemplateKey] = useState<string>('');
+  const [savedTemplateKey, setSavedTemplateKey] = useState<string>('');
+  const [applying, setApplying] = useState(false);
+  const { toast, show, dismiss } = useToast();
 
   // Object URLs are leaked memory until revoked, and the iframe still needs the
   // current one — so revoke only when it's replaced, and once on unmount.
@@ -78,31 +102,32 @@ export function ResumeGenerator({ jobId, profiles }: { jobId: number; profiles: 
     });
   }, [resume]);
 
-  // Restore whatever was generated for this (profile, job) last time.
+  // Restore whatever is stored for this (profile, job). Exactly one row can
+  // exist, so there is nothing to choose between.
   useEffect(() => {
     if (!profileId) return;
     let cancelled = false;
     (async () => {
-      // Resets live inside the async body rather than the effect body: a
-      // synchronous setState here would cascade an extra render on every
-      // profile switch, and React 19's lint rule flags it.
       try {
         const res = await fetch(`/api/resumes/saved?jobId=${jobId}&profileId=${profileId}`);
+        if (cancelled || !res.ok) return;
+        const row = (await res.json()) as SavedResume | null;
         if (cancelled) return;
-        if (res.status === 204 || !res.ok) {
+        if (row?.data) {
+          setResume(row.data);
+          setTemplateKey(row.templateKey);
+          setSavedTemplateKey(row.templateKey);
+          void renderPdf(row.data, Number(profileId), row.templateKey);
+        } else {
+          // Switching to a profile with no resume for this job must clear the
+          // previous one, or the page shows someone else's document.
           setResume(null);
-          setRestoredAt(null);
+          setTemplateKey('');
+          setSavedTemplateKey('');
           replacePdfUrl(null);
-          return;
         }
-        const row = await res.json();
-        if (cancelled || !row?.data) return;
-        const saved = row.data as TailoredResume;
-        setResume(saved);
-        setRestoredAt(row.updatedAt ?? null);
-        void renderPdf(saved, Number(profileId));
       } catch {
-        /* a missing draft is not an error worth showing */
+        /* having nothing saved is not an error worth showing */
       }
     })();
     return () => {
@@ -127,7 +152,6 @@ export function ResumeGenerator({ jobId, profiles }: { jobId: number; profiles: 
   async function generate() {
     if (!profileId) return;
     scrollOnNext.current = true;
-    setRestoredAt(null);
     setLoading(true);
     setError(null);
     setResume(null);
@@ -147,7 +171,10 @@ export function ResumeGenerator({ jobId, profiles }: { jobId: number; profiles: 
       setResume(generated);
       // Generation already cost 20-60s; the render adds ~1s and is cached
       // server-side, so showing the finished document beats making them ask.
-      void renderPdf(generated, Number(profileId));
+      void renderPdf(generated, Number(profileId), templateKey || undefined);
+      // The upsert may have just created the row — read back its template so
+      // Apply reflects what is actually stored.
+      void syncSavedTemplate();
     } catch {
       setError('Could not reach the server.');
     } finally {
@@ -160,13 +187,72 @@ export function ResumeGenerator({ jobId, profiles }: { jobId: number; profiles: 
    * feeds the preview iframe and the download link, so the file the user reads
    * is byte-for-byte the file they save.
    */
-  async function renderPdf(forResume: TailoredResume, forProfileId: number) {
+  /**
+   * Read back what the server stored after a generation. The first generation
+   * for a job creates the row with the profile's default template, so without
+   * this the Apply button would offer to re-apply a template already in place.
+   */
+  async function syncSavedTemplate() {
+    if (!profileId) return;
+    try {
+      const res = await fetch(`/api/resumes/saved?jobId=${jobId}&profileId=${profileId}`);
+      if (!res.ok) return;
+      const row = (await res.json()) as SavedResume | null;
+      if (!row) return;
+      setSavedTemplateKey(row.templateKey);
+      // Only adopt it as the selection when the user has not picked one, so a
+      // pending choice survives a regenerate.
+      setTemplateKey((prev) => prev || row.templateKey);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  /** Preview a template. Nothing is written until Apply. */
+  function selectTemplate(key: string) {
+    setTemplateKey(key);
+    if (resume) void renderPdf(resume, Number(profileId), key);
+  }
+
+  /** Write the selected template onto the saved resume for this job. */
+  async function applyTemplate() {
+    if (!profileId || !templateKey) return;
+    setApplying(true);
+    try {
+      const res = await fetch('/api/resumes/template', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobId, profileId, templateKey }),
+      });
+      if (!res.ok) {
+        show('Could not save the template choice.', 'error');
+        return;
+      }
+      setSavedTemplateKey(templateKey);
+      show(`${presets.find((p) => p.key === templateKey)?.name ?? templateKey} applied`);
+    } catch {
+      show('Could not reach the server.', 'error');
+    } finally {
+      setApplying(false);
+    }
+  }
+
+  async function renderPdf(
+    forResume: TailoredResume,
+    forProfileId: number,
+    forTemplate?: string,
+  ) {
     setPdfLoading(true);
     try {
       const res = await fetch('/api/resumes/pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resume: forResume, profileId: forProfileId, pageSize: 'letter' }),
+        body: JSON.stringify({
+          resume: forResume,
+          profileId: forProfileId,
+          pageSize: 'letter',
+          ...(forTemplate ? { templateKey: forTemplate } : {}),
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -272,12 +358,43 @@ export function ResumeGenerator({ jobId, profiles }: { jobId: number; profiles: 
         </p>
       )}
 
+      <Toast toast={toast} onDismiss={dismiss} />
+
       {resume && (
         <div ref={resultRef} className="mt-6 scroll-mt-6 border-t border-[var(--border)] pt-5">
-          {restoredAt && (
-            <p className="mb-3 text-xs text-[var(--muted)]">
-              Saved draft from {new Date(restoredAt).toLocaleString()} — press Generate to rewrite it.
-            </p>
+          {presets.length > 0 && (
+            <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+              <label className="flex items-center gap-2 text-sm">
+                <span className="text-[var(--muted)]">Template</span>
+                <select
+                  value={templateKey}
+                  onChange={(e) => selectTemplate(e.target.value)}
+                  className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1.5 text-sm text-[var(--text)]"
+                >
+                  {presets.map((p) => (
+                    <option key={p.key} value={p.key}>
+                      {p.name}
+                      {p.atsSafe ? '' : '  (not ATS-safe)'}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {/* Picking re-renders the preview only. This is the commit, so it
+                  appears exactly when the selection differs from what is saved. */}
+              {templateKey !== savedTemplateKey ? (
+                <button
+                  type="button"
+                  onClick={applyTemplate}
+                  disabled={applying}
+                  className="rounded-lg bg-[var(--primary)] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {applying ? 'Applying…' : 'Apply'}
+                </button>
+              ) : (
+                <span className="text-xs text-[var(--muted)]">Saved</span>
+              )}
+            </div>
           )}
 
           {inferredCount > 0 && (

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import type { Profile, ProfileSummary } from '@/lib/types';
 import { ProfileEditor, type ProfilePayload } from './profile-editor';
+import { Toast, useToast } from './toast';
 
 type View = { mode: 'list' } | { mode: 'new' } | { mode: 'edit'; id: number };
 
@@ -12,6 +13,7 @@ export function ProfilesManager({ initial }: { initial: ProfileSummary[] }) {
   const [editing, setEditing] = useState<Profile | null>(null);
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { toast, show, dismiss } = useToast();
 
   async function refresh() {
     const res = await fetch('/api/admin/profiles', { cache: 'no-store' });
@@ -61,20 +63,44 @@ export function ProfilesManager({ initial }: { initial: ProfileSummary[] }) {
     return false;
   }
 
-  async function remove() {
-    if (view.mode !== 'edit') return;
-    await fetch(`/api/admin/profiles/${view.id}`, { method: 'DELETE' });
-    await backToList();
+  /**
+   * Returns whether the delete actually succeeded, so the editor can reopen
+   * itself instead of navigating away. Previously this ignored the response and
+   * always went back to the list — a rejected delete looked identical to a
+   * successful one until the refetched list showed the profile still there.
+   */
+  async function remove(): Promise<boolean> {
+    if (view.mode !== 'edit') return false;
+    const name = profiles.find((p) => p.id === view.id);
+    const label =
+      [name?.firstName, name?.lastName].filter(Boolean).join(' ') || name?.email || 'Profile';
+    try {
+      const res = await fetch(`/api/admin/profiles/${view.id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const d = await res.json().catch(() => null);
+        show(d?.error ?? `Could not delete the profile (${res.status})`, 'error');
+        return false;
+      }
+      await backToList();
+      show(`${label} deleted`);
+      return true;
+    } catch {
+      show('Could not reach the server.', 'error');
+      return false;
+    }
   }
 
   if (view.mode !== 'list') {
     return (
-      <ProfileEditor
-        profile={editing}
-        onSave={save}
-        onCancel={backToList}
-        onDelete={view.mode === 'edit' ? remove : undefined}
-      />
+      <>
+        <ProfileEditor
+          profile={editing}
+          onSave={save}
+          onCancel={backToList}
+          onDelete={view.mode === 'edit' ? remove : undefined}
+        />
+        <Toast toast={toast} onDismiss={dismiss} />
+      </>
     );
   }
 
@@ -132,6 +158,11 @@ export function ProfilesManager({ initial }: { initial: ProfileSummary[] }) {
           })}
         </ul>
       )}
+
+      {/* Also mounted here, not only in the editor branch: a successful delete
+          navigates back to the list before the toast is shown, so a toast that
+          only existed on the editor screen would never be seen. */}
+      <Toast toast={toast} onDismiss={dismiss} />
     </div>
   );
 }

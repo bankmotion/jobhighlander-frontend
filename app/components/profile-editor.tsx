@@ -51,7 +51,7 @@ export function ProfileEditor({
   profile: Profile | null;
   onSave: (data: ProfilePayload) => Promise<boolean>;
   onCancel: () => void;
-  onDelete?: () => Promise<void>;
+  onDelete?: () => Promise<boolean>;
 }) {
   const [email, setEmail] = useState(profile?.email ?? '');
   const [firstName, setFirstName] = useState(profile?.firstName ?? '');
@@ -258,7 +258,15 @@ export function ProfileEditor({
         onConfirm={async () => {
           if (!onDelete) return;
           setBusy(true);
-          await onDelete();
+          try {
+            // On failure the caller stays on this screen, so the modal has to
+            // close and the buttons have to come back — otherwise a dropped
+            // request leaves it stuck on "Deleting..." with no way out.
+            const ok = await onDelete();
+            if (!ok) setConfirming(false);
+          } finally {
+            setBusy(false);
+          }
         }}
       />
     </div>

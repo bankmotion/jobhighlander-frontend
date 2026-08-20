@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Job } from '@/lib/types';
 import { formatPostedRelative } from '@/lib/format';
+import { ResumeAction } from './resume-action';
 
 export function JobCard({ job }: { job: Job }) {
   const posted = formatPostedRelative(job.postedAt);
@@ -97,11 +98,12 @@ export function JobCard({ job }: { job: Job }) {
         >
           JD Details
         </Link>
+        <ResumeAction jobId={job.id} title={job.title} company={job.company} />
         <a
           href={job.jobUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-[var(--muted)] transition hover:text-white"
+          className="ml-auto text-[var(--muted)] transition hover:text-white"
         >
           Original posting ↗
         </a>

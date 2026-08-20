@@ -3,7 +3,7 @@ import type { Pagination as PaginationInfo } from '@/lib/types';
 
 interface Props {
   pagination: PaginationInfo;
-  query: { q: string; sites: string[]; remote: boolean };
+  query: { q: string; sites: string[]; remote: boolean; profile?: number };
 }
 
 function href(page: number, query: Props['query']): string {
@@ -11,6 +11,9 @@ function href(page: number, query: Props['query']): string {
   if (query.q) qs.set('q', query.q);
   query.sites.forEach((s) => qs.append('site', s));
   if (!query.remote) qs.set('remote', '0'); // remote-only is the default
+  // Carried through, or paging would silently switch whose resumes the list
+  // is reporting and every status chip on the next page would be wrong.
+  if (query.profile) qs.set('profile', String(query.profile));
   qs.set('page', String(page));
   return `/?${qs.toString()}`;
 }

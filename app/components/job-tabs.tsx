@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 export interface JobTab {
   key: string;
@@ -16,9 +16,33 @@ export interface JobTab {
  * `hidden` rather than unmounted — switching back to the resume tab must not
  * discard a generated result or the notes the user typed.
  */
-export function JobTabs({ tabs }: { tabs: JobTab[] }) {
-  const [active, setActive] = useState(0);
+export function JobTabs({ tabs, initialTab }: { tabs: JobTab[]; initialTab?: string }) {
+  // The server resolves the tab from `?tab=`, so the first paint is already
+  // correct and there is no hydration mismatch from reading `window` here.
+  const initial = Math.max(0, tabs.findIndex((t) => t.key === initialTab));
+  const [active, setActive] = useState(initial);
   const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  function select(i: number) {
+    setActive(i);
+    // history.replaceState, NOT router.replace: this page is force-dynamic, so
+    // a Next navigation would refetch the RSC payload on every tab click. The
+    // tab is a purely client-side concern — the URL just needs to say so.
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', tabs[i].key);
+    window.history.replaceState(null, '', url);
+  }
+
+  // Returning to the page via back/forward restores whatever tab the URL names.
+  useEffect(() => {
+    const onPop = () => {
+      const key = new URL(window.location.href).searchParams.get('tab');
+      const i = tabs.findIndex((t) => t.key === key);
+      setActive(i >= 0 ? i : 0);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [tabs]);
 
   function onKeyDown(e: React.KeyboardEvent) {
     const last = tabs.length - 1;
@@ -29,7 +53,7 @@ export function JobTabs({ tabs }: { tabs: JobTab[] }) {
     else if (e.key === 'End') next = last;
     if (next === null) return;
     e.preventDefault();
-    setActive(next);
+    select(next);
     btnRefs.current[next]?.focus();
   }
 
@@ -55,7 +79,7 @@ export function JobTabs({ tabs }: { tabs: JobTab[] }) {
               aria-selected={selected}
               aria-controls={`panel-${t.key}`}
               tabIndex={selected ? 0 : -1}
-              onClick={() => setActive(i)}
+              onClick={() => select(i)}
               className={`relative whitespace-nowrap rounded-t-lg px-4 py-2.5 text-sm font-medium transition ${
                 selected
                   ? 'bg-[var(--surface-2)] text-white'
