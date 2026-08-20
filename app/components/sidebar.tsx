@@ -124,6 +124,7 @@ export function Sidebar({ role, profiles }: { role: Role; profiles: ProfileSumma
             label="Super Admin"
             active={
               pathname === '/admin' ||
+              pathname.startsWith('/admin/prompts') ||
               pathname.startsWith('/admin/keywords') ||
               pathname.startsWith('/admin/scrape-runs') ||
               pathname.startsWith('/admin/scraper-settings')
@@ -131,6 +132,9 @@ export function Sidebar({ role, profiles }: { role: Role; profiles: ProfileSumma
           >
             <Link href="/admin" className={linkCls(pathname === '/admin')}>
               <span className="text-base">👥</span> Users
+            </Link>
+            <Link href="/admin/prompts" className={linkCls(pathname.startsWith('/admin/prompts'))}>
+              <span className="text-base">🗣</span> Prompts
             </Link>
             <Link href="/admin/keywords" className={linkCls(pathname.startsWith('/admin/keywords'))}>
               <span className="text-base">🏷️</span> Keywords

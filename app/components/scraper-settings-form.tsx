@@ -13,6 +13,13 @@ interface Field {
   /** Show an "open" button — only for links you can actually browse. NOT for
    *  API endpoints (they return JSON) or proxy_url (it carries credentials). */
   link?: boolean;
+  /**
+   * Granularity for a number field. `<input type="number">` defaults to step=1
+   * and marks anything fractional invalid, so every setting stored as a float
+   * needs one — otherwise a 1.5-hour gap or a 7.5-second delay reads as a
+   * validation error rather than a valid value.
+   */
+  step?: string;
 }
 interface Group {
   title: string;
@@ -30,10 +37,31 @@ const GROUPS: Group[] = [
     ],
   },
   {
+    // The gap BETWEEN cycles, not a per-request delay. Read fresh by
+    // scheduler.py at the start of every cycle, so a change here applies to the
+    // next gap without restarting a process that runs for days.
+    title: 'Schedule',
+    fields: [
+      {
+        key: 'schedule_min_hours',
+        label: 'Min gap between runs (h)',
+        type: 'number',
+        step: '0.25',
+        hint: 'a random gap in this range is re-rolled after every cycle',
+      },
+      {
+        key: 'schedule_max_hours',
+        label: 'Max gap between runs (h)',
+        type: 'number',
+        step: '0.25',
+      },
+    ],
+  },
+  {
     title: 'Indeed',
     fields: [
       { key: 'enable_indeed', label: 'Enabled', type: 'bool' },
-      { key: 'indeed_search_url', label: 'Search URL', type: 'text' , link: true },
+      { key: 'indeed_search_url', label: 'Search URL', type: 'text', link: true },
       { key: 'indeed_max_pages', label: 'Max pages', type: 'number' },
     ],
   },
@@ -41,14 +69,14 @@ const GROUPS: Group[] = [
     title: 'Glassdoor',
     fields: [
       { key: 'enable_glassdoor', label: 'Enabled', type: 'bool' },
-      { key: 'glassdoor_search_url', label: 'Search URL', type: 'text' , link: true },
+      { key: 'glassdoor_search_url', label: 'Search URL', type: 'text', link: true },
     ],
   },
   {
     title: 'JobRight',
     fields: [
       { key: 'enable_jobright', label: 'Enabled', type: 'bool' },
-      { key: 'jobright_recommend_url', label: 'Recommend URL', type: 'text' , link: true },
+      { key: 'jobright_recommend_url', label: 'Recommend URL', type: 'text', link: true },
       { key: 'jobright_recommend_api', label: 'Recommend API', type: 'text' },
     ],
   },
@@ -56,7 +84,7 @@ const GROUPS: Group[] = [
     title: 'WeWorkRemotely',
     fields: [
       { key: 'enable_weworkremotely', label: 'Enabled', type: 'bool' },
-      { key: 'weworkremotely_search_url', label: 'Search URL', type: 'text' , link: true },
+      { key: 'weworkremotely_search_url', label: 'Search URL', type: 'text', link: true },
       { key: 'weworkremotely_max_per_company', label: 'Max per company', type: 'number' },
     ],
   },
@@ -71,27 +99,71 @@ const GROUPS: Group[] = [
     title: 'FindMyRemote',
     fields: [
       { key: 'enable_findmyremote', label: 'Enabled', type: 'bool' },
-      { key: 'findmyremote_search_url', label: 'Search URL', type: 'text', hint: 'site link; its filters are forwarded to the API' , link: true },
-      { key: 'findmyremote_role_regex', label: 'Role regex', type: 'text', hint: 'blank = every role' },
+      {
+        key: 'findmyremote_search_url',
+        label: 'Search URL',
+        type: 'text',
+        hint: 'site link; its filters are forwarded to the API',
+        link: true,
+      },
+      {
+        key: 'findmyremote_role_regex',
+        label: 'Role regex',
+        type: 'text',
+        hint: 'blank = every role',
+      },
     ],
   },
   {
     title: 'Jobicy',
     fields: [
       { key: 'enable_jobicy', label: 'Enabled', type: 'bool' },
-      { key: 'jobicy_search_url', label: 'Search URL', type: 'text', hint: 'site link; page/N is appended for pagination' , link: true },
-      { key: 'jobicy_role_regex', label: 'Role regex', type: 'text', hint: 'blank = every role the listing returns' },
-      { key: 'jobicy_delay_s', label: 'Delay between jobs (s)', type: 'number', hint: 'rate-limits hard — do not lower' },
+      {
+        key: 'jobicy_search_url',
+        label: 'Search URL',
+        type: 'text',
+        hint: 'site link; page/N is appended for pagination',
+        link: true,
+      },
+      {
+        key: 'jobicy_role_regex',
+        label: 'Role regex',
+        type: 'text',
+        hint: 'blank = every role the listing returns',
+      },
+      {
+        key: 'jobicy_delay_s',
+        label: 'Delay between jobs (s)',
+        type: 'number',
+        step: '0.5',
+        hint: 'rate-limits hard — do not lower',
+      },
     ],
   },
   {
     title: 'The Muse',
     fields: [
       { key: 'enable_themuse', label: 'Enabled', type: 'bool' },
-      { key: 'themuse_search_url', label: 'Search URL', type: 'text', hint: 'site link; ?page=N is appended. Keep the date-posted filter' , link: true },
-      { key: 'themuse_us_only', label: 'US jobs only', type: 'bool', hint: 'expands the hidden city and drops non-US postings' },
-      { key: 'themuse_role_regex', label: 'Role regex', type: 'text', hint: 'blank = every role the listing returns' },
-      { key: 'themuse_delay_s', label: 'Delay between jobs (s)', type: 'number' },
+      {
+        key: 'themuse_search_url',
+        label: 'Search URL',
+        type: 'text',
+        hint: 'site link; ?page=N is appended. Keep the date-posted filter',
+        link: true,
+      },
+      {
+        key: 'themuse_us_only',
+        label: 'US jobs only',
+        type: 'bool',
+        hint: 'expands the hidden city and drops non-US postings',
+      },
+      {
+        key: 'themuse_role_regex',
+        label: 'Role regex',
+        type: 'text',
+        hint: 'blank = every role the listing returns',
+      },
+      { key: 'themuse_delay_s', label: 'Delay between jobs (s)', type: 'number', step: '0.5' },
     ],
   },
   {
@@ -99,7 +171,12 @@ const GROUPS: Group[] = [
     fields: [
       { key: 'enable_himalayas', label: 'Enabled', type: 'bool' },
       { key: 'himalayas_api_url', label: 'API URL', type: 'text' },
-      { key: 'himalayas_country', label: 'Country', type: 'text', hint: 'matches locationRestrictions' },
+      {
+        key: 'himalayas_country',
+        label: 'Country',
+        type: 'text',
+        hint: 'matches locationRestrictions',
+      },
       { key: 'himalayas_role_regex', label: 'Role regex', type: 'text' },
     ],
   },
@@ -138,11 +215,21 @@ export function ScraperSettingsForm({ initial }: { initial: ScraperSetting[] }) 
   return (
     <div className="space-y-5">
       {GROUPS.map((g) => (
-        <section key={g.title} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">{g.title}</h2>
+        <section
+          key={g.title}
+          className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
+        >
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">
+            {g.title}
+          </h2>
           <div className="grid gap-4 sm:grid-cols-2">
             {g.fields.map((f) => (
-              <FieldRow key={f.key} field={f} value={values[f.key] ?? ''} onChange={(v) => set(f.key, v)} />
+              <FieldRow
+                key={f.key}
+                field={f}
+                value={values[f.key] ?? ''}
+                onChange={(v) => set(f.key, v)}
+              />
             ))}
           </div>
         </section>
@@ -152,9 +239,13 @@ export function ScraperSettingsForm({ initial }: { initial: ScraperSetting[] }) 
           stands off the form instead of blending into the dark background. */}
       <div className="jh-sticky-bar sticky bottom-0 z-10 flex items-center justify-between gap-3 rounded-t-xl px-4 py-3">
         {msg ? (
-          <span className={`text-sm ${msg.ok ? 'text-green-300' : 'text-red-400'}`}>{msg.text}</span>
+          <span className={`text-sm ${msg.ok ? 'text-green-300' : 'text-red-400'}`}>
+            {msg.text}
+          </span>
         ) : (
-          <span className="text-sm text-[var(--muted)]">Changes apply on the next scraper run.</span>
+          <span className="text-sm text-[var(--muted)]">
+            Changes apply on the next scraper run.
+          </span>
         )}
         <button
           onClick={save}
@@ -168,7 +259,15 @@ export function ScraperSettingsForm({ initial }: { initial: ScraperSetting[] }) 
   );
 }
 
-function FieldRow({ field, value, onChange }: { field: Field; value: string; onChange: (v: string) => void }) {
+function FieldRow({
+  field,
+  value,
+  onChange,
+}: {
+  field: Field;
+  value: string;
+  onChange: (v: string) => void;
+}) {
   if (field.type === 'bool') {
     const on = value === 'true';
     return (
@@ -203,6 +302,8 @@ function FieldRow({ field, value, onChange }: { field: Field; value: string; onC
       <div className="flex items-center gap-2">
         <input
           type={field.type === 'number' ? 'number' : 'text'}
+          step={field.type === 'number' ? (field.step ?? '1') : undefined}
+          min={field.type === 'number' ? '0' : undefined}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm outline-none transition focus:border-[var(--primary)]"

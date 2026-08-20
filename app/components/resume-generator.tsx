@@ -55,12 +55,25 @@ export function ResumeGenerator({
   jobId,
   profiles,
   presets,
+  initialProfileId,
 }: {
   jobId: number;
   profiles: ProfileSummary[];
   presets: Preset[];
+  /**
+   * Which profile to open on — resolved by the page from `?profile=`.
+   *
+   * Without it this picker seeded itself from profiles[0] and ignored the URL,
+   * so a card opened from a list showing profile B landed on profile A and
+   * reported no resume for a job that plainly had one. The page and this
+   * control have to resolve the profile the same way or they disagree on
+   * screen.
+   */
+  initialProfileId?: number | null;
 }) {
-  const [profileId, setProfileId] = useState<number | ''>(profiles[0]?.id ?? '');
+  const [profileId, setProfileId] = useState<number | ''>(
+    initialProfileId ?? profiles[0]?.id ?? '',
+  );
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -237,11 +250,7 @@ export function ResumeGenerator({
     }
   }
 
-  async function renderPdf(
-    forResume: TailoredResume,
-    forProfileId: number,
-    forTemplate?: string,
-  ) {
+  async function renderPdf(forResume: TailoredResume, forProfileId: number, forTemplate?: string) {
     setPdfLoading(true);
     try {
       const res = await fetch('/api/resumes/pdf', {
@@ -311,7 +320,9 @@ export function ResumeGenerator({
           >
             {profiles.map((p) => (
               <option key={p.id} value={p.id}>
-                {[p.firstName, p.lastName].filter(Boolean).join(' ') || p.email || 'Profile #' + p.id}
+                {[p.firstName, p.lastName].filter(Boolean).join(' ') ||
+                  p.email ||
+                  'Profile #' + p.id}
               </option>
             ))}
           </select>
@@ -399,8 +410,13 @@ export function ResumeGenerator({
 
           {inferredCount > 0 && (
             <p className="mb-5 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
-              <strong className="font-semibold">Draft — {inferredCount} items were written by AI.</strong>{' '}
-              Anything <span className="decoration-amber-400/50 decoration-dotted underline-offset-4 [text-decoration-line:underline]">underlined</span>{' '}
+              <strong className="font-semibold">
+                Draft — {inferredCount} items were written by AI.
+              </strong>{' '}
+              Anything{' '}
+              <span className="decoration-amber-400/50 decoration-dotted underline-offset-4 [text-decoration-line:underline]">
+                underlined
+              </span>{' '}
               is a guess based on your employers and this posting. Check it before you send this to
               anyone.
             </p>
@@ -418,11 +434,7 @@ export function ResumeGenerator({
 
             {pdfUrl && (
               <div className="group relative overflow-hidden rounded-lg border border-[var(--border-strong)] bg-white">
-                <iframe
-                  src={pdfUrl}
-                  title="Resume preview"
-                  className="block h-[560px] w-full"
-                />
+                <iframe src={pdfUrl} title="Resume preview" className="block h-[560px] w-full" />
 
                 {/* Hover/focus reveal. `pointer-events-none` on the backdrop
                     keeps the PDF viewer's own scrolling usable; only the link
@@ -487,7 +499,9 @@ export function ResumeGenerator({
               {resume.education.map((ed, i) => (
                 <div key={i}>
                   <span className="font-medium text-white">{ed.degree}</span>
-                  {ed.institution && <span className="text-[var(--muted)]"> · {ed.institution}</span>}
+                  {ed.institution && (
+                    <span className="text-[var(--muted)]"> · {ed.institution}</span>
+                  )}
                   {ed.period && <span className="text-[var(--muted)]"> · {ed.period}</span>}
                 </div>
               ))}

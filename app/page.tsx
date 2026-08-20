@@ -3,10 +3,12 @@ import { fetchProfiles } from '@/lib/profiles';
 import { fetchPresets } from '@/lib/templates';
 import { fetchResumeStatus } from '@/lib/resumes';
 import { fetchAppliedStatus, isAppliedFilter, type AppliedFilter } from '@/lib/applications';
+import { fetchCoverLetterStatus } from '@/lib/cover-letters';
 import { FiltersBar } from '@/app/components/filters-bar';
 import { JobCard } from '@/app/components/job-card';
 import { Pagination } from '@/app/components/pagination';
 import { AppliedProvider } from '@/app/components/applied-provider';
+import { CoverLetterProvider } from '@/app/components/cover-letter-provider';
 import { ResumeListProvider } from '@/app/components/resume-list-provider';
 import { ResumeProfileNotice } from '@/app/components/resume-action';
 import { ResumeProfilePicker } from '@/app/components/resume-profile-picker';
@@ -83,12 +85,13 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   // Both resolved on the server: fetching either from the client would paint
   // every card as "no resume, not applied" first and then correct itself.
   const jobIds = (data?.items ?? []).map((j) => j.id);
-  const [resumeStatus, appliedStatus] = profileId
+  const [resumeStatus, appliedStatus, coverLetterStatus] = profileId
     ? await Promise.all([
         fetchResumeStatus(profileId, jobIds),
         fetchAppliedStatus(profileId, jobIds),
+        fetchCoverLetterStatus(profileId, jobIds),
       ])
-    : [{}, {}];
+    : [{}, {}, {}];
 
   return (
     <div>
@@ -132,12 +135,21 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
             initialStatus={resumeStatus}
             presets={presets}
           >
-            <ul className="grid gap-4">
-              {data.items.map((job) => (
-                <JobCard key={job.id} job={job} profileId={profileId} />
-              ))}
-            </ul>
-            <Pagination pagination={data.pagination} query={query} />
+            <CoverLetterProvider
+              // Inside ResumeListProvider on purpose: the control reads that
+              // map to know whether the resume it is written from exists, which
+              // is what lets the gate cost no extra request.
+              key={profileId ?? 'none'}
+              profileId={profileId}
+              initial={coverLetterStatus}
+            >
+              <ul className="grid gap-4">
+                {data.items.map((job) => (
+                  <JobCard key={job.id} job={job} profileId={profileId} />
+                ))}
+              </ul>
+              <Pagination pagination={data.pagination} query={query} />
+            </CoverLetterProvider>
           </ResumeListProvider>
         </AppliedProvider>
       ) : (

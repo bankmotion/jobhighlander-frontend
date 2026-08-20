@@ -3,6 +3,7 @@ import type { Job } from '@/lib/types';
 import { formatPostedRelative } from '@/lib/format';
 import { ResumeAction } from './resume-action';
 import { AppliedAction, AppliedBadge } from './applied-action';
+import { CoverLetterAction } from './cover-letter-action';
 
 export function JobCard({ job, profileId }: { job: Job; profileId: number | null }) {
   /**
@@ -119,6 +120,9 @@ export function JobCard({ job, profileId }: { job: Job; profileId: number | null
           JD Details
         </Link>
         <ResumeAction jobId={job.id} title={job.title} company={job.company} />
+        {/* Beside the resume control, because it is written from it and reads
+            "Resume first" until that exists. */}
+        <CoverLetterAction jobId={job.id} />
         <a
           href={job.jobUrl}
           target="_blank"

@@ -5,12 +5,15 @@ import { fetchKeywords } from '@/lib/keywords';
 import { fetchProfiles } from '@/lib/profiles';
 import { fetchPresets } from '@/lib/templates';
 import { formatPostedRelative } from '@/lib/format';
-import { fetchAppliedStatus } from '@/lib/applications';
+import { fetchAppliedStatus, type AppliedStatusMap } from '@/lib/applications';
+import { fetchCoverLetter, type CoverLetter } from '@/lib/cover-letters';
+import { fetchResumeStatus, type ResumeStatusMap } from '@/lib/resumes';
 import { getSession } from '@/lib/auth';
 import { HighlightedText } from '@/app/components/highlighted-text';
 import { ResumeGenerator } from '@/app/components/resume-generator';
 import { JobTabs } from '@/app/components/job-tabs';
 import { AppliedProvider } from '@/app/components/applied-provider';
+import { CoverLetterGenerator } from '@/app/components/cover-letter-generator';
 import { AppliedAction, AppliedBadge } from '@/app/components/applied-action';
 
 export const dynamic = 'force-dynamic';
@@ -49,8 +52,25 @@ export default async function JobDetail({
   // `fetchProfiles` orders owned-first. A card opened from the list therefore
   // shows the applied state of the profile the list was showing.
   const wanted = Number(profileParam);
-  const profileId = (profiles.find((p) => p.id === wanted) ?? profiles[0])?.id ?? null;
-  const appliedStatus = profileId ? await fetchAppliedStatus(profileId, [job.id]) : {};
+  const activeProfile = profiles.find((p) => p.id === wanted) ?? profiles[0] ?? null;
+  const profileId = activeProfile?.id ?? null;
+  // Three per-profile lookups for this one job, in parallel. The resume status
+  // is needed only as a yes/no: the letter is written FROM the resume, so the
+  // tab has to know whether that step is done before offering to generate —
+  // and finding out by attempting it would spend a request to learn something
+  // the page could have said up front.
+  const [appliedStatus, coverLetter, resumeStatus]: [
+    AppliedStatusMap,
+    CoverLetter | null,
+    ResumeStatusMap,
+  ] = profileId
+    ? await Promise.all([
+        fetchAppliedStatus(profileId, [job.id]),
+        fetchCoverLetter(job.id, profileId),
+        fetchResumeStatus(profileId, [job.id]),
+      ])
+    : [{}, null, {}];
+  const hasResume = Boolean(resumeStatus[job.id]);
 
   return (
     <AppliedProvider
@@ -158,7 +178,30 @@ export default async function JobDetail({
             {
               key: 'resume',
               label: 'Tailored Resume',
-              content: <ResumeGenerator jobId={job.id} profiles={profiles} presets={presets} />,
+              content: (
+                <ResumeGenerator
+                  jobId={job.id}
+                  profiles={profiles}
+                  presets={presets}
+                  initialProfileId={profileId}
+                />
+              ),
+            },
+            {
+              key: 'cover-letter',
+              label: 'Cover Letter',
+              // Reads "Resume first" until one exists, so the dependency shows
+              // in the tab strip rather than only after a click.
+              badge: hasResume ? undefined : 'Resume first',
+              content: (
+                <CoverLetterGenerator
+                  jobId={job.id}
+                  profileId={profileId}
+                  profile={activeProfile ?? null}
+                  hasResume={hasResume}
+                  initial={coverLetter}
+                />
+              ),
             },
           ]}
         />
