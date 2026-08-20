@@ -532,7 +532,6 @@ export function ResumeListProvider({
       (profileId ? getRun(profileId, target.jobId, now || 0)?.status : undefined))
     : undefined;
   const preset = presets.find((p) => p.key === st?.templateKey);
-  const isMock = st?.model === 'mock';
   const failed = run?.state === 'error';
   const exhausted = (run?.attempts ?? 0) >= MAX_ATTEMPTS;
 
@@ -708,12 +707,6 @@ export function ResumeListProvider({
 
           {!generating && pdfUrl && (
             <>
-              {isMock && (
-                <p className="mb-3 rounded-lg border border-dashed border-slate-400/40 bg-slate-400/10 px-3 py-2 text-sm text-slate-300">
-                  Placeholder text from the offline mock (<code>AI_MOCK=1</code>), not a real
-                  resume. Enable the API and rewrite to get one.
-                </p>
-              )}
               {!!st?.inferredCount && (
                 <p className="mb-3 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
                   <strong className="font-semibold">
