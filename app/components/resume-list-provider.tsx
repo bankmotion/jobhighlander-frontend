@@ -98,6 +98,31 @@ export function ResumeListProvider({
     profileId ? mergeSettled(initialStatus, drainSettled(profileId)) : initialStatus,
   );
 
+  /**
+   * Re-seed when the SERVER sends a new snapshot.
+   *
+   * The initializer above runs once per mount, and a client-side navigation
+   * does not remount this provider — React reconciles it in place. So a prop
+   * change alone used to leave `status` holding the previous navigation's map:
+   * switch profile from the sidebar and every card kept reporting the old
+   * profile's resumes until a full reload rebuilt the tree. Prefetched links
+   * made it reliable rather than intermittent, because an instant navigation
+   * never renders the loading fallback that would otherwise have unmounted us.
+   *
+   * `initialStatus` is a fresh object per RSC payload and a stable reference
+   * across client re-renders, which makes its identity exactly the signal for
+   * "the server just told us something new" — profile, filter or page alike.
+   *
+   * Adjusted during render rather than in an effect: an effect would paint the
+   * stale badges and correct them a frame later, which is the same bug with a
+   * shorter life. `drainSettled` only reads, so this stays pure.
+   */
+  const [seededFrom, setSeededFrom] = useState<ResumeStatusMap>(initialStatus);
+  if (seededFrom !== initialStatus) {
+    setSeededFrom(initialStatus);
+    setStatus(profileId ? mergeSettled(initialStatus, drainSettled(profileId)) : initialStatus);
+  }
+
   const [target, setTarget] = useState<ResumeTarget | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);

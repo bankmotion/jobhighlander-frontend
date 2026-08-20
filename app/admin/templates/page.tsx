@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { fetchPresets } from '@/lib/templates';
 import { fetchProfiles, fetchProfile } from '@/lib/profiles';
 import { TemplatePicker } from '@/app/components/template-picker';
@@ -5,7 +6,20 @@ import { TemplatePicker } from '@/app/components/template-picker';
 export const dynamic = 'force-dynamic';
 
 export default async function TemplatesPage() {
-  const [presets, profiles] = await Promise.all([fetchPresets(), fetchProfiles()]);
+  const [presets, usable] = await Promise.all([fetchPresets(), fetchProfiles()]);
+
+  /**
+   * OWNED profiles only.
+   *
+   * A profile's default template is part of the profile, so the backend scopes
+   * `setDefault` to its owner. `fetchProfiles` returns everything the user may
+   * USE — their own plus the ones they accepted an invitation to — and offering
+   * a shared one here would build a picker whose every save comes back 404.
+   * The rule is enforced by the API either way; this is what stops the UI
+   * inviting a click that cannot work.
+   */
+  const profiles = usable.filter((p) => p.canEdit);
+  const sharedCount = usable.length - profiles.length;
 
   // The summary endpoint does not carry the saved default, so each profile is
   // fetched in full. Fine at this scale — a handful of profiles per admin.
@@ -19,10 +33,31 @@ export default async function TemplatesPage() {
     <div>
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-white">Resume templates</h1>
       <p className="mb-6 text-sm text-[var(--muted)]">
-        Pick the default design for each profile. Every preview shows the same sample candidate, so
-        what differs between them is the design.
+        Pick the default design for each profile you own. Every preview shows the same sample
+        candidate, so what differs between them is the design.
       </p>
-      <TemplatePicker presets={presets} profiles={profiles} defaults={defaults} />
+
+      {/* Said once, here, rather than as a disabled row per profile: the reason
+          is about ownership in general, not about any one of them. */}
+      {sharedCount > 0 && (
+        <p className="mb-6 rounded-lg border border-dashed border-[var(--border-strong)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted)]">
+          {sharedCount} profile{sharedCount === 1 ? '' : 's'} shared with you {sharedCount === 1 ? 'is' : 'are'}{' '}
+          not listed — a default template belongs to the profile, so only its owner sets it. You can
+          still choose a template for any individual resume you generate.
+        </p>
+      )}
+
+      {profiles.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-[var(--border-strong)] p-10 text-center text-sm text-[var(--muted)]">
+          You do not own any profiles yet.{' '}
+          <Link href="/profiles" className="text-[var(--text)] underline hover:text-white">
+            Create one
+          </Link>{' '}
+          to set its default template.
+        </div>
+      ) : (
+        <TemplatePicker presets={presets} profiles={profiles} defaults={defaults} />
+      )}
     </div>
   );
 }

@@ -24,6 +24,9 @@ const TONE = {
   // green Remote pill, and a third green makes the row unreadable at a glance.
   ready: 'border-[var(--primary)] bg-[var(--primary)]/12 font-medium text-white hover:bg-[var(--primary)]/20',
   error: 'border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20',
+  // No hover affordance at all: the control is inert, and a border that lights
+  // up under the cursor promises a click that does nothing.
+  disabled: 'cursor-not-allowed border-dashed border-[var(--border)] text-[var(--muted)]',
 } as const;
 
 function IconPlus() {
@@ -65,10 +68,6 @@ function IconAlert() {
 export function ResumeAction({ jobId, title, company }: ResumeTarget) {
   const { profileId, statusOf, runOf, generate, view } = useResumeList();
 
-  // No profile means no name, contact or history to build from. The page header
-  // explains it once; twenty identical dead buttons would not.
-  if (!profileId) return null;
-
   const target: ResumeTarget = { jobId, title, company };
   const status = statusOf(jobId);
   const run = runOf(jobId);
@@ -77,6 +76,35 @@ export function ResumeAction({ jobId, title, company }: ResumeTarget) {
   // an identical title and company, and a screen-reader element list would then
   // show several indistinguishable buttons. The card already shows this as #id.
   const where = `${company ? `${title} at ${company}` : title}, posting ${jobId}`;
+
+  /**
+   * Without a profile there is no name, contact or history to build from, so
+   * the control is shown DISABLED rather than removed.
+   *
+   * Removing it kept the footer tidy but cost more than it saved: the row
+   * silently lost a column, so the reason had to be inferred from an absence.
+   * A disabled control with a title says what is missing at the point of use,
+   * and the header notice says how to fix it.
+   */
+  if (!profileId) {
+    return (
+      <span
+        data-resume-trigger={jobId}
+        // Not a <button disabled>: a disabled button is skipped by keyboard
+        // navigation and its title never surfaces, which would put the only
+        // explanation behind a hover a keyboard user cannot perform.
+        role="button"
+        aria-disabled="true"
+        tabIndex={0}
+        title="Resumes need a profile — create one, or ask an admin to invite you to theirs"
+        aria-label={`Cannot write a resume for ${where}: no profile yet`}
+        className={`${BOX} ${TONE.disabled}`}
+      >
+        <IconPlus />
+        Write resume
+      </span>
+    );
+  }
 
   if (run?.state === 'running') {
     return (

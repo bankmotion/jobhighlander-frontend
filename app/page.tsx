@@ -99,6 +99,11 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
         </div>
       ) : data && data.items.length > 0 ? (
         <ResumeListProvider
+          // Switching profile is a change of subject, not of filter: remount so
+          // an open resume modal, its rendered PDF and any confirm dialog go
+          // with the profile they belonged to. The status map itself re-seeds
+          // on every server snapshot, which covers filters and paging too.
+          key={profileId ?? 'none'}
           profileId={profileId}
           initialStatus={resumeStatus}
           presets={presets}

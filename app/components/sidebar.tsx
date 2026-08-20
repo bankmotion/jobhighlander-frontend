@@ -1,14 +1,43 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import type { Role } from '@/lib/session';
+import type { ProfileSummary } from '@/lib/types';
 
-export function Sidebar({ role }: { role: Role }) {
+const profileLabel = (p: ProfileSummary): string =>
+  [p.firstName, p.lastName].filter(Boolean).join(' ') || p.email || `Profile #${p.id}`;
+
+export function Sidebar({ role, profiles }: { role: Role; profiles: ProfileSummary[] }) {
   const pathname = usePathname();
+  const params = useSearchParams();
   const isAdmin = role === 'admin' || role === 'super_admin';
   const superAdmin = role === 'super_admin';
+
+  const onJobs = pathname === '/';
+  // Which profile the job list is currently showing resumes for. Mirrors the
+  // page's own resolution exactly — `?profile=` wins, otherwise the first
+  // profile — so the highlighted entry always matches what the page rendered.
+  const wanted = Number(params.get('profile'));
+  const activeProfileId = profiles.find((p) => p.id === wanted)?.id ?? profiles[0]?.id ?? null;
+
+  /**
+   * A job list scoped to one profile.
+   *
+   * The current search and filters ride along when we are already on the job
+   * list, so switching profile re-reads the SAME list of jobs against a
+   * different resume history rather than silently resetting the user's query.
+   * `page` is dropped for the same reason the in-page picker drops it: resume
+   * status is fetched for the jobs on screen, and a deep page after a switch
+   * shows a list nobody asked for.
+   */
+  const jobsHref = (profileId: number): string => {
+    const next = new URLSearchParams(onJobs ? params.toString() : '');
+    next.set('profile', String(profileId));
+    next.delete('page');
+    return `/?${next.toString()}`;
+  };
 
   const linkCls = (active: boolean) =>
     `mb-1 flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
@@ -27,14 +56,46 @@ export function Sidebar({ role }: { role: Role }) {
       </div>
 
       <nav className="flex-1 px-3 py-2">
-        <Link href="/" className={linkCls(pathname === '/')}>
-          <span className="text-base">💼</span> Jobs
-        </Link>
+        {/* One entry per profile. Each is the same job list read against that
+            profile's resumes, which is what makes them separately manageable.
+            Shown from the FIRST profile, not the second: the group is what
+            tells you the list you are looking at belongs to a profile at all,
+            and a nav that changes shape when a second one appears teaches the
+            layout twice. Only a user with none falls back to a plain link. */}
+        {profiles.length > 0 ? (
+          <NavGroup
+            icon="💼"
+            label="Jobs"
+            active={onJobs}
+            // Jobs is the primary destination, so it stays expanded even when
+            // the user is elsewhere: collapsed, reaching a job list from the
+            // Profiles page would cost a click to open the group and another to
+            // choose, where it used to cost one.
+            defaultOpen
+            maxHeight={profiles.length * 40 + 16}
+          >
+            {profiles.map((p) => (
+              <Link
+                key={p.id}
+                href={jobsHref(p.id)}
+                className={linkCls(onJobs && p.id === activeProfileId)}
+                title={p.canEdit ? undefined : `Shared by ${p.owner.email}`}
+              >
+                <span className="text-base">{p.canEdit ? '🧑' : '🤝'}</span>
+                <span className="truncate">{profileLabel(p)}</span>
+              </Link>
+            ))}
+          </NavGroup>
+        ) : (
+          <Link href="/" className={linkCls(onJobs)}>
+            <span className="text-base">💼</span> Jobs
+          </Link>
+        )}
 
         {/* Profiles is NOT under Admin: bidders open it too, for the profiles
             they were invited to. Only creating one is an admin action. */}
         <Link href="/profiles" className={linkCls(pathname.startsWith('/profiles'))}>
-          <span className="text-base">🧑‍💼</span> Profiles
+          <span className="text-base">👤</span> Profiles
         </Link>
 
         {isAdmin && (
@@ -97,14 +158,24 @@ function NavGroup({
   icon,
   label,
   active,
+  defaultOpen,
+  maxHeight = 260,
   children,
 }: {
   icon: string;
   label: string;
   active: boolean;
+  /** Initial open state. Defaults to `active` — open the group you are in. */
+  defaultOpen?: boolean;
+  /**
+   * Open height in px. The transition needs a concrete value, and the Jobs
+   * group grows with the profile count — a fixed 260 would clip the seventh
+   * profile out of reach with no scrollbar to hint that it existed.
+   */
+  maxHeight?: number;
   children: React.ReactNode;
 }) {
-  const [open, setOpen] = useState(active);
+  const [open, setOpen] = useState(defaultOpen ?? active);
   return (
     <div className="mt-1">
       <button
@@ -122,7 +193,7 @@ function NavGroup({
       </button>
       <div
         className="overflow-hidden pl-4 transition-[max-height] duration-300 ease-in-out"
-        style={{ maxHeight: open ? '260px' : '0px' }}
+        style={{ maxHeight: open ? `${maxHeight}px` : '0px' }}
       >
         {children}
       </div>
