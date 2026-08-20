@@ -1,9 +1,16 @@
+import type { AppliedFilter } from '@/lib/applications';
 import Link from 'next/link';
 import type { Pagination as PaginationInfo } from '@/lib/types';
 
 interface Props {
   pagination: PaginationInfo;
-  query: { q: string; sites: string[]; remote: boolean; profile?: number };
+  query: {
+    q: string;
+    sites: string[];
+    remote: boolean;
+    profile?: number;
+    applied?: AppliedFilter;
+  };
 }
 
 function href(page: number, query: Props['query']): string {
@@ -14,6 +21,8 @@ function href(page: number, query: Props['query']): string {
   // Carried through, or paging would silently switch whose resumes the list
   // is reporting and every status chip on the next page would be wrong.
   if (query.profile) qs.set('profile', String(query.profile));
+  // Paging must not silently widen the list back to every job.
+  if (query.applied && query.applied !== 'all') qs.set('applied', query.applied);
   qs.set('page', String(page));
   return `/?${qs.toString()}`;
 }
@@ -38,7 +47,8 @@ function pageList(current: number, total: number): (number | 'gap')[] {
 
 const nav =
   'rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 transition hover:border-[var(--border-strong)] hover:text-white';
-const navOff = 'rounded-lg border border-[var(--border)] px-3 py-1.5 text-[var(--muted)] opacity-40';
+const navOff =
+  'rounded-lg border border-[var(--border)] px-3 py-1.5 text-[var(--muted)] opacity-40';
 const num =
   'min-w-[36px] rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1.5 text-center transition hover:border-[var(--border-strong)] hover:text-white';
 const numOn =

@@ -2,8 +2,20 @@ import Link from 'next/link';
 import type { Job } from '@/lib/types';
 import { formatPostedRelative } from '@/lib/format';
 import { ResumeAction } from './resume-action';
+import { AppliedAction, AppliedBadge } from './applied-action';
 
-export function JobCard({ job }: { job: Job }) {
+export function JobCard({ job, profileId }: { job: Job; profileId: number | null }) {
+  /**
+   * Which profile the detail page opens against.
+   *
+   * Carried explicitly because the detail page resolves `?profile=` the same
+   * way the list does — first match, else `profiles[0]`. A bare `/jobs/123`
+   * therefore lands on the viewer's FIRST profile, which is often not the one
+   * the list was showing, so a card badged Applied could open a page reporting
+   * nothing applied. Same reason the filter and pagination links carry it.
+   */
+  const detailHref = profileId ? `/jobs/${job.id}?profile=${profileId}` : `/jobs/${job.id}`;
+
   const posted = formatPostedRelative(job.postedAt);
   const scraped = formatPostedRelative(job.createdAt);
   const applyHref = job.applyUrl ?? job.jobUrl;
@@ -15,12 +27,18 @@ export function JobCard({ job }: { job: Job }) {
     <li className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 transition hover:border-[var(--border-strong)]">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <span className="inline-block rounded-md bg-[var(--blue)]/15 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-blue-300">
-            {job.site}
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="inline-block rounded-md bg-[var(--blue)]/15 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-blue-300">
+              {job.site}
+            </span>
+            {/* Top of the card, next to the source: the point of the badge is
+                to be caught while scanning twenty rows, so a posting already
+                answered is never opened a second time. */}
+            <AppliedBadge jobId={job.id} />
+          </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Link
-              href={`/jobs/${job.id}`}
+              href={detailHref}
               target="_blank"
               rel="noopener noreferrer"
               className="text-[17px] font-semibold text-white transition hover:text-[var(--primary)]"
@@ -86,12 +104,14 @@ export function JobCard({ job }: { job: Job }) {
       </div>
 
       {job.description && (
-        <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-[var(--muted)]">{job.description}</p>
+        <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-[var(--muted)]">
+          {job.description}
+        </p>
       )}
 
       <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-[var(--border)] pt-3 text-sm">
         <Link
-          href={`/jobs/${job.id}`}
+          href={detailHref}
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-[var(--text)] transition hover:border-[var(--border-strong)]"
@@ -107,6 +127,7 @@ export function JobCard({ job }: { job: Job }) {
         >
           Original posting ↗
         </a>
+        <AppliedAction jobId={job.id} />
       </div>
     </li>
   );

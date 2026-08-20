@@ -2,9 +2,11 @@ import { fetchJobs, fetchFilters } from '@/lib/api';
 import { fetchProfiles } from '@/lib/profiles';
 import { fetchPresets } from '@/lib/templates';
 import { fetchResumeStatus } from '@/lib/resumes';
+import { fetchAppliedStatus, isAppliedFilter, type AppliedFilter } from '@/lib/applications';
 import { FiltersBar } from '@/app/components/filters-bar';
 import { JobCard } from '@/app/components/job-card';
 import { Pagination } from '@/app/components/pagination';
+import { AppliedProvider } from '@/app/components/applied-provider';
 import { ResumeListProvider } from '@/app/components/resume-list-provider';
 import { ResumeProfileNotice } from '@/app/components/resume-action';
 import { ResumeProfilePicker } from '@/app/components/resume-profile-picker';
@@ -29,6 +31,8 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   // Remote-only is the DEFAULT (checkbox checked); only `remote=0` shows all.
   const remote = str(sp.remote) !== '0';
   const page = Math.max(1, Number(str(sp.page)) || 1);
+  const appliedParam = str(sp.applied);
+  const applied: AppliedFilter = isAppliedFilter(appliedParam) ? appliedParam : 'all';
 
   const [filters, profiles, presets, session] = await Promise.all([
     fetchFilters().catch(() => ({ sites: [], locations: [] })),
@@ -50,6 +54,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
     q: str(sp.q),
     sites: arr(sp.site),
     remote,
+    applied,
     ...(profiles.length > 1 && profileId ? { profile: profileId } : {}),
   };
 
@@ -60,19 +65,30 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   let data;
   let error: string | null = null;
   try {
-    data = await fetchJobs({ q: query.q, sites: query.sites, remote, page, pageSize: 20 });
+    data = await fetchJobs({
+      q: query.q,
+      sites: query.sites,
+      remote,
+      // Applied is recorded per profile, so the filter travels with one. The
+      // backend ignores it without a profile the caller may actually use.
+      applied,
+      profileId,
+      page,
+      pageSize: 20,
+    });
   } catch {
     error = 'Could not reach the backend API. Is it running on http://localhost:4000 ?';
   }
 
-  // Resolved on the server: fetching this from the client would paint every card
-  // as "no resume" first and then correct itself.
-  const resumeStatus = profileId
-    ? await fetchResumeStatus(
-        profileId,
-        (data?.items ?? []).map((j) => j.id),
-      )
-    : {};
+  // Both resolved on the server: fetching either from the client would paint
+  // every card as "no resume, not applied" first and then correct itself.
+  const jobIds = (data?.items ?? []).map((j) => j.id);
+  const [resumeStatus, appliedStatus] = profileId
+    ? await Promise.all([
+        fetchResumeStatus(profileId, jobIds),
+        fetchAppliedStatus(profileId, jobIds),
+      ])
+    : [{}, {}];
 
   return (
     <div>
@@ -91,34 +107,51 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
 
       {!profileId && <ResumeProfileNotice canManage={canManageProfiles} />}
 
-      <FiltersBar filters={filters} current={query} />
+      <FiltersBar filters={filters} current={query} canFilterApplied={Boolean(profileId)} />
 
       {error ? (
         <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
           {error}
         </div>
       ) : data && data.items.length > 0 ? (
-        <ResumeListProvider
-          // Switching profile is a change of subject, not of filter: remount so
-          // an open resume modal, its rendered PDF and any confirm dialog go
-          // with the profile they belonged to. The status map itself re-seeds
-          // on every server snapshot, which covers filters and paging too.
+        <AppliedProvider
+          // Same reasoning as the resume provider: switching profile is a change
+          // of subject, so the applied badges must not survive it.
           key={profileId ?? 'none'}
           profileId={profileId}
-          initialStatus={resumeStatus}
-          presets={presets}
+          initial={appliedStatus}
+          viewerEmail={session?.email ?? null}
         >
-          <ul className="grid gap-4">
-            {data.items.map((job) => (
-              <JobCard key={job.id} job={job} />
-            ))}
-          </ul>
-          <Pagination pagination={data.pagination} query={query} />
-        </ResumeListProvider>
+          <ResumeListProvider
+            // Switching profile is a change of subject, not of filter: remount so
+            // an open resume modal, its rendered PDF and any confirm dialog go
+            // with the profile they belonged to. The status map itself re-seeds
+            // on every server snapshot, which covers filters and paging too.
+            key={profileId ?? 'none'}
+            profileId={profileId}
+            initialStatus={resumeStatus}
+            presets={presets}
+          >
+            <ul className="grid gap-4">
+              {data.items.map((job) => (
+                <JobCard key={job.id} job={job} profileId={profileId} />
+              ))}
+            </ul>
+            <Pagination pagination={data.pagination} query={query} />
+          </ResumeListProvider>
+        </AppliedProvider>
       ) : (
         <div className="rounded-xl border border-dashed border-[var(--border-strong)] p-10 text-center text-sm text-[var(--muted)]">
-          No jobs yet. Run the Python scraper (<code>python main.py indeed</code>) to populate the
-          database.
+          {applied === 'applied' ? (
+            <>No jobs marked as applied yet for this profile.</>
+          ) : applied === 'unapplied' ? (
+            <>Every job matching these filters is already marked as applied.</>
+          ) : (
+            <>
+              No jobs yet. Run the Python scraper (<code>python main.py indeed</code>) to populate
+              the database.
+            </>
+          )}
         </div>
       )}
     </div>

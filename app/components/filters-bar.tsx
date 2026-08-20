@@ -3,12 +3,27 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { JobFilters } from '@/lib/types';
+import type { AppliedFilter } from '@/lib/applications';
 import { MultiSelect } from './multi-select';
 
 interface Props {
   filters: JobFilters;
-  current: { q: string; sites: string[]; remote: boolean; profile?: number };
+  current: {
+    q: string;
+    sites: string[];
+    remote: boolean;
+    profile?: number;
+    applied: AppliedFilter;
+  };
+  /** Applied is per profile; without one the control has nothing to filter by. */
+  canFilterApplied: boolean;
 }
+
+const APPLIED_TABS: { value: AppliedFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'applied', label: 'Applied' },
+  { value: 'unapplied', label: 'Not applied' },
+];
 
 const inputCls =
   'rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--muted)] outline-none transition focus:border-[var(--primary)]';
@@ -25,14 +40,20 @@ export const SITE_META: Record<string, { label: string; dot: string }> = {
   themuse: { label: 'The Muse', dot: '#06b6d4' },
 };
 export function siteMeta(s: string) {
-  return SITE_META[s] ?? { label: s.charAt(0).toUpperCase() + s.slice(1), dot: 'var(--primary)' };
+  return (
+    SITE_META[s] ?? {
+      label: s.charAt(0).toUpperCase() + s.slice(1),
+      dot: 'var(--primary)',
+    }
+  );
 }
 
-export function FiltersBar({ filters, current }: Props) {
+export function FiltersBar({ filters, current, canFilterApplied }: Props) {
   const router = useRouter();
   const [q, setQ] = useState(current.q);
   const [remote, setRemote] = useState(current.remote);
   const [sites, setSites] = useState<string[]>(current.sites);
+  const [applied, setApplied] = useState<AppliedFilter>(current.applied);
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -52,16 +73,28 @@ export function FiltersBar({ filters, current }: Props) {
     };
   }, []);
 
-  function navigate(next: { q: string; sites: string[]; remote: boolean }) {
+  function navigate(next: {
+    q: string;
+    sites: string[];
+    remote: boolean;
+    applied?: AppliedFilter;
+  }) {
     const qs = new URLSearchParams();
     if (next.q.trim()) qs.set('q', next.q.trim());
     next.sites.forEach((s) => qs.append('site', s));
     if (!next.remote) qs.set('remote', '0'); // remote-only is the default
+    const nextApplied = next.applied ?? applied;
+    if (nextApplied !== 'all') qs.set('applied', nextApplied); // all is the default
     // Filters change WHAT is listed; they must never change WHOSE resumes are
     // reported alongside it.
     if (current.profile) qs.set('profile', String(current.profile));
     const s = qs.toString();
     router.push(s ? `/?${s}` : '/');
+  }
+
+  function selectApplied(next: AppliedFilter) {
+    setApplied(next);
+    navigate({ q, sites, remote, applied: next }); // applies instantly
   }
 
   function toggleSite(s: string) {
@@ -90,12 +123,13 @@ export function FiltersBar({ filters, current }: Props) {
     setQ('');
     setSites([]);
     setRemote(true); // back to the default (remote-only)
+    setApplied('all');
     // Clearing FILTERS must not also reset the selected profile.
     router.push(current.profile ? `/?profile=${current.profile}` : '/');
   }
 
-  // "Filtered" = anything other than the default (remote-only, no query/sources).
-  const hasFilters = Boolean(q.trim() || sites.length || !remote);
+  // "Filtered" = anything other than the default (remote-only, everything else off).
+  const hasFilters = Boolean(q.trim() || sites.length || !remote || applied !== 'all');
 
   return (
     <form
@@ -153,13 +187,51 @@ export function FiltersBar({ filters, current }: Props) {
           }`}
         >
           {remote && (
-            <svg viewBox="0 0 24 24" className="h-3 w-3 text-white" fill="none" stroke="currentColor" strokeWidth="3">
+            <svg
+              viewBox="0 0 24 24"
+              className="h-3 w-3 text-white"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+            >
               <path d="m5 13 4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           )}
         </span>
         Remote only
       </button>
+
+      {/* Applied — a segmented control rather than a checkbox, because there
+          are three states and "all" is a real choice, not the absence of one.
+          Hidden without a profile: applied is recorded per profile, so with
+          none there is nothing the filter could select on. */}
+      {canFilterApplied && (
+        <div
+          role="radiogroup"
+          aria-label="Applied"
+          className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-0.5"
+        >
+          {APPLIED_TABS.map((t) => {
+            const on = applied === t.value;
+            return (
+              <button
+                key={t.value}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                onClick={() => selectApplied(t.value)}
+                className={`rounded-md px-2.5 py-1.5 text-sm transition ${
+                  on
+                    ? 'bg-[var(--primary)] font-medium text-white'
+                    : 'text-[var(--muted)] hover:text-[var(--text)]'
+                }`}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <button
         type="submit"

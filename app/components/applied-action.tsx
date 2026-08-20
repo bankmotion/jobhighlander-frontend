@@ -1,0 +1,181 @@
+'use client';
+
+import { useApplied } from './applied-provider';
+
+function IconCheck({ className = 'h-4 w-4' }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
+  );
+}
+
+/** Dark disc with a knocked-out check — the badge's anchor at small sizes. */
+function CheckDisc({ lg }: { lg: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className={`flex shrink-0 items-center justify-center rounded-full bg-emerald-950/45 ${
+        lg ? 'h-5 w-5' : 'h-4 w-4'
+      }`}
+    >
+      <IconCheck className={lg ? 'h-3 w-3' : 'h-2.5 w-2.5'} />
+    </span>
+  );
+}
+
+const when = (iso: string) =>
+  new Date(iso).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
+/** Local part of an email — enough to identify a colleague, short enough to fit. */
+const shortName = (email: string) => email.split('@')[0];
+
+/**
+ * Who marked it, phrased for the reader: "you" when it was, their name if not.
+ *
+ * Both halves matter on a shared profile. Reading your own name on every card
+ * you marked is noise; NOT seeing a colleague's is how two people apply to the
+ * same posting under one candidate's name.
+ */
+const byLine = (markedBy: string, viewerEmail: string | null): string =>
+  markedBy === viewerEmail ? 'you' : shortName(markedBy);
+
+/**
+ * The Mark-as-Applied control.
+ *
+ * Applying happens on the employer's site, so this records a fact the app
+ * cannot observe — which makes it a toggle rather than a one-way action. A
+ * mis-click that could not be undone would leave a job permanently filtered out
+ * of "not applied" with no way back.
+ */
+export function AppliedAction({ jobId, size = 'sm' }: { jobId: number; size?: 'sm' | 'lg' }) {
+  const { profileId, viewerEmail, appliedOn, isBusy, toggle } = useApplied();
+  const status = appliedOn(jobId);
+  const busy = isBusy(jobId);
+  const lg = size === 'lg';
+
+  const base = `inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/60 ${
+    lg ? 'px-4 py-2 text-sm' : 'px-3 py-1.5 text-sm'
+  }`;
+
+  // Without a profile there is nothing to be applied AS, so the control is
+  // shown disabled rather than removed — same reasoning as the resume button.
+  if (!profileId) {
+    return (
+      <span
+        role="button"
+        aria-disabled="true"
+        tabIndex={0}
+        title="Applying is tracked per profile — create one, or ask an admin to invite you to theirs"
+        aria-label={`Cannot mark posting ${jobId} as applied: no profile yet`}
+        className={`${base} cursor-not-allowed border-dashed border-[var(--border)] text-[var(--muted)]`}
+      >
+        <IconCheck />
+        Mark as Applied
+      </span>
+    );
+  }
+
+  if (status) {
+    return (
+      <button
+        type="button"
+        onClick={() => toggle(jobId)}
+        disabled={busy}
+        // The label says what the click DOES; the state is already announced by
+        // the badge at the top of the card.
+        aria-label={`Undo applied for posting ${jobId}, marked ${when(status.appliedAt)} by ${byLine(
+          status.markedBy,
+          viewerEmail,
+        )}`}
+        title={`Applied ${when(status.appliedAt)} by ${status.markedBy} — click to undo`}
+        className={`${base} border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-60`}
+      >
+        <IconCheck />
+        {busy ? 'Saving…' : `Applied ${when(status.appliedAt)}`}
+      </button>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => toggle(jobId)}
+      disabled={busy}
+      aria-label={`Mark posting ${jobId} as applied`}
+      className={`${base} border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] hover:border-emerald-500/50 hover:text-white disabled:opacity-60`}
+    >
+      <IconCheck />
+      {busy ? 'Saving…' : 'Mark as Applied'}
+    </button>
+  );
+}
+
+/**
+ * The "Applied!" badge.
+ *
+ * Loud on purpose and at the top of the card on purpose: its whole job is to be
+ * caught while scanning twenty rows, so a posting already answered is never
+ * opened twice. Every other chip on a card is flat and translucent, so this one
+ * is the opposite — a solid gradient pill carrying its own glow, which is what
+ * makes it the first thing the eye lands on rather than the fourth.
+ *
+ * Renders nothing when the job is not applied to: a placeholder on every card
+ * would spend exactly the attention the badge exists to collect.
+ *
+ * Tailwind v4 scans source statically, so the classes are COMPLETE literal
+ * strings — a composed `from-${tone}-500` compiles to no CSS at all, silently
+ * and with no build error.
+ */
+export function AppliedBadge({ jobId, size = 'sm' }: { jobId: number; size?: 'sm' | 'lg' }) {
+  const { viewerEmail, appliedOn } = useApplied();
+  const status = appliedOn(jobId);
+  if (!status) return null;
+
+  const lg = size === 'lg';
+  const who = byLine(status.markedBy, viewerEmail);
+
+  return (
+    <span
+      // Full address in the tooltip, short name on screen: two colleagues can
+      // share a first name and the pill has no room to settle that.
+      title={`Applied ${when(status.appliedAt)} by ${status.markedBy}`}
+      className={`inline-flex items-center rounded-full bg-gradient-to-r from-emerald-500 via-emerald-500 to-green-600 font-extrabold uppercase text-white shadow-[0_2px_12px_-2px_rgba(16,185,129,0.7)] ring-1 ring-inset ring-white/25 ${
+        lg
+          ? 'gap-2 px-3 py-1.5 text-sm tracking-wider'
+          : 'gap-1.5 px-2.5 py-1 text-xs tracking-wide'
+      }`}
+    >
+      <CheckDisc lg={lg} />
+      Applied
+      <span
+        className={`rounded-full bg-emerald-950/35 font-bold normal-case text-white/95 ring-1 ring-inset ring-white/20 ${
+          lg ? 'px-2 py-0.5 text-xs' : 'px-1.5 py-px text-[10px]'
+        }`}
+      >
+        {who}
+      </span>
+      {/* The date only where there is room. On a list card the pill has to stay
+          short enough to sit beside the source chip without wrapping the title;
+          the tooltip and the footer button both carry it there. */}
+      {lg && (
+        <span className="font-medium normal-case tracking-normal text-white/80">
+          {when(status.appliedAt)}
+        </span>
+      )}
+    </span>
+  );
+}

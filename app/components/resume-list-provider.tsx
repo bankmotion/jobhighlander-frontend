@@ -266,7 +266,10 @@ export function ResumeListProvider({
 
       const at = Date.now();
       if (activeRunCount(at) >= MAX_CONCURRENT) {
-        show(`${MAX_CONCURRENT} resumes are already being written. Wait for one to finish.`, 'error');
+        show(
+          `${MAX_CONCURRENT} resumes are already being written. Wait for one to finish.`,
+          'error',
+        );
         return;
       }
       // Refuses when one is already live — the double-click guard. Each call is
@@ -413,8 +416,7 @@ export function ResumeListProvider({
   const ctx: Ctx = {
     profileId,
     statusOf: (jobId) =>
-      status[jobId] ??
-      (profileId ? getRun(profileId, jobId, now || 0)?.status : undefined),
+      status[jobId] ?? (profileId ? getRun(profileId, jobId, now || 0)?.status : undefined),
     runOf: (jobId) => (profileId ? getRun(profileId, jobId, now || 0) : undefined),
     generate,
     view,
@@ -476,9 +478,7 @@ export function ResumeListProvider({
                     <span aria-hidden>·</span>
                     {/* Absolute, not "3m ago": a relative label needs the clock
                         during render, which React 19 rejects as impure. */}
-                    <time dateTime={st.updatedAt}>
-                      {new Date(st.updatedAt).toLocaleString()}
-                    </time>
+                    <time dateTime={st.updatedAt}>{new Date(st.updatedAt).toLocaleString()}</time>
                   </>
                 )}
               </>
@@ -489,7 +489,14 @@ export function ResumeListProvider({
           <>
             {target && (
               <Link
-                href={`/jobs/${target.jobId}?tab=resume`}
+                // Carries the profile for the same reason the card links do:
+                // the detail page falls back to the viewer's FIRST profile
+                // without it, which is not necessarily this resume's.
+                href={
+                  profileId
+                    ? `/jobs/${target.jobId}?tab=resume&profile=${profileId}`
+                    : `/jobs/${target.jobId}?tab=resume`
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mr-auto text-sm text-[var(--muted)] underline transition hover:text-white"
@@ -569,8 +576,8 @@ export function ResumeListProvider({
                 Writing a resume for this posting… {formatElapsed(elapsedSince(run, now))}
               </p>
               <p className="max-w-sm text-xs text-[var(--muted)]">
-                This usually takes 20–60 seconds. You can close this — it keeps running and the
-                card updates when it is done.
+                This usually takes 20–60 seconds. You can close this — it keeps running and the card
+                updates when it is done.
               </p>
             </div>
           )}
@@ -633,7 +640,11 @@ export function ResumeListProvider({
                   mobile experience is a blank white box. */}
               <p className="mt-2 text-xs text-[var(--muted)]">
                 Not showing?{' '}
-                <a href={pdfUrl} download={`${fileName}.pdf`} className="underline hover:text-white">
+                <a
+                  href={pdfUrl}
+                  download={`${fileName}.pdf`}
+                  className="underline hover:text-white"
+                >
                   Download the PDF instead.
                 </a>
               </p>
