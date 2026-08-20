@@ -190,27 +190,6 @@ export function CoverLetterGenerator({
             </button>
           </div>
 
-          {letter.reviewNotes.length > 0 && (
-            <div className="mt-5 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
-              <h3 className="mb-2 text-sm font-semibold text-amber-300">
-                Check before sending ({letter.reviewNotes.length})
-              </h3>
-              {/* Not a nag: a cover letter asserts motivation and outcomes the
-                  profile never stated, and the tailored resume it draws on may
-                  itself contain drafted claims. These are the specific lines to
-                  confirm or cut. */}
-              <ul className="space-y-1.5 text-sm text-[var(--muted)]">
-                {letter.reviewNotes.map((n, i) => (
-                  <li key={i} className="flex gap-2">
-                    <span aria-hidden className="text-amber-400">
-                      •
-                    </span>
-                    <span>{n}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
         </>
       ) : (
         <div className="rounded-xl border border-dashed border-[var(--border-strong)] p-10 text-center text-sm text-[var(--muted)]">

@@ -8,8 +8,9 @@ export interface PromptView {
   name: string;
   description: string;
   content: string;
-  /** False when the stored text still matches the shipped default. */
-  customised: boolean;
+  /** False when no usable row exists — the prompt lives only in the database,
+   *  so a missing one means generation will fail until it is written. */
+  present: boolean;
   updatedAt: string | null;
   updatedBy: string | null;
 }

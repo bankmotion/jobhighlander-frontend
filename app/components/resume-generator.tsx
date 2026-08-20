@@ -508,19 +508,6 @@ export function ResumeGenerator({
             </div>
           )}
 
-          {resume.reviewNotes.length > 0 && (
-            <div className="mt-6 rounded-lg border border-[var(--border-strong)] bg-[var(--surface-2)] p-3">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-[var(--text)]">
-                Check before sending
-              </h4>
-              <ul className="mt-1.5 list-disc space-y-1 pl-5 text-sm text-[var(--text)]/90">
-                {resume.reviewNotes.map((n, i) => (
-                  <li key={i}>{n}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
           {resume.gaps.length > 0 && (
             <div className="mt-4 rounded-lg border border-red-500/30 bg-red-500/10 p-3">
               <h4 className="text-xs font-semibold uppercase tracking-wide text-red-300">

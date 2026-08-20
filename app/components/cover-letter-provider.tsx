@@ -250,23 +250,6 @@ export function CoverLetterProvider({
             <pre className="whitespace-pre-wrap rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4 font-mono text-[13px] leading-relaxed text-[var(--text)]">
               {letter.body}
             </pre>
-            {letter.reviewNotes.length > 0 && (
-              <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4">
-                <h3 className="mb-2 text-sm font-semibold text-amber-300">
-                  Check before sending ({letter.reviewNotes.length})
-                </h3>
-                <ul className="space-y-1.5 text-sm text-[var(--muted)]">
-                  {letter.reviewNotes.map((n, i) => (
-                    <li key={i} className="flex gap-2">
-                      <span aria-hidden className="text-amber-400">
-                        •
-                      </span>
-                      <span>{n}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
           </div>
         ) : (
           <p className="py-10 text-center text-sm text-[var(--muted)]">No letter to show.</p>

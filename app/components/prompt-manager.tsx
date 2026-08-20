@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import type { PromptView } from '@/lib/prompts';
-import { ConfirmModal } from './confirm-modal';
 import { Toast, useToast } from './toast';
 
 /**
@@ -11,7 +10,12 @@ import { Toast, useToast } from './toast';
  * Prompts are DATA: a row replaces the system block for one generator and
  * nothing else — it cannot introduce a new model call or a new output schema.
  * That boundary is what makes a textarea a super admin can type into safe to
- * send. The shipped text stays in code, so "Reset" always has somewhere to go.
+ * send.
+ *
+ * THE TEXT HERE IS THE ONLY COPY. It lives in the database, not in the
+ * codebase, so there is no "Reset to default" — there is nothing to reset to.
+ * Saving an empty prompt is refused by the API for the same reason: it would
+ * delete the only copy and break every generation until someone retyped it.
  */
 export function PromptManager({ initial }: { initial: PromptView[] }) {
   const [prompts, setPrompts] = useState<PromptView[]>(initial);
@@ -22,7 +26,6 @@ export function PromptManager({ initial }: { initial: PromptView[] }) {
     Object.fromEntries(initial.map((p) => [p.key, p.content])),
   );
   const [busy, setBusy] = useState(false);
-  const [resetting, setResetting] = useState(false);
   const { toast, show, dismiss } = useToast();
 
   const active = prompts.find((p) => p.key === activeKey);
@@ -54,7 +57,6 @@ export function PromptManager({ initial }: { initial: PromptView[] }) {
       show('Could not reach the server.', 'error');
     } finally {
       setBusy(false);
-      setResetting(false);
     }
   }
 
@@ -86,9 +88,9 @@ export function PromptManager({ initial }: { initial: PromptView[] }) {
               }`}
             >
               {p.name}
-              {p.customised && (
-                <span className="ml-2 rounded bg-[var(--primary)]/20 px-1.5 py-0.5 text-[11px] font-normal text-[var(--text)]">
-                  edited
+              {!p.present && (
+                <span className="ml-2 rounded bg-red-500/20 px-1.5 py-0.5 text-[11px] font-normal text-red-300">
+                  missing
                 </span>
               )}
               {/* An unsaved edit on a tab you are not looking at is otherwise
@@ -135,14 +137,6 @@ export function PromptManager({ initial }: { initial: PromptView[] }) {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setResetting(true)}
-            disabled={busy || !active.customised}
-            title={active.customised ? undefined : 'Already the shipped default'}
-            className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--muted)] transition hover:border-[var(--border-strong)] hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            Reset to default
-          </button>
-          <button
             onClick={() => send(draft, 'Prompt saved')}
             disabled={!dirty || busy}
             className="jh-cta rounded-lg px-5 py-1.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-40"
@@ -153,20 +147,10 @@ export function PromptManager({ initial }: { initial: PromptView[] }) {
       </div>
 
       <p className="mt-4 rounded-lg border border-dashed border-[var(--border-strong)] bg-[var(--surface)] px-4 py-3 text-xs text-[var(--muted)]">
-        Applies to the next generation — no restart needed. Editing a prompt also invalidates the
-        cached prompt prefix, so the first generation afterwards costs full price. Clearing the box
-        entirely restores the shipped default rather than sending an empty instruction.
+        Applies to the next generation — no restart needed. This text is the only copy: it lives in
+        the database, not in the codebase, so there is no shipped default to fall back to and an
+        empty prompt cannot be saved. Copy it somewhere before a large rewrite.
       </p>
-
-      <ConfirmModal
-        open={resetting}
-        title="Reset to the shipped default?"
-        message={`This discards the customised "${active.name}" prompt and restores the text the app ships with.`}
-        confirmLabel="Reset"
-        busy={busy}
-        onCancel={() => setResetting(false)}
-        onConfirm={() => send('', 'Reset to the shipped default')}
-      />
 
       <Toast toast={toast} onDismiss={dismiss} />
     </div>
