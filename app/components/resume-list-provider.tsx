@@ -57,6 +57,10 @@ interface Ctx {
   runOf: (jobId: number) => Run | undefined;
   generate: (t: ResumeTarget) => void;
   view: (t: ResumeTarget) => void;
+  /** Renders and saves the PDF without opening the dialog. */
+  download: (t: ResumeTarget) => void;
+  /** So the card can show the wait — a render is a round trip, not instant. */
+  isDownloading: (jobId: number) => boolean;
 }
 
 const ResumeCtx = createContext<Ctx | null>(null);
@@ -68,6 +72,20 @@ export function useResumeList(): Ctx {
 }
 
 type ResumeDoc = Record<string, unknown>;
+
+/**
+ * Company and job id, not just the headline: every resume written for the same
+ * role would otherwise land in the downloads folder under an identical name.
+ */
+function fileNameFor(t: ResumeTarget): string {
+  return (
+    [t.company, t.title, t.jobId]
+      .filter(Boolean)
+      .join('-')
+      .replace(/[^\w.-]+/g, '_')
+      .slice(0, 80) || 'resume'
+  );
+}
 
 /** Seed state with anything that finished while nothing was mounted. */
 function mergeSettled(initial: ResumeStatusMap, settled: Run[]): ResumeStatusMap {
@@ -128,6 +146,9 @@ export function ResumeListProvider({
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
   const [confirmRegen, setConfirmRegen] = useState(false);
+  // Card-level downloads, keyed by job. An array rather than a Set in state so
+  // each change is a new reference React can actually see.
+  const [downloadingIds, setDownloadingIds] = useState<number[]>([]);
   const { toast, show, dismiss } = useToast();
 
   useSyncExternalStore(subscribeRuns, runsVersion, runsServerVersion);
@@ -406,6 +427,84 @@ export function ResumeListProvider({
     [loadDoc, openFor, profileId, renderPdf, status],
   );
 
+  /**
+   * Live downloads, held in a ref as well as state: the double-click guard has
+   * to read the CURRENT set synchronously, and state read inside an async
+   * callback is the value captured when the callback was created.
+   */
+  const downloadingRef = useRef<Set<number>>(new Set());
+  const markDownloading = useCallback((jobId: number, on: boolean) => {
+    const set = downloadingRef.current;
+    if (on) set.add(jobId);
+    else set.delete(jobId);
+    if (mountedRef.current) setDownloadingIds([...set]);
+  }, []);
+
+  /**
+   * Save the PDF straight from the card.
+   *
+   * Deliberately NOT `renderPdf`: that one owns the dialog's blob URL and its
+   * loading flag, so reusing it here would blank a preview the user has open
+   * beside this card — and revoke the very URL its iframe is showing.
+   */
+  const download = useCallback(
+    async (t: ResumeTarget) => {
+      if (!profileId || downloadingRef.current.has(t.jobId)) return;
+      markDownloading(t.jobId, true);
+      try {
+        const known = status[t.jobId] ?? getRun(profileId, t.jobId, Date.now())?.status;
+        let doc = getDoc(profileId, t.jobId) as ResumeDoc | undefined;
+        let templateKey = known?.templateKey;
+        if (!doc) {
+          const loaded = await loadDoc(t.jobId);
+          if (!loaded) {
+            show('Could not load the saved resume.', 'error');
+            return;
+          }
+          doc = loaded.doc;
+          // The stored template wins over the status row: it is what the
+          // document was actually written against.
+          templateKey = loaded.templateKey;
+        }
+
+        const res = await fetch('/api/resumes/pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            resume: doc,
+            profileId,
+            pageSize: 'letter',
+            ...(templateKey ? { templateKey } : {}),
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => null);
+          show(err?.error ?? `Could not render the PDF (${res.status})`, 'error');
+          return;
+        }
+
+        const url = URL.createObjectURL(await res.blob());
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${fileNameFor(t)}.pdf`;
+        // Appended before clicking: a detached anchor is ignored by Firefox.
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        // Revoking on the next line cancels the save in Firefox and Safari,
+        // which read the blob asynchronously after the click. A plain timer,
+        // not an effect cleanup — a filter toggle unmounts this provider, and
+        // tearing the URL down there would kill a download in flight.
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      } catch {
+        show('Could not download the PDF.', 'error');
+      } finally {
+        markDownloading(t.jobId, false);
+      }
+    },
+    [loadDoc, markDownloading, profileId, show, status],
+  );
+
   const close = useCallback(() => {
     setTarget(null);
     targetRef.current = null;
@@ -420,6 +519,8 @@ export function ResumeListProvider({
     runOf: (jobId) => (profileId ? getRun(profileId, jobId, now || 0) : undefined),
     generate,
     view,
+    download: (t) => void download(t),
+    isDownloading: (jobId) => downloadingIds.includes(jobId),
   };
 
   const run = target && profileId ? getRun(profileId, target.jobId, now || 0) : undefined;
@@ -435,14 +536,7 @@ export function ResumeListProvider({
   const failed = run?.state === 'error';
   const exhausted = (run?.attempts ?? 0) >= MAX_ATTEMPTS;
 
-  // Company and job id, not just the headline: every resume written for the
-  // same role would otherwise download under an identical filename.
-  const fileName =
-    [target?.company, target?.title, target?.jobId]
-      .filter(Boolean)
-      .join('-')
-      .replace(/[^\w.-]+/g, '_')
-      .slice(0, 80) || 'resume';
+  const fileName = target ? fileNameFor(target) : 'resume';
 
   return (
     <ResumeCtx.Provider value={ctx}>

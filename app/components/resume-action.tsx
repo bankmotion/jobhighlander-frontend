@@ -29,6 +29,14 @@ const TONE = {
   disabled: 'cursor-not-allowed border-dashed border-[var(--border)] text-[var(--muted)]',
 } as const;
 
+/**
+ * 2.125rem is the chip's computed height (20px line + 12px padding + 2px
+ * border). Hard-coded rather than `h-full`, because these sit in a wrapping
+ * flex row where stretch height is whatever the tallest sibling happens to be.
+ */
+const ICON_BOX =
+  'inline-flex h-[2.125rem] w-[2.125rem] shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--muted)] transition hover:border-[var(--border-strong)] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/60 disabled:cursor-wait disabled:hover:border-[var(--border)] disabled:hover:text-[var(--muted)]';
+
 function IconPlus() {
   return (
     <svg aria-hidden width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -43,6 +51,24 @@ function IconCheck() {
     <svg aria-hidden width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <path d="M14 2v6h6M9 15l2 2 4-4" />
+    </svg>
+  );
+}
+
+function IconEye() {
+  return (
+    <svg aria-hidden width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function IconDownload() {
+  return (
+    <svg aria-hidden width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <path d="M7 10l5 5 5-5M12 15V3" />
     </svg>
   );
 }
@@ -66,7 +92,7 @@ function IconAlert() {
  * re-render storm and a width that jumps at 0:09 → 0:10.
  */
 export function ResumeAction({ jobId, title, company }: ResumeTarget) {
-  const { profileId, statusOf, runOf, generate, view } = useResumeList();
+  const { profileId, statusOf, runOf, generate, view, download, isDownloading } = useResumeList();
 
   const target: ResumeTarget = { jobId, title, company };
   const status = statusOf(jobId);
@@ -127,24 +153,73 @@ export function ResumeAction({ jobId, title, company }: ResumeTarget) {
     // A resume carrying AI-drafted content is a draft, and saying so on the
     // card is the difference between "done" and "done, but check it".
     const draft = status.inferredCount > 0 || status.reviewNoteCount > 0;
+    const saving = isDownloading(jobId);
+    const noun = draft ? 'draft resume' : 'resume';
+
+    /**
+     * Chip plus two icons once a resume exists.
+     *
+     * The chip is the state — Draft or Resume — and clicking it still opens the
+     * preview, but a coloured word does not read as a control at a glance, so
+     * the two things you actually want from a finished resume get their own
+     * affordances. They appear ONLY in this state: an eye and a download arrow
+     * on a card with nothing to view would be two dead buttons per row.
+     */
     return (
-      <button
-        type="button"
-        data-resume-trigger={jobId}
-        onClick={() => view(target)}
-        aria-label={`${draft ? 'Review the draft resume' : 'Open the resume'} for ${where}`}
-        className={`${BOX} ${TONE.ready}`}
-      >
-        <IconCheck />
-        {draft ? 'Draft' : 'Resume'}
-        {draft && (
-          <span
-            aria-hidden
-            title="Contains AI-drafted content"
-            className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-amber-400"
-          />
-        )}
-      </button>
+      <span className="inline-flex shrink-0 items-center gap-1.5">
+        <button
+          type="button"
+          data-resume-trigger={jobId}
+          onClick={() => view(target)}
+          aria-label={`${draft ? 'Review the draft resume' : 'Open the resume'} for ${where}`}
+          className={`${BOX} ${TONE.ready}`}
+        >
+          <IconCheck />
+          {draft ? 'Draft' : 'Resume'}
+          {draft && (
+            <span
+              aria-hidden
+              title="Contains AI-drafted content"
+              className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-amber-400"
+            />
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => view(target)}
+          title={`View the ${noun}`}
+          aria-label={`View the ${noun} for ${where}`}
+          className={ICON_BOX}
+        >
+          <IconEye />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => download(target)}
+          disabled={saving}
+          // Says it is not instant: the PDF is rendered server-side on demand,
+          // so a click with no feedback reads as a click that did nothing and
+          // gets repeated.
+          title={saving ? 'Rendering the PDF…' : `Download the ${noun} as a PDF`}
+          aria-label={
+            saving
+              ? `Rendering the PDF for ${where}`
+              : `Download the ${noun} for ${where} as a PDF`
+          }
+          className={ICON_BOX}
+        >
+          {saving ? (
+            <span
+              aria-hidden
+              className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--border-strong)] border-t-[var(--primary)] motion-reduce:animate-none"
+            />
+          ) : (
+            <IconDownload />
+          )}
+        </button>
+      </span>
     );
   }
 
