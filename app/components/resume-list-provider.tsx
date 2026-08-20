@@ -56,6 +56,15 @@ interface Ctx {
   statusOf: (jobId: number) => ResumeStatus | undefined;
   runOf: (jobId: number) => Run | undefined;
   generate: (t: ResumeTarget) => void;
+  /**
+   * Generate without opening the preview dialog.
+   *
+   * The card's Generate button uses this: a modal popping open the moment you
+   * click interrupts a scan of the list to show something you have not asked to
+   * read. The button carries the wait, and View opens the dialog when you want
+   * it.
+   */
+  generateQuiet: (t: ResumeTarget) => void;
   view: (t: ResumeTarget) => void;
   /** Renders and saves the PDF without opening the dialog. */
   download: (t: ResumeTarget) => void;
@@ -396,6 +405,14 @@ export function ResumeListProvider({
     [openFor, runGeneration],
   );
 
+  /** Same run as `generate`, no dialog. See the context type. */
+  const generateQuiet = useCallback(
+    (t: ResumeTarget) => {
+      void runGeneration(t);
+    },
+    [runGeneration],
+  );
+
   const view = useCallback(
     (t: ResumeTarget) => {
       if (!profileId) return;
@@ -518,6 +535,7 @@ export function ResumeListProvider({
       status[jobId] ?? (profileId ? getRun(profileId, jobId, now || 0)?.status : undefined),
     runOf: (jobId) => (profileId ? getRun(profileId, jobId, now || 0) : undefined),
     generate,
+    generateQuiet,
     view,
     download: (t) => void download(t),
     isDownloading: (jobId) => downloadingIds.includes(jobId),

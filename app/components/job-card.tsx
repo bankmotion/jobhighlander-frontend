@@ -1,9 +1,8 @@
 import Link from 'next/link';
 import type { Job } from '@/lib/types';
 import { formatPostedRelative } from '@/lib/format';
-import { ResumeAction } from './resume-action';
+import { ApplicationAction } from './application-action';
 import { AppliedAction, AppliedBadge } from './applied-action';
-import { CoverLetterAction } from './cover-letter-action';
 
 export function JobCard({ job, profileId }: { job: Job; profileId: number | null }) {
   /**
@@ -119,10 +118,11 @@ export function JobCard({ job, profileId }: { job: Job; profileId: number | null
         >
           JD Details
         </Link>
-        <ResumeAction jobId={job.id} title={job.title} company={job.company} />
-        {/* Beside the resume control, because it is written from it and reads
-            "Resume first" until that exists. */}
-        <CoverLetterAction jobId={job.id} />
+        {/* One control for both documents: a single model call writes them
+            together, so a card offering them separately would describe a shape
+            the backend no longer has. It generates in place — the full text of
+            each lives behind JD Details. */}
+        <ApplicationAction jobId={job.id} title={job.title} company={job.company} />
         <a
           href={job.jobUrl}
           target="_blank"

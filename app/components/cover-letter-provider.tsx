@@ -9,6 +9,15 @@ interface Ctx {
   /** Null when there is no usable profile — a letter is written FOR someone. */
   profileId: number | null;
   hasLetter: (jobId: number) => boolean;
+  /**
+   * Record that a letter now exists for this job.
+   *
+   * The resume generation call writes BOTH documents, so the letter appears
+   * without this provider ever issuing a request. Without being told, the card
+   * would keep offering to write a letter that is already saved — and writing
+   * it would pay for a second full generation.
+   */
+  noteLetterWritten: (jobId: number) => void;
   isBusy: (jobId: number) => boolean;
   /** Generate (or regenerate) and open the letter. */
   write: (jobId: number) => void;
@@ -71,6 +80,14 @@ export function CoverLetterProvider({
 
   const hasLetter = useCallback((jobId: number) => Boolean(status[jobId]), [status]);
   const isBusy = useCallback((jobId: number) => busy.has(jobId), [busy]);
+
+  const noteLetterWritten = useCallback((jobId: number) => {
+    setStatus((prev) =>
+      prev[jobId]
+        ? prev
+        : { ...prev, [jobId]: { jobId, edited: false, updatedAt: new Date().toISOString() } },
+    );
+  }, []);
 
   const mark = useCallback((jobId: number, on: boolean) => {
     setBusy((prev) => {
@@ -208,7 +225,7 @@ export function CoverLetterProvider({
 
   return (
     <CoverLetterCtx.Provider
-      value={{ profileId, hasLetter, isBusy, write, open, copyLetter, isCopying }}
+      value={{ profileId, hasLetter, noteLetterWritten, isBusy, write, open, copyLetter, isCopying }}
     >
       {children}
 
