@@ -8,6 +8,9 @@ import { ConfirmModal } from './confirm-modal';
 const inputCls =
   'w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--muted)] outline-none transition focus:border-[var(--primary)]';
 const labelCls = 'mb-1.5 block text-xs font-medium text-[var(--muted)]';
+// Disabled inputs still have to be READABLE — this is the only way an invitee
+// sees the profile, so dimming it to the usual 50% would make the page useless.
+const readOnlyCls = 'cursor-default border-dashed opacity-90 focus:border-[var(--border)]';
 
 let uid = 0;
 const key = () => `k${uid++}`;
@@ -47,11 +50,22 @@ export function ProfileEditor({
   onSave,
   onCancel,
   onDelete,
+  readOnly = false,
+  ownerEmail,
 }: {
   profile: Profile | null;
   onSave: (data: ProfilePayload) => Promise<boolean>;
   onCancel: () => void;
   onDelete?: () => Promise<boolean>;
+  /**
+   * Viewing a profile someone shared with you: every field is disabled and the
+   * save/delete bar is replaced by a note. This is presentation only — the
+   * backend refuses the write regardless, so a user who re-enables the inputs
+   * in devtools still cannot save.
+   */
+  readOnly?: boolean;
+  /** Whose profile this is; shown only in read-only mode. */
+  ownerEmail?: string;
 }) {
   const [email, setEmail] = useState(profile?.email ?? '');
   const [firstName, setFirstName] = useState(profile?.firstName ?? '');
@@ -84,6 +98,8 @@ export function ProfileEditor({
 
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
+
+  const fieldCls = readOnly ? `${inputCls} ${readOnlyCls}` : inputCls;
 
   const patchWork = (i: number, p: Partial<WorkRow>) =>
     setWorks((rows) => rows.map((r, j) => (j === i ? { ...r, ...p } : r)));
@@ -143,22 +159,22 @@ export function ProfileEditor({
       <Section icon="👤" title="Personal Information">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="First name">
-            <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Jane" className={inputCls} />
+            <input value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Jane" disabled={readOnly} className={fieldCls} />
           </Field>
           <Field label="Last name">
-            <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Doe" className={inputCls} />
+            <input value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Doe" disabled={readOnly} className={fieldCls} />
           </Field>
           <Field label="Email">
-            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@example.com" className={inputCls} />
+            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@example.com" disabled={readOnly} className={fieldCls} />
           </Field>
           <Field label="Phone number">
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 555 000 1234" className={inputCls} />
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+1 555 000 1234" disabled={readOnly} className={fieldCls} />
           </Field>
           <Field label="LinkedIn profile">
-            <input value={linkedin} onChange={(e) => setLinkedin(e.target.value)} placeholder="https://linkedin.com/in/…" className={inputCls} />
+            <input value={linkedin} onChange={(e) => setLinkedin(e.target.value)} placeholder="https://linkedin.com/in/…" disabled={readOnly} className={fieldCls} />
           </Field>
           <Field label="Location">
-            <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Austin, Texas" className={inputCls} />
+            <input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="Austin, Texas" disabled={readOnly} className={fieldCls} />
           </Field>
         </div>
       </Section>
@@ -167,24 +183,31 @@ export function ProfileEditor({
       <Section
         icon="💼"
         title="Work Experience"
-        action={<AddButton onClick={addWork} label="Add experience" />}
+        action={readOnly ? undefined : <AddButton onClick={addWork} label="Add experience" />}
       >
-        {works.length === 0 && <Empty text="No work experience yet — add one." />}
+        {works.length === 0 && (
+          <Empty text={readOnly ? 'No work experience on this profile.' : 'No work experience yet — add one.'} />
+        )}
         <div className="space-y-5">
           {works.map((w, i) => (
-            <EntryCard key={w._key} title={`Experience ${i + 1}`} onRemove={() => setWorks((r) => r.filter((_, j) => j !== i))}>
+            <EntryCard
+              key={w._key}
+              title={`Experience ${i + 1}`}
+              onRemove={readOnly ? undefined : () => setWorks((r) => r.filter((_, j) => j !== i))}
+            >
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="Company">
-                  <input value={w.company} onChange={(e) => patchWork(i, { company: e.target.value })} placeholder="NVIDIA" className={inputCls} />
+                  <input value={w.company} onChange={(e) => patchWork(i, { company: e.target.value })} placeholder="NVIDIA" disabled={readOnly} className={fieldCls} />
                 </Field>
                 <Field label="Location">
-                  <input value={w.location} onChange={(e) => patchWork(i, { location: e.target.value })} placeholder="Austin, Texas" className={inputCls} />
+                  <input value={w.location} onChange={(e) => patchWork(i, { location: e.target.value })} placeholder="Austin, Texas" disabled={readOnly} className={fieldCls} />
                 </Field>
               </div>
               <PeriodRow
                 start={w.startDate}
                 end={w.endDate}
                 present={w.present}
+                readOnly={readOnly}
                 onStart={(v) => patchWork(i, { startDate: v })}
                 onEnd={(v) => patchWork(i, { endDate: v })}
                 onPresent={(v) => patchWork(i, { present: v })}
@@ -195,20 +218,30 @@ export function ProfileEditor({
       </Section>
 
       {/* Education */}
-      <Section icon="🎓" title="Education" action={<AddButton onClick={addEdu} label="Add education" />}>
-        {edus.length === 0 && <Empty text="No education yet — add one." />}
+      <Section
+        icon="🎓"
+        title="Education"
+        action={readOnly ? undefined : <AddButton onClick={addEdu} label="Add education" />}
+      >
+        {edus.length === 0 && (
+          <Empty text={readOnly ? 'No education on this profile.' : 'No education yet — add one.'} />
+        )}
         <div className="space-y-5">
           {edus.map((e, i) => (
-            <EntryCard key={e._key} title={`Education ${i + 1}`} onRemove={() => setEdus((r) => r.filter((_, j) => j !== i))}>
+            <EntryCard
+              key={e._key}
+              title={`Education ${i + 1}`}
+              onRemove={readOnly ? undefined : () => setEdus((r) => r.filter((_, j) => j !== i))}
+            >
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field label="University">
-                  <input value={e.university} onChange={(ev) => patchEdu(i, { university: ev.target.value })} placeholder="Stony Brook University" className={inputCls} />
+                  <input value={e.university} onChange={(ev) => patchEdu(i, { university: ev.target.value })} placeholder="Stony Brook University" disabled={readOnly} className={fieldCls} />
                 </Field>
                 <Field label="Location">
-                  <input value={e.location} onChange={(ev) => patchEdu(i, { location: ev.target.value })} placeholder="Stony Brook, New York" className={inputCls} />
+                  <input value={e.location} onChange={(ev) => patchEdu(i, { location: ev.target.value })} placeholder="Stony Brook, New York" disabled={readOnly} className={fieldCls} />
                 </Field>
                 <Field label="Degree">
-                  <input value={e.degree} onChange={(ev) => patchEdu(i, { degree: ev.target.value })} placeholder="B.S. in Computer Science" className={inputCls} />
+                  <input value={e.degree} onChange={(ev) => patchEdu(i, { degree: ev.target.value })} placeholder="B.S. in Computer Science" disabled={readOnly} className={fieldCls} />
                 </Field>
                 <div className="sm:col-span-1" />
               </div>
@@ -216,6 +249,7 @@ export function ProfileEditor({
                 start={e.startDate}
                 end={e.endDate}
                 present={e.present}
+                readOnly={readOnly}
                 onStart={(v) => patchEdu(i, { startDate: v })}
                 onEnd={(v) => patchEdu(i, { endDate: v })}
                 onPresent={(v) => patchEdu(i, { present: v })}
@@ -226,9 +260,17 @@ export function ProfileEditor({
       </Section>
 
       {/* Sticky action bar — same treatment as the jobs pagination and the
-          scraper-settings save bar (`.jh-sticky-bar` in globals.css). */}
+          scraper-settings save bar (`.jh-sticky-bar` in globals.css). In
+          read-only mode it says WHY there is nothing to press, rather than
+          showing a disabled Save the user would keep clicking. */}
       <div className="jh-sticky-bar sticky bottom-0 z-10 flex items-center justify-between gap-3 rounded-t-xl px-4 py-3">
         <span className="truncate text-sm text-[var(--muted)]">{fullName}</span>
+        {readOnly ? (
+          <span className="shrink-0 text-sm text-[var(--muted)]">
+            View only — {ownerEmail ? <span className="text-[var(--text)]">{ownerEmail}</span> : 'the owner'}{' '}
+            can edit this profile
+          </span>
+        ) : (
         <div className="flex shrink-0 items-center gap-2">
           {onDelete && (
             <button
@@ -247,6 +289,7 @@ export function ProfileEditor({
             {busy ? 'Saving…' : 'Save profile'}
           </button>
         </div>
+        )}
       </div>
 
       <ConfirmModal
@@ -277,6 +320,7 @@ function PeriodRow({
   start,
   end,
   present,
+  readOnly = false,
   onStart,
   onEnd,
   onPresent,
@@ -284,6 +328,7 @@ function PeriodRow({
   start: string | null;
   end: string | null;
   present: boolean;
+  readOnly?: boolean;
   onStart: (v: string | null) => void;
   onEnd: (v: string | null) => void;
   onPresent: (v: boolean) => void;
@@ -293,7 +338,7 @@ function PeriodRow({
       <label className={labelCls}>Period</label>
       <div className="flex flex-wrap items-center gap-2">
         <div className="min-w-[150px] flex-1">
-          <MonthYearPicker value={start} onChange={onStart} placeholder="Start month" />
+          <MonthYearPicker value={start} onChange={onStart} placeholder="Start month" disabled={readOnly} />
         </div>
         <span className="text-[var(--muted)]">–</span>
         <div className="min-w-[150px] flex-1">
@@ -302,13 +347,18 @@ function PeriodRow({
               Present
             </div>
           ) : (
-            <MonthYearPicker value={end} onChange={onEnd} placeholder="End month" />
+            <MonthYearPicker value={end} onChange={onEnd} placeholder="End month" disabled={readOnly} />
           )}
         </div>
-        <label className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-2 text-sm text-[var(--muted)] transition hover:text-white">
+        <label
+          className={`flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-[var(--muted)] transition ${
+            readOnly ? 'cursor-default' : 'cursor-pointer hover:text-white'
+          }`}
+        >
           <input
             type="checkbox"
             checked={present}
+            disabled={readOnly}
             onChange={(e) => onPresent(e.target.checked)}
             className="h-4 w-4 accent-[var(--primary)]"
           />
@@ -349,16 +399,19 @@ function EntryCard({
   children,
 }: {
   title: string;
-  onRemove: () => void;
+  /** Omitted in read-only mode — there is nothing to remove. */
+  onRemove?: () => void;
   children: React.ReactNode;
 }) {
   return (
     <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/40 p-4">
       <div className="mb-3 flex items-center justify-between">
         <span className="text-sm font-medium text-white">{title}</span>
-        <button onClick={onRemove} className="text-xs text-[var(--muted)] transition hover:text-red-400" aria-label="Remove">
-          Remove
-        </button>
+        {onRemove && (
+          <button onClick={onRemove} className="text-xs text-[var(--muted)] transition hover:text-red-400" aria-label="Remove">
+            Remove
+          </button>
+        )}
       </div>
       {children}
     </div>

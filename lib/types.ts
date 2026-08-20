@@ -1,3 +1,5 @@
+import type { Role } from './session';
+
 export interface Job {
   id: number;
   site: string;
@@ -59,8 +61,21 @@ export interface Education {
   endDate: string | null;
 }
 
+/** The account a profile belongs to, as returned alongside every profile. */
+export interface ProfileOwner {
+  id: number;
+  email: string;
+}
+
 export interface Profile {
   id: number;
+  ownerId: number;
+  owner: ProfileOwner;
+  /**
+   * Whether the CURRENT user may edit this profile — true only for its owner.
+   * Comes from the API rather than being derived here so one rule decides it.
+   */
+  canEdit: boolean;
   email: string | null;
   firstName: string | null;
   lastName: string | null;
@@ -75,10 +90,61 @@ export interface Profile {
 
 export interface ProfileSummary {
   id: number;
+  ownerId: number;
+  owner: ProfileOwner;
+  canEdit: boolean;
   email: string | null;
   firstName: string | null;
   lastName: string | null;
   location: string | null;
   updatedAt: string;
   _count: { workExperiences: number; educations: number };
+}
+
+// ── Profile invitations ──
+// An owner invites another user to USE one of their profiles. Access starts
+// only once the invitee accepts; until then the profile stays out of their list.
+export type InvitationStatus = 'pending' | 'accepted' | 'declined';
+
+export interface InvitedUser {
+  id: number;
+  email: string;
+  role: Role;
+}
+
+/** One invitation as the OWNER sees it — who it went to and what they said. */
+export interface ProfileInvitation {
+  id: number;
+  status: InvitationStatus;
+  createdAt: string;
+  respondedAt: string | null;
+  user: InvitedUser;
+}
+
+/** A profile the caller owns, with everyone it is shared with. */
+export interface SharedProfile {
+  id: number;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  location: string | null;
+  owner: ProfileOwner;
+  invitations: ProfileInvitation[];
+}
+
+/** One invitation as the INVITEE sees it — which profile, and from whom. */
+export interface ReceivedInvitation {
+  id: number;
+  status: InvitationStatus;
+  createdAt: string;
+  respondedAt: string | null;
+  profile: {
+    id: number;
+    email: string | null;
+    firstName: string | null;
+    lastName: string | null;
+    location: string | null;
+    owner: ProfileOwner;
+  };
+  invitedBy: ProfileOwner;
 }

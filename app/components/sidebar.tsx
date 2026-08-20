@@ -31,19 +31,22 @@ export function Sidebar({ role }: { role: Role }) {
           <span className="text-base">💼</span> Jobs
         </Link>
 
+        {/* Profiles is NOT under Admin: bidders open it too, for the profiles
+            they were invited to. Only creating one is an admin action. */}
+        <Link href="/profiles" className={linkCls(pathname.startsWith('/profiles'))}>
+          <span className="text-base">🧑‍💼</span> Profiles
+        </Link>
+
         {isAdmin && (
           <NavGroup
             icon="🛠️"
             label="Admin"
             active={
-              pathname.startsWith('/admin/profiles') || pathname.startsWith('/admin/templates')
+              pathname.startsWith('/admin/bidders') || pathname.startsWith('/admin/templates')
             }
           >
-            <Link
-              href="/admin/profiles"
-              className={linkCls(pathname.startsWith('/admin/profiles'))}
-            >
-              <span className="text-base">🧑‍💼</span> Profiles
+            <Link href="/admin/bidders" className={linkCls(pathname.startsWith('/admin/bidders'))}>
+              <span className="text-base">🤝</span> Bidders
             </Link>
             <Link
               href="/admin/templates"

@@ -1,4 +1,6 @@
 import { LogoutButton } from './logout-button';
+import { InboxMenu } from './inbox-menu';
+import { fetchMyInvitations } from '@/lib/profiles';
 import type { Session } from '@/lib/session';
 
 const ROLE_BADGE: Record<string, string> = {
@@ -8,8 +10,11 @@ const ROLE_BADGE: Record<string, string> = {
   guest: 'bg-amber-500/15 text-amber-300',
 };
 
-export function Topbar({ session }: { session: Session }) {
+export async function Topbar({ session }: { session: Session }) {
   const initial = session.email.charAt(0).toUpperCase();
+  // Fetched here rather than in the menu so the badge count is correct on the
+  // first paint — a client fetch would render "no invitations" and then pop.
+  const invitations = await fetchMyInvitations().catch(() => []);
   return (
     <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur">
       <div className="flex items-center justify-between gap-4 px-6 py-3">
@@ -17,6 +22,7 @@ export function Topbar({ session }: { session: Session }) {
           Job<span className="text-[var(--primary)]">HighLander</span>
         </span>
         <div className="ml-auto flex items-center gap-3">
+          <InboxMenu invitations={invitations} />
           <span className={`hidden rounded-full px-2.5 py-0.5 text-xs font-medium sm:inline ${ROLE_BADGE[session.role]}`}>
             {session.role}
           </span>

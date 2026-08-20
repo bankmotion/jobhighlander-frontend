@@ -155,18 +155,26 @@ export function ResumeAction({ jobId, title, company }: ResumeTarget) {
 export function ResumeProfileNotice({ canManage }: { canManage: boolean }) {
   return (
     <p className="mb-4 rounded-lg border border-dashed border-[var(--border-strong)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted)]">
+      Resumes need a profile — it supplies your name, contact details and employment history.{' '}
       {canManage ? (
         <>
-          Resumes need a profile — it supplies your name, contact details and employment history.{' '}
-          <Link href="/admin/profiles" className="text-[var(--text)] underline hover:text-white">
+          <Link href="/profiles" className="text-[var(--text)] underline hover:text-white">
             Create one
           </Link>
           .
         </>
       ) : (
-        // Profiles are owner-scoped and only admins can reach the endpoint, so
-        // pointing a bidder at a page they cannot open would be a dead end.
-        <>Resumes need a profile, and your account cannot create one. Ask an admin to set one up.</>
+        // A bidder cannot create one, but they CAN be invited to an admin's, so
+        // the Profiles page is a real destination for them now rather than the
+        // dead end it used to be.
+        <>
+          Your account cannot create one — ask an admin to invite you to theirs, then accept it
+          from your{' '}
+          <Link href="/inbox" className="text-[var(--text)] underline hover:text-white">
+            inbox
+          </Link>
+          .
+        </>
       )}
     </p>
   );

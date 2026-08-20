@@ -38,7 +38,8 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   ]);
 
   // `?profile=` wins so the choice is shareable and the server render is already
-  // correct; otherwise the first profile, which is the only one most users have.
+  // correct; otherwise the first profile — which `fetchProfiles` orders owned-
+  // first, so an admin never lands on someone else's shared profile by default.
   const wanted = Number(str(sp.profile));
   const profile = profiles.find((p) => p.id === wanted) ?? profiles[0];
   const profileId = profile?.id ?? null;
@@ -52,9 +53,8 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
     ...(profiles.length > 1 && profileId ? { profile: profileId } : {}),
   };
 
-  // GET /api/profiles is admin-only and fetchProfiles swallows the 403 into [],
-  // so "you have none" and "your role may not ask" are indistinguishable here.
-  // The message has to cover both without promising a page they cannot open.
+  // Everyone can now reach /profiles, so the only thing the role decides is
+  // whether the empty-state offers "create one" or "ask to be invited".
   const canManageProfiles = isAdminRole(session?.role);
 
   let data;

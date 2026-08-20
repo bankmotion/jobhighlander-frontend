@@ -53,11 +53,16 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // /admin/profiles and /admin/templates are open to admins (and super admins):
-  // both are about a bidder's own resume output. The rest of /admin (users,
-  // keywords, scraper config) stays super_admin only. Re-check the role
-  // against the backend here so a just-granted or just-revoked role applies
-  // immediately, without waiting for a fresh login.
+  // /admin/bidders and /admin/templates are open to admins (and super admins):
+  // one shares their own profiles, the other shapes their resume output. The
+  // rest of /admin (users, keywords, scraper config) stays super_admin only.
+  //
+  // /profiles and /inbox are deliberately NOT under /admin — every signed-in
+  // role reaches them, and what they may do there is decided per profile by the
+  // backend, not by this path check.
+  //
+  // Re-check the role against the backend here so a just-granted or
+  // just-revoked role applies immediately, without waiting for a fresh login.
   if (pathname.startsWith('/admin')) {
     const check = await currentRole(token!);
     if ('revoked' in check) {
@@ -69,7 +74,7 @@ export async function middleware(req: NextRequest) {
       return res;
     }
     const role = 'role' in check ? check.role : session.role; // offline → trust token
-    const ADMIN_LEVEL = ['/admin/profiles', '/admin/templates'];
+    const ADMIN_LEVEL = ['/admin/bidders', '/admin/templates'];
     const allowed = ADMIN_LEVEL.some((p) => pathname.startsWith(p))
       ? isAdminRole(role)
       : isSuperAdmin(role);
