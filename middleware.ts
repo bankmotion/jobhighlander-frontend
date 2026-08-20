@@ -57,7 +57,7 @@ export async function middleware(req: NextRequest) {
   // one shares their own profiles, the other shapes their resume output. The
   // rest of /admin (users, keywords, scraper config) stays super_admin only.
   //
-  // /profiles and /inbox are deliberately NOT under /admin — every signed-in
+  // /profiles, /inbox and /ai-usage are deliberately NOT under /admin — every signed-in
   // role reaches them, and what they may do there is decided per profile by the
   // backend, not by this path check.
   //

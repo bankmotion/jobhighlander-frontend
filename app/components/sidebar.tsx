@@ -98,6 +98,14 @@ export function Sidebar({ role, profiles }: { role: Role; profiles: ProfileSumma
           <span className="text-base">👤</span> Profiles
         </Link>
 
+        {/* Also not under Admin, and for the same reason: generating a resume
+            spends real money on a shared key, so the person deciding whether to
+            regenerate is the one who needs to see the cost. Scoped to the
+            caller by the API, so a bidder sees only their own. */}
+        <Link href="/ai-usage" className={linkCls(pathname === '/ai-usage')}>
+          <span className="text-base">💰</span> My AI Usage
+        </Link>
+
         {isAdmin && (
           <NavGroup
             icon="🛠️"
