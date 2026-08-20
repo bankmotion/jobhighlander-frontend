@@ -13,8 +13,15 @@ const ROLE_META: Record<Role, { label: string; badge: string; dot: string; desc:
   guest: { label: 'Guest', badge: 'bg-amber-500/15 text-amber-300', dot: 'bg-amber-400', desc: 'Revoked · no access' },
 };
 
-// A super_admin can assign these (the backend refuses to assign super_admin).
-const ASSIGNABLE: Role[] = ['admin', 'bidder', 'guest'];
+/**
+ * What a super_admin can assign. Every role, including their own.
+ *
+ * `super_admin` is in the list but goes through a confirm step below: it is the
+ * one choice here that hands over control of this page itself, and a role menu
+ * where the irreversible option sits one click away next to "Bidder" is a
+ * mis-click waiting to happen.
+ */
+const ASSIGNABLE: Role[] = ['super_admin', 'admin', 'bidder', 'guest'];
 
 export function UserRow({
   user,
@@ -40,7 +47,7 @@ export function UserRow({
         {isSelf ? (
           <span className="text-xs text-[var(--muted)]">you</span>
         ) : isSuper ? (
-          <RoleSelect userId={user.id} current={user.role} />
+          <RoleSelect userId={user.id} email={user.email} current={user.role} />
         ) : (
           <span className="text-xs text-[var(--muted)]">—</span>
         )}
@@ -51,7 +58,7 @@ export function UserRow({
 
 /** A dark-themed dropdown for changing a user's role. Menu is portaled so the
  *  table's horizontal-scroll wrapper can't clip it. */
-function RoleSelect({ userId, current }: { userId: number; current: Role }) {
+function RoleSelect({ userId, email, current }: { userId: number; email: string; current: Role }) {
   const router = useRouter();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -59,10 +66,13 @@ function RoleSelect({ userId, current }: { userId: number; current: Role }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pos, setPos] = useState<{ left: number; top: number; width: number } | null>(null);
+  /** Set while the super_admin choice is waiting to be confirmed. */
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    const MENU_H = 172;
+    // Four options now, and the confirm panel is about the same height.
+    const MENU_H = 224;
     function place() {
       const el = triggerRef.current;
       if (!el) return;
@@ -72,13 +82,20 @@ function RoleSelect({ userId, current }: { userId: number; current: Role }) {
       setPos({ left: r.left, top: openUp ? r.top - MENU_H - 6 : r.bottom + 6, width: r.width });
     }
     place();
+    // Dismissing the menu also drops a pending confirmation. Leaving it armed
+    // would make the NEXT time the menu opens start on "are you sure?" for a
+    // promotion the user already walked away from.
+    function dismiss() {
+      setOpen(false);
+      setConfirming(false);
+    }
     function onDown(e: MouseEvent) {
       if (!triggerRef.current?.contains(e.target as Node) && !menuRef.current?.contains(e.target as Node)) {
-        setOpen(false);
+        dismiss();
       }
     }
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') dismiss();
     }
     window.addEventListener('scroll', place, true);
     window.addEventListener('resize', place);
@@ -92,9 +109,29 @@ function RoleSelect({ userId, current }: { userId: number; current: Role }) {
     };
   }, [open]);
 
-  async function choose(role: Role) {
+  /**
+   * Act on a menu choice.
+   *
+   * Every role applies on the click except `super_admin`, which arms the
+   * confirm panel instead and leaves the menu open. The grant is not undoable
+   * by the grantor alone — once promoted, that user can change roles back,
+   * including this one's — so it gets a second deliberate press.
+   */
+  function choose(role: Role) {
+    if (role === current) {
+      setOpen(false);
+      return;
+    }
+    if (role === 'super_admin') {
+      setConfirming(true);
+      return;
+    }
+    void apply(role);
+  }
+
+  async function apply(role: Role) {
     setOpen(false);
-    if (role === current) return;
+    setConfirming(false);
     setBusy(true);
     setError(null);
     try {
@@ -157,7 +194,33 @@ function RoleSelect({ userId, current }: { userId: number; current: Role }) {
             style={{ position: 'fixed', left: pos.left, top: pos.top, minWidth: Math.max(pos.width, 220) }}
             className="z-50 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-2xl"
           >
-            {ASSIGNABLE.map((r) => {
+            {confirming ? (
+              <div className="max-w-[280px] p-2">
+                <p className="text-sm font-medium text-[var(--text)]">Make this user a super admin?</p>
+                <p className="mt-1 break-all text-xs text-[var(--muted)]">{email}</p>
+                <p className="mt-2 text-xs text-[var(--muted)]">
+                  They get full control of the app, including this page — they will be able to
+                  change anyone&apos;s role except their own, yours included.
+                </p>
+                <div className="mt-3 flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setConfirming(false)}
+                    className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs font-medium text-[var(--muted)] transition hover:border-[var(--border-strong)] hover:text-white"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void apply('super_admin')}
+                    className="rounded-lg bg-purple-500/20 px-2.5 py-1.5 text-xs font-medium text-purple-200 transition hover:bg-purple-500/30"
+                  >
+                    Promote
+                  </button>
+                </div>
+              </div>
+            ) : (
+              ASSIGNABLE.map((r) => {
               const m = ROLE_META[r];
               const isCur = r === current;
               return (
@@ -188,8 +251,9 @@ function RoleSelect({ userId, current }: { userId: number; current: Role }) {
                     </svg>
                   )}
                 </button>
-              );
-            })}
+                );
+              })
+            )}
           </div>,
           document.body,
         )}

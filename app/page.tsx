@@ -1,4 +1,5 @@
 import { fetchJobs, fetchFilters } from '@/lib/api';
+import { fetchKeywords } from '@/lib/keywords';
 import { fetchProfiles } from '@/lib/profiles';
 import { fetchPresets } from '@/lib/templates';
 import { fetchResumeStatus } from '@/lib/resumes';
@@ -36,11 +37,17 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   const appliedParam = str(sp.applied);
   const applied: AppliedFilter = isAppliedFilter(appliedParam) ? appliedParam : 'all';
 
-  const [filters, profiles, presets, session] = await Promise.all([
+  const [filters, profiles, presets, session, keywords] = await Promise.all([
     fetchFilters().catch(() => ({ sites: [], locations: [] })),
     fetchProfiles().catch(() => []),
     fetchPresets().catch(() => []),
     getSession(),
+    // Same emphasis words the detail page marks up, so a description reads the
+    // same whether it is scanned in the list or opened. Highlighting is a
+    // nicety, so a failure here costs the marks, never the job list.
+    fetchKeywords()
+      .then((ks) => ks.map((k) => k.word))
+      .catch(() => []),
   ]);
 
   // `?profile=` wins so the choice is shareable and the server render is already
@@ -145,7 +152,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
             >
               <ul className="grid gap-4">
                 {data.items.map((job) => (
-                  <JobCard key={job.id} job={job} profileId={profileId} />
+                  <JobCard key={job.id} job={job} profileId={profileId} keywords={keywords} />
                 ))}
               </ul>
               <Pagination pagination={data.pagination} query={query} />

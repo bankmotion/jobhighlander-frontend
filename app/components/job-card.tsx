@@ -3,8 +3,18 @@ import type { Job } from '@/lib/types';
 import { formatPostedRelative } from '@/lib/format';
 import { ApplicationAction } from './application-action';
 import { AppliedAction, AppliedBadge } from './applied-action';
+import { JobDescription } from './job-description';
 
-export function JobCard({ job, profileId }: { job: Job; profileId: number | null }) {
+export function JobCard({
+  job,
+  profileId,
+  keywords,
+}: {
+  job: Job;
+  profileId: number | null;
+  /** Emphasis words to mark in the description, same list the detail page uses. */
+  keywords: string[];
+}) {
   /**
    * Which profile the detail page opens against.
    *
@@ -103,11 +113,7 @@ export function JobCard({ job, profileId }: { job: Job; profileId: number | null
         </a>
       </div>
 
-      {job.description && (
-        <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-[var(--muted)]">
-          {job.description}
-        </p>
-      )}
+      {job.description && <JobDescription text={job.description} keywords={keywords} />}
 
       <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-[var(--border)] pt-3 text-sm">
         <Link
