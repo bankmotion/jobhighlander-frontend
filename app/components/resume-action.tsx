@@ -8,7 +8,7 @@ import { useResumeList, type ResumeTarget } from './resume-list-provider';
  * and the chip lands in the same column on every card — twenty of them read as
  * a vertical stripe of state you can scan without reading a word.
  */
-const BOX =
+export const BOX =
   'relative inline-flex w-[8.75rem] shrink-0 items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/60';
 
 /**
@@ -17,12 +17,14 @@ const BOX =
  * composed `border-${c}-500/40` compiles to no CSS at all — silently, with no
  * build error.
  */
-const TONE = {
+/** Exported so the cover letter control is the SAME control, not a lookalike. */
+export const TONE = {
   none: 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] hover:border-[var(--border-strong)] hover:text-white',
   busy: 'cursor-wait border-[var(--border-strong)] bg-[var(--surface-2)] text-[var(--muted)]',
   // Violet, NOT emerald: the card already carries an emerald salary pill and a
   // green Remote pill, and a third green makes the row unreadable at a glance.
-  ready: 'border-[var(--primary)] bg-[var(--primary)]/12 font-medium text-white hover:bg-[var(--primary)]/20',
+  ready:
+    'border-[var(--primary)] bg-[var(--primary)]/12 font-medium text-white hover:bg-[var(--primary)]/20',
   error: 'border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20',
   // No hover affordance at all: the control is inert, and a border that lights
   // up under the cursor promises a click that does nothing.
@@ -34,12 +36,22 @@ const TONE = {
  * border). Hard-coded rather than `h-full`, because these sit in a wrapping
  * flex row where stretch height is whatever the tallest sibling happens to be.
  */
-const ICON_BOX =
+export const ICON_BOX =
   'inline-flex h-[2.125rem] w-[2.125rem] shrink-0 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-[var(--muted)] transition hover:border-[var(--border-strong)] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/60 disabled:cursor-wait disabled:hover:border-[var(--border)] disabled:hover:text-[var(--muted)]';
 
 function IconPlus() {
   return (
-    <svg aria-hidden width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      aria-hidden
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <path d="M14 2v6h6M12 18v-6M9 15h6" />
     </svg>
@@ -48,7 +60,17 @@ function IconPlus() {
 
 function IconCheck() {
   return (
-    <svg aria-hidden width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      aria-hidden
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <path d="M14 2v6h6M9 15l2 2 4-4" />
     </svg>
@@ -57,7 +79,17 @@ function IconCheck() {
 
 function IconEye() {
   return (
-    <svg aria-hidden width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      aria-hidden
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z" />
       <circle cx="12" cy="12" r="3" />
     </svg>
@@ -66,7 +98,17 @@ function IconEye() {
 
 function IconDownload() {
   return (
-    <svg aria-hidden width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      aria-hidden
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
       <path d="M7 10l5 5 5-5M12 15V3" />
     </svg>
@@ -75,7 +117,17 @@ function IconDownload() {
 
 function IconAlert() {
   return (
-    <svg aria-hidden width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      aria-hidden
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
       <path d="M12 9v4M12 17h.01" />
     </svg>
@@ -204,9 +256,7 @@ export function ResumeAction({ jobId, title, company }: ResumeTarget) {
           // gets repeated.
           title={saving ? 'Rendering the PDF…' : `Download the ${noun} as a PDF`}
           aria-label={
-            saving
-              ? `Rendering the PDF for ${where}`
-              : `Download the ${noun} for ${where} as a PDF`
+            saving ? `Rendering the PDF for ${where}` : `Download the ${noun} for ${where} as a PDF`
           }
           className={ICON_BOX}
         >
@@ -271,8 +321,8 @@ export function ResumeProfileNotice({ canManage }: { canManage: boolean }) {
         // the Profiles page is a real destination for them now rather than the
         // dead end it used to be.
         <>
-          Your account cannot create one — ask an admin to invite you to theirs, then accept it
-          from your{' '}
+          Your account cannot create one — ask an admin to invite you to theirs, then accept it from
+          your{' '}
           <Link href="/inbox" className="text-[var(--text)] underline hover:text-white">
             inbox
           </Link>

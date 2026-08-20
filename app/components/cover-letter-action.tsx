@@ -2,6 +2,7 @@
 
 import { useCoverLetters } from './cover-letter-provider';
 import { useResumeList } from './resume-list-provider';
+import { BOX, ICON_BOX, TONE } from './resume-action';
 
 function IconMail({ className = 'h-3.5 w-3.5' }: { className?: string }) {
   return (
@@ -42,6 +43,12 @@ function IconClipboard({ className = 'h-4 w-4' }: { className?: string }) {
 /**
  * The cover letter control on a job card.
  *
+ * Built from the SAME `BOX` / `TONE` / `ICON_BOX` the resume control uses, and
+ * laid out the same way: one fixed-width chip carrying the state, then separate
+ * icon buttons for what you actually do with it. The two groups sit next to
+ * each other in one row, so any difference in height, radius, colour weight or
+ * grouping reads as two unrelated designs rather than two instances of one.
+ *
  * Three states, and the middle one is the point: the letter is written FROM the
  * tailored resume, so without one this is disabled rather than absent. Hiding
  * it would leave the dependency invisible — you would not know a letter was
@@ -53,9 +60,6 @@ export function CoverLetterAction({ jobId }: { jobId: number }) {
   // no extra request — it reads the map the page fetched for the badges.
   const { statusOf } = useResumeList();
 
-  const BOX =
-    'inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/60';
-
   if (!profileId) {
     return (
       <span
@@ -64,7 +68,7 @@ export function CoverLetterAction({ jobId }: { jobId: number }) {
         tabIndex={0}
         title="Cover letters are written for a profile — create one, or ask an admin to invite you to theirs"
         aria-label={`Cannot write a cover letter for posting ${jobId}: no profile yet`}
-        className={`${BOX} cursor-not-allowed border-dashed border-[var(--border)] text-[var(--muted)]`}
+        className={`${BOX} ${TONE.disabled}`}
       >
         <IconMail />
         Cover letter
@@ -73,9 +77,8 @@ export function CoverLetterAction({ jobId }: { jobId: number }) {
   }
 
   const busy = isBusy(jobId);
-  const hasResume = Boolean(statusOf(jobId));
 
-  if (!hasResume) {
+  if (!statusOf(jobId)) {
     return (
       <span
         role="button"
@@ -83,7 +86,7 @@ export function CoverLetterAction({ jobId }: { jobId: number }) {
         tabIndex={0}
         title="Write the resume first — the letter is written from it, so the two agree"
         aria-label={`Cannot write a cover letter for posting ${jobId} until its resume exists`}
-        className={`${BOX} cursor-not-allowed border-dashed border-[var(--border)] text-[var(--muted)]`}
+        className={`${BOX} ${TONE.disabled}`}
       >
         <IconMail />
         Resume first
@@ -94,37 +97,36 @@ export function CoverLetterAction({ jobId }: { jobId: number }) {
   if (hasLetter(jobId)) {
     const copying = isCopying(jobId);
     return (
-      // Joined into one control rather than two loose buttons: they act on the
-      // same letter, and a free-floating icon beside four other buttons reads
-      // as a fifth unrelated action.
-      <span className="inline-flex shrink-0 items-center">
+      // Chip + icon at the same 1.5 gap as the resume group beside it.
+      <span className="inline-flex shrink-0 items-center gap-1.5">
         <button
           type="button"
           onClick={() => open(jobId)}
           disabled={busy}
           aria-label={`Open the cover letter for posting ${jobId}`}
-          className={`${BOX} rounded-r-none border-r-0 border-[var(--primary)] bg-[var(--primary)]/12 font-medium text-white transition hover:bg-[var(--primary)]/20 disabled:opacity-60`}
+          className={`${BOX} ${TONE.ready}`}
         >
           <IconMail />
           Cover letter
         </button>
+
         <button
           type="button"
           onClick={() => copyLetter(jobId)}
           disabled={copying}
           // The whole point of a cover letter is to be pasted somewhere, so the
-          // common case gets its own control instead of open-scroll-select-copy.
-          title="Copy the letter to the clipboard"
+          // common case gets its own affordance instead of open-select-copy.
+          title={copying ? 'Loading the letter…' : 'Copy the letter to the clipboard'}
           aria-label={`Copy the cover letter for posting ${jobId} to the clipboard`}
-          className={`${BOX} rounded-l-none border-[var(--primary)] bg-[var(--primary)]/12 px-2.5 text-white transition hover:bg-[var(--primary)]/25 disabled:opacity-60`}
+          className={ICON_BOX}
         >
           {copying ? (
             <span
               aria-hidden
-              className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white motion-reduce:animate-none"
+              className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--border-strong)] border-t-[var(--primary)] motion-reduce:animate-none"
             />
           ) : (
-            <IconClipboard className="h-3.5 w-3.5" />
+            <IconClipboard className="h-4 w-4" />
           )}
         </button>
       </span>
@@ -137,7 +139,7 @@ export function CoverLetterAction({ jobId }: { jobId: number }) {
       onClick={() => write(jobId)}
       disabled={busy}
       aria-label={`Write a cover letter for posting ${jobId}`}
-      className={`${BOX} border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] hover:border-[var(--primary)] hover:text-white disabled:opacity-60`}
+      className={`${BOX} ${TONE.none}`}
     >
       <IconMail />
       {busy ? 'Writing…' : 'Write letter'}
