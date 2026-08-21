@@ -4,6 +4,8 @@ import { formatPostedRelative } from '@/lib/format';
 import { ApplicationAction } from './application-action';
 import { AppliedAction, AppliedBadge } from './applied-action';
 import { JobDescription } from './job-description';
+import { DiscardAction, DiscardedBadge } from './discard-action';
+import { JobPanel } from './job-panel';
 
 export function JobCard({
   job,
@@ -34,7 +36,7 @@ export function JobCard({
   ) as string[];
 
   return (
-    <li className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 transition hover:border-[var(--border-strong)]">
+    <JobPanel jobId={job.id}>
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -45,6 +47,7 @@ export function JobCard({
                 to be caught while scanning twenty rows, so a posting already
                 answered is never opened a second time. */}
             <AppliedBadge jobId={job.id} />
+            <DiscardedBadge jobId={job.id} />
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <Link
@@ -103,14 +106,20 @@ export function JobCard({
           )}
         </div>
 
-        <a
-          href={applyHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--primary-hover)]"
-        >
-          Apply Now <span aria-hidden>↗</span>
-        </a>
+        {/* Top-right corner of the panel. Discard sits OUTSIDE Apply Now, at
+            the very edge, so the destructive control is never the one a thumb
+            reaches for on the way to the primary action. */}
+        <div className="flex shrink-0 items-start gap-2">
+          <a
+            href={applyHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--primary-hover)]"
+          >
+            Apply Now <span aria-hidden>↗</span>
+          </a>
+          <DiscardAction jobId={job.id} />
+        </div>
       </div>
 
       {job.description && <JobDescription text={job.description} keywords={keywords} />}
@@ -139,6 +148,6 @@ export function JobCard({
         </a>
         <AppliedAction jobId={job.id} />
       </div>
-    </li>
+    </JobPanel>
   );
 }

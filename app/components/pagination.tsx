@@ -1,4 +1,5 @@
 import type { AppliedFilter } from '@/lib/applications';
+import type { DiscardedFilter } from '@/lib/discards';
 import Link from 'next/link';
 import type { Pagination as PaginationInfo } from '@/lib/types';
 
@@ -10,6 +11,7 @@ interface Props {
     remote: boolean;
     profile?: number;
     applied?: AppliedFilter;
+    discarded?: DiscardedFilter;
   };
 }
 
@@ -23,6 +25,7 @@ function href(page: number, query: Props['query']): string {
   if (query.profile) qs.set('profile', String(query.profile));
   // Paging must not silently widen the list back to every job.
   if (query.applied && query.applied !== 'all') qs.set('applied', query.applied);
+  if (query.discarded && query.discarded !== 'all') qs.set('discarded', query.discarded);
   qs.set('page', String(page));
   return `/?${qs.toString()}`;
 }

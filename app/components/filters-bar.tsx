@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { JobFilters } from '@/lib/types';
 import type { AppliedFilter } from '@/lib/applications';
+import type { DiscardedFilter } from '@/lib/discards';
 import { MultiSelect } from './multi-select';
 
 interface Props {
@@ -14,10 +15,17 @@ interface Props {
     remote: boolean;
     profile?: number;
     applied: AppliedFilter;
+    discarded: DiscardedFilter;
   };
   /** Applied is per profile; without one the control has nothing to filter by. */
   canFilterApplied: boolean;
 }
+
+const DISCARDED_TABS: { value: DiscardedFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'undiscarded', label: 'Kept' },
+  { value: 'discarded', label: 'Discarded' },
+];
 
 const APPLIED_TABS: { value: AppliedFilter; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -54,6 +62,7 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
   const [remote, setRemote] = useState(current.remote);
   const [sites, setSites] = useState<string[]>(current.sites);
   const [applied, setApplied] = useState<AppliedFilter>(current.applied);
+  const [discarded, setDiscarded] = useState<DiscardedFilter>(current.discarded);
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -78,6 +87,7 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
     sites: string[];
     remote: boolean;
     applied?: AppliedFilter;
+    discarded?: DiscardedFilter;
   }) {
     const qs = new URLSearchParams();
     if (next.q.trim()) qs.set('q', next.q.trim());
@@ -85,6 +95,8 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
     if (!next.remote) qs.set('remote', '0'); // remote-only is the default
     const nextApplied = next.applied ?? applied;
     if (nextApplied !== 'all') qs.set('applied', nextApplied); // all is the default
+    const nextDiscarded = next.discarded ?? discarded;
+    if (nextDiscarded !== 'all') qs.set('discarded', nextDiscarded); // all is the default
     // Filters change WHAT is listed; they must never change WHOSE resumes are
     // reported alongside it.
     if (current.profile) qs.set('profile', String(current.profile));
@@ -95,6 +107,11 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
   function selectApplied(next: AppliedFilter) {
     setApplied(next);
     navigate({ q, sites, remote, applied: next }); // applies instantly
+  }
+
+  function selectDiscarded(next: DiscardedFilter) {
+    setDiscarded(next);
+    navigate({ q, sites, remote, discarded: next }); // applies instantly
   }
 
   function toggleSite(s: string) {
@@ -124,12 +141,15 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
     setSites([]);
     setRemote(true); // back to the default (remote-only)
     setApplied('all');
+    setDiscarded('all');
     // Clearing FILTERS must not also reset the selected profile.
     router.push(current.profile ? `/?profile=${current.profile}` : '/');
   }
 
   // "Filtered" = anything other than the default (remote-only, everything else off).
-  const hasFilters = Boolean(q.trim() || sites.length || !remote || applied !== 'all');
+  const hasFilters = Boolean(
+    q.trim() || sites.length || !remote || applied !== 'all' || discarded !== 'all',
+  );
 
   return (
     <form
@@ -220,6 +240,42 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
                 role="radio"
                 aria-checked={on}
                 onClick={() => selectApplied(t.value)}
+                className={`rounded-md px-2.5 py-1.5 text-sm transition ${
+                  on
+                    ? 'bg-[var(--primary)] font-medium text-white'
+                    : 'text-[var(--muted)] hover:text-[var(--text)]'
+                }`}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Discarded — its own control rather than a fourth tab on the applied
+          one: the two are independent, and "not discarded AND not applied" is
+          the shortlist someone actually works from. Folding them into one
+          three-state control would make that combination unreachable.
+
+          "Kept" rather than "Not discarded": it is the state most of the list
+          is in, and a segmented control reads better with a positive middle
+          option than with a negated one. */}
+      {canFilterApplied && (
+        <div
+          role="radiogroup"
+          aria-label="Discarded"
+          className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-0.5"
+        >
+          {DISCARDED_TABS.map((t) => {
+            const on = discarded === t.value;
+            return (
+              <button
+                key={t.value}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                onClick={() => selectDiscarded(t.value)}
                 className={`rounded-md px-2.5 py-1.5 text-sm transition ${
                   on
                     ? 'bg-[var(--primary)] font-medium text-white'

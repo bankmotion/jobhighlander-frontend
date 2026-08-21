@@ -1,5 +1,6 @@
 import type { Job, JobFilters, Paginated } from './types';
 import type { AppliedFilter } from './applications';
+import type { DiscardedFilter } from './discards';
 import { getToken } from './auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
@@ -14,6 +15,7 @@ export interface JobQuery {
    * backend ignores it without one rather than guessing.
    */
   applied?: AppliedFilter;
+  discarded?: DiscardedFilter;
   profileId?: number | null;
   page?: number;
   pageSize?: number;
@@ -34,6 +36,7 @@ export async function fetchJobs(query: JobQuery = {}): Promise<Paginated<Job>> {
   // client-side would leave `total` counting rows that were then removed, so
   // the pagination would promise pages that render empty.
   if (query.applied && query.applied !== 'all') qs.set('applied', query.applied);
+  if (query.discarded && query.discarded !== 'all') qs.set('discarded', query.discarded);
   if (query.profileId) qs.set('profileId', String(query.profileId));
   if (query.page) qs.set('page', String(query.page));
   if (query.pageSize) qs.set('pageSize', String(query.pageSize));
