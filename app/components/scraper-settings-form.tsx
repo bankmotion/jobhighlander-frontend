@@ -178,6 +178,31 @@ const GROUPS: Group[] = [
         hint: 'matches locationRestrictions',
       },
       { key: 'himalayas_role_regex', label: 'Role regex', type: 'text' },
+      {
+        key: 'himalayas_resolve_apply',
+        label: 'Resolve apply URL',
+        type: 'bool',
+        hint: 'follows each listing to its real apply link — slower',
+      },
+    ],
+  },
+  {
+    title: 'LinkedIn',
+    fields: [
+      { key: 'enable_linkedin', label: 'Enabled', type: 'bool' },
+      { key: 'linkedin_search_url', label: 'Search URL', type: 'text', link: true },
+      {
+        key: 'linkedin_role_regex',
+        label: 'Role regex',
+        type: 'text',
+        hint: 'empty = keep every role the listing returns',
+      },
+      {
+        key: 'linkedin_delay_s',
+        label: 'Delay between jobs (s)',
+        type: 'number',
+        step: '0.5',
+      },
     ],
   },
 ];
