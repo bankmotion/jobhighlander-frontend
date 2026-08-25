@@ -61,6 +61,12 @@ const GROUPS: Group[] = [
     title: 'Indeed',
     fields: [
       { key: 'enable_indeed', label: 'Enabled', type: 'bool' },
+      {
+        key: 'indeed_use_proxy',
+        label: 'Use proxy',
+        type: 'bool',
+        hint: 'needs a residential exit for Cloudflare',
+      },
       { key: 'indeed_search_url', label: 'Search URL', type: 'text', link: true },
       { key: 'indeed_max_pages', label: 'Max pages', type: 'number' },
     ],
@@ -69,6 +75,12 @@ const GROUPS: Group[] = [
     title: 'Glassdoor',
     fields: [
       { key: 'enable_glassdoor', label: 'Enabled', type: 'bool' },
+      {
+        key: 'glassdoor_use_proxy',
+        label: 'Use proxy',
+        type: 'bool',
+        hint: 'needs a residential exit for Cloudflare',
+      },
       { key: 'glassdoor_search_url', label: 'Search URL', type: 'text', link: true },
     ],
   },
@@ -76,6 +88,12 @@ const GROUPS: Group[] = [
     title: 'JobRight',
     fields: [
       { key: 'enable_jobright', label: 'Enabled', type: 'bool' },
+      {
+        key: 'jobright_use_proxy',
+        label: 'Use proxy',
+        type: 'bool',
+        hint: 'route this site through proxy_url',
+      },
       { key: 'jobright_recommend_url', label: 'Recommend URL', type: 'text', link: true },
       { key: 'jobright_recommend_api', label: 'Recommend API', type: 'text' },
     ],
@@ -84,6 +102,12 @@ const GROUPS: Group[] = [
     title: 'WeWorkRemotely',
     fields: [
       { key: 'enable_weworkremotely', label: 'Enabled', type: 'bool' },
+      {
+        key: 'weworkremotely_use_proxy',
+        label: 'Use proxy',
+        type: 'bool',
+        hint: 'route this site through proxy_url',
+      },
       { key: 'weworkremotely_search_url', label: 'Search URL', type: 'text', link: true },
       { key: 'weworkremotely_max_per_company', label: 'Max per company', type: 'number' },
     ],
@@ -92,6 +116,12 @@ const GROUPS: Group[] = [
     title: 'RemoteOK',
     fields: [
       { key: 'enable_remoteok', label: 'Enabled', type: 'bool' },
+      {
+        key: 'remoteok_use_proxy',
+        label: 'Use proxy',
+        type: 'bool',
+        hint: 'route this site through proxy_url',
+      },
       { key: 'remoteok_api_url', label: 'API URL', type: 'text' },
     ],
   },
@@ -99,6 +129,12 @@ const GROUPS: Group[] = [
     title: 'FindMyRemote',
     fields: [
       { key: 'enable_findmyremote', label: 'Enabled', type: 'bool' },
+      {
+        key: 'findmyremote_use_proxy',
+        label: 'Use proxy',
+        type: 'bool',
+        hint: 'route this site through proxy_url',
+      },
       {
         key: 'findmyremote_search_url',
         label: 'Search URL',
@@ -118,6 +154,12 @@ const GROUPS: Group[] = [
     title: 'Jobicy',
     fields: [
       { key: 'enable_jobicy', label: 'Enabled', type: 'bool' },
+      {
+        key: 'jobicy_use_proxy',
+        label: 'Use proxy',
+        type: 'bool',
+        hint: 'route this site through proxy_url',
+      },
       {
         key: 'jobicy_search_url',
         label: 'Search URL',
@@ -145,6 +187,12 @@ const GROUPS: Group[] = [
     fields: [
       { key: 'enable_themuse', label: 'Enabled', type: 'bool' },
       {
+        key: 'themuse_use_proxy',
+        label: 'Use proxy',
+        type: 'bool',
+        hint: 'route this site through proxy_url',
+      },
+      {
         key: 'themuse_search_url',
         label: 'Search URL',
         type: 'text',
@@ -170,6 +218,12 @@ const GROUPS: Group[] = [
     title: 'Himalayas',
     fields: [
       { key: 'enable_himalayas', label: 'Enabled', type: 'bool' },
+      {
+        key: 'himalayas_use_proxy',
+        label: 'Use proxy',
+        type: 'bool',
+        hint: 'route this site through proxy_url',
+      },
       { key: 'himalayas_api_url', label: 'API URL', type: 'text' },
       {
         key: 'himalayas_country',
@@ -190,6 +244,12 @@ const GROUPS: Group[] = [
     title: 'LinkedIn',
     fields: [
       { key: 'enable_linkedin', label: 'Enabled', type: 'bool' },
+      {
+        key: 'linkedin_use_proxy',
+        label: 'Use proxy',
+        type: 'bool',
+        hint: 'route this site through proxy_url',
+      },
       { key: 'linkedin_search_url', label: 'Search URL', type: 'text', link: true },
       {
         key: 'linkedin_role_regex',
