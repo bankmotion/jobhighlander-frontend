@@ -39,6 +39,23 @@ export function Sidebar({ role, profiles }: { role: Role; profiles: ProfileSumma
     return `/?${next.toString()}`;
   };
 
+  const onInterviews = pathname.startsWith('/interviews');
+
+  /**
+   * Which profile the interview list is filtered to, or null for "all".
+   *
+   * UNLIKE `activeProfileId`, this does NOT fall back to the first profile. The
+   * interviews page has a genuine unfiltered state — the whole point of it is
+   * seeing what is scheduled across every candidate — so a missing `?profile=`
+   * means "all", not "the first one", and highlighting a profile there would
+   * claim a filter that is not applied.
+   */
+  const interviewProfileId = onInterviews
+    ? (profiles.find((p) => p.id === Number(params.get('profile')))?.id ?? null)
+    : null;
+
+  const interviewsHref = (profileId: number) => `/interviews?profile=${profileId}`;
+
   const linkCls = (active: boolean) =>
     `mb-1 flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition ${
       active
@@ -92,6 +109,41 @@ export function Sidebar({ role, profiles }: { role: Role; profiles: ProfileSumma
           </Link>
         )}
 
+        {/* Interviews mirrors Jobs: one child per profile, because a process
+            belongs to a profile and two bidders working different candidates
+            must not see each other's schedule merged into one list.
+
+            Not under Admin, for the same reason Profiles is not — bidders are
+            who actually sit the interviews. Scoped to usable profiles by the
+            API regardless of what the URL asks for. */}
+        {profiles.length > 0 ? (
+          <NavGroup
+            icon="🗓️"
+            label="Interviews"
+            active={onInterviews}
+            maxHeight={profiles.length * 40 + 56}
+          >
+            <Link href="/interviews" className={linkCls(onInterviews && !interviewProfileId)}>
+              <span className="text-base">📋</span> All profiles
+            </Link>
+            {profiles.map((p) => (
+              <Link
+                key={p.id}
+                href={interviewsHref(p.id)}
+                className={linkCls(onInterviews && p.id === interviewProfileId)}
+                title={p.canEdit ? undefined : `Shared by ${p.owner.email}`}
+              >
+                <span className="text-base">{p.canEdit ? '🧑' : '🤝'}</span>
+                <span className="truncate">{profileLabel(p)}</span>
+              </Link>
+            ))}
+          </NavGroup>
+        ) : (
+          <Link href="/interviews" className={linkCls(onInterviews)}>
+            <span className="text-base">🗓️</span> Interviews
+          </Link>
+        )}
+
         {/* Profiles is NOT under Admin: bidders open it too, for the profiles
             they were invited to. Only creating one is an admin action. */}
         <Link href="/profiles" className={linkCls(pathname.startsWith('/profiles'))}>
@@ -135,11 +187,15 @@ export function Sidebar({ role, profiles }: { role: Role; profiles: ProfileSumma
               pathname.startsWith('/admin/ai-usage') ||
               pathname.startsWith('/admin/prompts') ||
               pathname.startsWith('/admin/keywords') ||
+              pathname.startsWith('/admin/stage-types') ||
               pathname.startsWith('/admin/scrape-runs') ||
               pathname.startsWith('/admin/scraper-settings')
             }
-            // Six entries now; the default open height clips the last one.
-            maxHeight={300}
+            // Seven entries at ~40px each. The group is `overflow-hidden` with
+            // no scrollbar, so anything past this height is not merely cut off
+            // — it is unreachable and gives no hint that it exists. Raise this
+            // whenever a link is added.
+            maxHeight={340}
           >
             <Link href="/admin" className={linkCls(pathname === '/admin')}>
               <span className="text-base">👥</span> Users
