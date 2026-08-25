@@ -1,4 +1,4 @@
-import { fetchStageTypesWithUsage } from '@/lib/stage-types';
+import { fetchStageTypesWithUsage } from '@/lib/stage-types.server';
 import { StageTypeManager } from '@/app/components/stage-type-manager';
 
 export const dynamic = 'force-dynamic';
