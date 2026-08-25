@@ -159,6 +159,12 @@ export function Sidebar({ role, profiles }: { role: Role; profiles: ProfileSumma
             <Link href="/admin/keywords" className={linkCls(pathname.startsWith('/admin/keywords'))}>
               <span className="text-base">🏷️</span> Keywords
             </Link>
+            <Link
+              href="/admin/stage-types"
+              className={linkCls(pathname.startsWith('/admin/stage-types'))}
+            >
+              <span className="text-base">🪜</span> Interview Stages
+            </Link>
             <Link href="/admin/scrape-runs" className={linkCls(pathname.startsWith('/admin/scrape-runs'))}>
               <span className="text-base">📊</span> Scrape Status
             </Link>

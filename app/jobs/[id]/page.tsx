@@ -8,6 +8,8 @@ import { formatPostedRelative } from '@/lib/format';
 import { fetchAppliedStatus, type AppliedStatusMap } from '@/lib/applications';
 import { fetchCoverLetter, type CoverLetter } from '@/lib/cover-letters';
 import { fetchResumeStatus, type ResumeStatusMap } from '@/lib/resumes';
+import { fetchInterviewForJob, type InterviewDetail } from '@/lib/interviews';
+import { fetchStageTypes } from '@/lib/stage-types';
 import { getSession } from '@/lib/auth';
 import { HighlightedText } from '@/app/components/highlighted-text';
 import { ResumeGenerator } from '@/app/components/resume-generator';
@@ -15,6 +17,7 @@ import { JobTabs } from '@/app/components/job-tabs';
 import { AppliedProvider } from '@/app/components/applied-provider';
 import { CoverLetterGenerator } from '@/app/components/cover-letter-generator';
 import { AppliedAction, AppliedBadge } from '@/app/components/applied-action';
+import { InterviewTimeline } from '@/app/components/interview-timeline';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,11 +36,14 @@ export default async function JobDetail({
   const job = await fetchJob(numId);
   if (!job) notFound();
 
-  const [keywords, profiles, presets, session] = await Promise.all([
+  const [keywords, profiles, presets, session, stageTypes] = await Promise.all([
     fetchKeywords().then((ks) => ks.map((k) => k.word)),
     fetchProfiles(),
     fetchPresets(),
     getSession(),
+    // Profile-independent, so it rides with this batch rather than the
+    // per-profile one below — the badge catalogue is the same for everyone.
+    fetchStageTypes(),
   ]);
 
   const posted = formatPostedRelative(job.postedAt);
@@ -59,18 +65,21 @@ export default async function JobDetail({
   // tab has to know whether that step is done before offering to generate —
   // and finding out by attempting it would spend a request to learn something
   // the page could have said up front.
-  const [appliedStatus, coverLetter, resumeStatus]: [
+  const [appliedStatus, coverLetter, resumeStatus, interview]: [
     AppliedStatusMap,
     CoverLetter | null,
     ResumeStatusMap,
+    InterviewDetail | null,
   ] = profileId
     ? await Promise.all([
         fetchAppliedStatus(profileId, [job.id]),
         fetchCoverLetter(job.id, profileId),
         fetchResumeStatus(profileId, [job.id]),
+        fetchInterviewForJob(job.id, profileId),
       ])
-    : [{}, null, {}];
+    : [{}, null, {}, null];
   const hasResume = Boolean(resumeStatus[job.id]);
+  const isApplied = Boolean(appliedStatus[job.id]);
 
   return (
     <AppliedProvider
@@ -200,6 +209,31 @@ export default async function JobDetail({
                   profile={activeProfile ?? null}
                   hasResume={hasResume}
                   initial={coverLetter}
+                />
+              ),
+            },
+            {
+              key: 'interview',
+              label: 'Interview',
+              // Reads "Applied first" until the job is marked, so the
+              // dependency shows in the tab strip rather than only after a
+              // click — same treatment the cover letter gives its resume.
+              badge: interview
+                ? `${interview.steps.length} ${interview.steps.length === 1 ? 'step' : 'steps'}`
+                : isApplied
+                  ? undefined
+                  : 'Applied first',
+              content: (
+                // Remount on profile change: the timeline holds the fetched
+                // process in state, and a different profile is a different
+                // process entirely.
+                <InterviewTimeline
+                  key={profileId ?? 'none'}
+                  jobId={job.id}
+                  profileId={profileId}
+                  applied={isApplied}
+                  initial={interview}
+                  stageTypes={stageTypes}
                 />
               ),
             },
