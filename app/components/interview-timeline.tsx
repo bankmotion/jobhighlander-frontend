@@ -284,7 +284,13 @@ export function InterviewTimeline({
         )}
       </div>
 
+      {/* Keyed so the dialog REMOUNTS whenever it opens on a different
+          subject. That is what lets both modals seed their form state from
+          props in `useState` initialisers instead of syncing it with a reset
+          effect — which the React Compiler lint rejects, and which would wipe
+          half-typed input every time this parent re-rendered. */}
       <InterviewStepModal
+        key={stepModalKey(stepModal)}
         open={stepModal !== null}
         step={stepModal?.mode === 'edit' ? stepModal.step : null}
         stageTypes={stageTypes}
@@ -296,6 +302,7 @@ export function InterviewTimeline({
       />
 
       <InterviewPanelModal
+        key={panelModalKey(panelModal)}
         open={panelModal !== null}
         panel={panelModal?.mode === 'edit' ? panelModal.panel : null}
         busy={busy}
@@ -326,6 +333,17 @@ type PanelModalState =
   | { mode: 'add'; stepId: number; position: number }
   | { mode: 'edit'; panel: InterviewPanel }
   | null;
+
+/** Remount keys — see the comment at the modals' call sites. */
+const stepModalKey = (s: StepModalState) =>
+  s === null ? 'closed' : s.mode === 'edit' ? `step-${s.step.id}` : `new-step-${s.position}`;
+
+const panelModalKey = (p: PanelModalState) =>
+  p === null
+    ? 'closed'
+    : p.mode === 'edit'
+      ? `panel-${p.panel.id}`
+      : `new-panel-${p.stepId}-${p.position}`;
 
 /* ── rows ─────────────────────────────────────────────────────────────── */
 

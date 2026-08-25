@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Modal } from './modal';
 import { shortZone } from './meeting-time';
 import type { InterviewPanel } from '@/lib/interviews';
@@ -71,31 +71,25 @@ export function InterviewPanelModal({
   onSave: (payload: PanelPayload) => void;
   onDelete?: () => void;
 }) {
-  const [title, setTitle] = useState('');
-  const [note, setNote] = useState('');
-  const [meetingUrl, setMeetingUrl] = useState('');
-  const [wall, setWall] = useState('');
-  const [zone, setZone] = useState('');
-  const [duration, setDuration] = useState('');
-  const [confirmDelete, setConfirmDelete] = useState(false);
-
-  // Reset from the panel each time the dialog opens, not on every render: the
-  // parent re-renders on every keystroke elsewhere in the timeline, and a
-  // render-time reset would wipe what is being typed here.
-  useEffect(() => {
-    if (!open) return;
-    setConfirmDelete(false);
-    setTitle(panel?.title ?? '');
-    setNote(panel?.note ?? '');
-    setMeetingUrl(panel?.meetingUrl ?? '');
-    setDuration(panel?.durationMin != null ? String(panel.durationMin) : '');
-
-    // An existing panel reopens on the zone it was WRITTEN in, so editing the
-    // note on a New York interview does not quietly re-stamp it as Dubai.
+  // Seeded once per mount, never synced by an effect. The parent gives this
+  // component a `key` that changes whenever a different panel (or a new one) is
+  // opened, so opening the dialog remounts it and these initialisers run again
+  // against the right subject. A reset effect would instead fight the user's
+  // typing every time the parent re-rendered mid-edit.
+  const [title, setTitle] = useState(panel?.title ?? '');
+  const [note, setNote] = useState(panel?.note ?? '');
+  const [meetingUrl, setMeetingUrl] = useState(panel?.meetingUrl ?? '');
+  const [duration, setDuration] = useState(
+    panel?.durationMin != null ? String(panel.durationMin) : '',
+  );
+  // An existing panel reopens on the zone it was WRITTEN in, so editing the
+  // note on a New York interview does not quietly re-stamp it as Dubai.
+  const [zone, setZone] = useState(() => panel?.timezone ?? browserZone());
+  const [wall, setWall] = useState(() => {
     const tz = panel?.timezone ?? browserZone();
-    setZone(tz);
-    setWall(panel?.scheduledAt ? utcToWallClock(new Date(panel.scheduledAt), tz) : '');
-  }, [open, panel]);
+    return panel?.scheduledAt ? utcToWallClock(new Date(panel.scheduledAt), tz) : '';
+  });
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const zones = useMemo(() => {
     const all = allZones();

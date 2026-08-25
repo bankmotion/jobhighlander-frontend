@@ -1,7 +1,23 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import { browserZone, formatInZone, timeInZone, zoneAbbrev } from '@/lib/tz';
+
+/**
+ * The reader's zone as an external store: `null` on the server, the real zone
+ * in the browser.
+ *
+ * `useSyncExternalStore` rather than `useState` + `useEffect`, because this is
+ * literally what it is for — reading a value that lives outside React and
+ * differs between server and client. The effect version does the same thing but
+ * through a cascading re-render, which the React Compiler lint correctly
+ * rejects.
+ *
+ * The zone never changes within a session, so `subscribe` returns an unsubscribe
+ * that does nothing and is never called back.
+ */
+const NEVER_CHANGES = () => () => {};
+const serverSnapshot = () => null;
 
 /**
  * A meeting time in BOTH the zone the invitation quoted and the reader's own.
@@ -30,8 +46,7 @@ export function MeetingTime({
   durationMin?: number | null;
   size?: 'sm' | 'md';
 }) {
-  const [viewerZone, setViewerZone] = useState<string | null>(null);
-  useEffect(() => setViewerZone(browserZone()), []);
+  const viewerZone = useSyncExternalStore(NEVER_CHANGES, browserZone, serverSnapshot);
 
   if (!iso) return null;
   const date = new Date(iso);

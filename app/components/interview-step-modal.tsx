@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Modal } from './modal';
 import { StageBadgePicker } from './stage-badge';
 import { STEP_RESULT_LABELS, type InterviewStep, type StageBadge, type StepResult } from '@/lib/interviews';
@@ -35,18 +35,16 @@ export function InterviewStepModal({
   onSave: (payload: StepPayload) => void;
   onDelete?: () => void;
 }) {
-  const [title, setTitle] = useState('');
-  const [result, setResult] = useState<StepResult>('pending');
-  const [ids, setIds] = useState<number[]>([]);
+  // Seeded once per mount, never synced by an effect. The parent gives this
+  // component a `key` that changes whenever a different step (or a new one) is
+  // opened, so opening the dialog remounts it and these initialisers run again
+  // against the right subject. That replaces a reset effect — which the React
+  // Compiler lint rejects, and which would fight the user's typing whenever the
+  // parent re-rendered mid-edit.
+  const [title, setTitle] = useState(step?.title ?? '');
+  const [result, setResult] = useState<StepResult>(step?.result ?? 'pending');
+  const [ids, setIds] = useState<number[]>(() => step?.stages.map((s) => s.id) ?? []);
   const [confirmDelete, setConfirmDelete] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    setConfirmDelete(false);
-    setTitle(step?.title ?? '');
-    setResult(step?.result ?? 'pending');
-    setIds(step?.stages.map((s) => s.id) ?? []);
-  }, [open, step]);
 
   /**
    * An archived badge already on this step stays selectable, so saving an
