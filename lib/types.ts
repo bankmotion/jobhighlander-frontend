@@ -52,6 +52,9 @@ export interface WorkExperience {
   endDate: string | null;
 }
 
+/** How precise an education entry's dates are. */
+export type DatePrecision = 'year' | 'month';
+
 export interface Education {
   id?: number;
   university: string | null;
@@ -59,6 +62,12 @@ export interface Education {
   degree: string | null;
   startDate: string | null;
   endDate: string | null;
+  /**
+   * Whether the dates mean a year or a month. Optional on the way IN because a
+   * profile saved before this existed has no value for it; the API defaults
+   * those to 'month', which is how they were entered.
+   */
+  datePrecision?: DatePrecision;
 }
 
 /** The account a profile belongs to, as returned alongside every profile. */

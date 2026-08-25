@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import type { Profile } from '@/lib/types';
-import { MonthYearPicker } from './month-year-picker';
+import { MonthYearPicker, YearPicker } from './month-year-picker';
+import type { DatePrecision } from '@/lib/types';
 import { ConfirmModal } from './confirm-modal';
 
 const inputCls =
@@ -15,6 +16,26 @@ const readOnlyCls = 'cursor-default border-dashed opacity-90 focus:border-[var(-
 let uid = 0;
 const key = () => `k${uid++}`;
 const ym = (s: string | null | undefined) => (s ? s.slice(0, 7) : null);
+/**
+ * Re-shape an entry's dates when its precision changes.
+ *
+ * Switching to YEAR drops the month: keeping it would leave a hidden value the
+ * pickers no longer show, which reappears the moment someone switches back and
+ * contradicts what they saw. Switching to MONTH widens to January rather than
+ * blanking the field, so the year they already chose survives the switch and
+ * only the month needs picking.
+ */
+function precisionChange(
+  e: { startDate: string | null; endDate: string | null },
+  g: DatePrecision,
+): { precision: DatePrecision; startDate: string | null; endDate: string | null } {
+  const to = (v: string | null) =>
+    !v ? null : g === 'year' ? v.slice(0, 4) : v.length === 4 ? `${v}-01` : v.slice(0, 7);
+  return { precision: g, startDate: to(e.startDate), endDate: to(e.endDate) };
+}
+
+/** Education is year-granularity; existing rows still carry a month and day. */
+const yr = (s: string | null | undefined) => (s ? s.slice(0, 4) : null);
 
 interface WorkRow {
   _key: string;
@@ -32,6 +53,8 @@ interface EduRow {
   startDate: string | null;
   endDate: string | null;
   present: boolean;
+  /** Per entry: a degree year, or a month when someone wants that detail. */
+  precision: DatePrecision;
 }
 
 export interface ProfilePayload {
@@ -90,9 +113,12 @@ export function ProfileEditor({
       university: e.university ?? '',
       location: e.location ?? '',
       degree: e.degree ?? '',
-      startDate: ym(e.startDate),
-      endDate: ym(e.endDate),
+      // Slice to the precision the entry was saved with, so a month entry keeps
+      // its month and a year entry does not sprout a January.
+      startDate: e.datePrecision === 'year' ? yr(e.startDate) : ym(e.startDate),
+      endDate: e.datePrecision === 'year' ? yr(e.endDate) : ym(e.endDate),
       present: !e.endDate,
+      precision: e.datePrecision === 'year' ? 'year' : 'month',
     })),
   );
 
@@ -111,7 +137,7 @@ export function ProfileEditor({
   const addEdu = () =>
     setEdus((r) => [
       ...r,
-      { _key: key(), university: '', location: '', degree: '', startDate: null, endDate: null, present: false },
+      { _key: key(), university: '', location: '', degree: '', startDate: null, endDate: null, present: false, precision: 'year' as DatePrecision },
     ]);
 
   async function save() {
@@ -135,6 +161,7 @@ export function ProfileEditor({
         degree: e.degree,
         startDate: e.startDate,
         endDate: e.present ? null : e.endDate,
+        datePrecision: e.precision,
       })),
     };
     await onSave(payload);
@@ -250,6 +277,8 @@ export function ProfileEditor({
                 end={e.endDate}
                 present={e.present}
                 readOnly={readOnly}
+                granularity={e.precision}
+                onGranularity={(g) => patchEdu(i, precisionChange(e, g))}
                 onStart={(v) => patchEdu(i, { startDate: v })}
                 onEnd={(v) => patchEdu(i, { endDate: v })}
                 onPresent={(v) => patchEdu(i, { present: v })}
@@ -321,6 +350,8 @@ function PeriodRow({
   end,
   present,
   readOnly = false,
+  granularity = 'month',
+  onGranularity,
   onStart,
   onEnd,
   onPresent,
@@ -329,16 +360,55 @@ function PeriodRow({
   end: string | null;
   present: boolean;
   readOnly?: boolean;
+  /**
+   * 'month' for employment, where the exact span is the point; 'year' for
+   * education, where a degree is awarded in a year and a month claims a
+   * precision no resume carries.
+   */
+  granularity?: 'month' | 'year';
+  /** Omitted for work experience, which is always month-precision. */
+  onGranularity?: (g: DatePrecision) => void;
   onStart: (v: string | null) => void;
   onEnd: (v: string | null) => void;
   onPresent: (v: boolean) => void;
 }) {
+  const Picker = granularity === 'year' ? YearPicker : MonthYearPicker;
+  const unit = granularity === 'year' ? 'year' : 'month';
   return (
     <div className="mt-4">
-      <label className={labelCls}>Period</label>
+      <div className="flex items-center justify-between gap-3">
+        <label className={labelCls}>Period</label>
+        {/* Only where the choice exists. Employment is always month-precision;
+            a degree is usually remembered by year, and forcing a month there
+            invents detail the person may not have. */}
+        {onGranularity && !readOnly && (
+          <div
+            role="radiogroup"
+            aria-label="Date precision"
+            className="mb-1.5 flex items-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-0.5"
+          >
+            {(['year', 'month'] as const).map((g) => (
+              <button
+                key={g}
+                type="button"
+                role="radio"
+                aria-checked={granularity === g}
+                onClick={() => onGranularity(g)}
+                className={`rounded-md px-2 py-1 text-xs transition ${
+                  granularity === g
+                    ? 'bg-[var(--primary)] font-medium text-white'
+                    : 'text-[var(--muted)] hover:text-[var(--text)]'
+                }`}
+              >
+                {g === 'year' ? 'Year' : 'Month + year'}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       <div className="flex flex-wrap items-center gap-2">
         <div className="min-w-[150px] flex-1">
-          <MonthYearPicker value={start} onChange={onStart} placeholder="Start month" disabled={readOnly} />
+          <Picker value={start} onChange={onStart} placeholder={`Start ${unit}`} disabled={readOnly} />
         </div>
         <span className="text-[var(--muted)]">–</span>
         <div className="min-w-[150px] flex-1">
@@ -347,7 +417,7 @@ function PeriodRow({
               Present
             </div>
           ) : (
-            <MonthYearPicker value={end} onChange={onEnd} placeholder="End month" disabled={readOnly} />
+            <Picker value={end} onChange={onEnd} placeholder={`End ${unit}`} disabled={readOnly} />
           )}
         </div>
         <label
