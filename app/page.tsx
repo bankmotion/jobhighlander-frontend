@@ -6,6 +6,7 @@ import { fetchResumeStatus } from '@/lib/resumes';
 import { fetchAppliedStatus, isAppliedFilter, type AppliedFilter } from '@/lib/applications';
 import { fetchCoverLetterStatus } from '@/lib/cover-letters';
 import { fetchDiscardStatus, isDiscardedFilter, type DiscardedFilter } from '@/lib/discards';
+import { fetchInterviewStatus } from '@/lib/interviews.server';
 import { FiltersBar } from '@/app/components/filters-bar';
 import { JobCard } from '@/app/components/job-card';
 import { Pagination } from '@/app/components/pagination';
@@ -101,14 +102,15 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   // Both resolved on the server: fetching either from the client would paint
   // every card as "no resume, not applied" first and then correct itself.
   const jobIds = (data?.items ?? []).map((j) => j.id);
-  const [resumeStatus, appliedStatus, coverLetterStatus, discardStatus] = profileId
+  const [resumeStatus, appliedStatus, coverLetterStatus, discardStatus, interviewStatus] = profileId
     ? await Promise.all([
         fetchResumeStatus(profileId, jobIds),
         fetchAppliedStatus(profileId, jobIds),
         fetchCoverLetterStatus(profileId, jobIds),
         fetchDiscardStatus(profileId, jobIds),
+        fetchInterviewStatus(profileId, jobIds),
       ])
-    : [{}, {}, {}, {}];
+    : [{}, {}, {}, {}, {}];
 
   return (
     <div>
@@ -171,7 +173,13 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
               >
                 <ul className="grid gap-4">
                   {data.items.map((job) => (
-                    <JobCard key={job.id} job={job} profileId={profileId} keywords={keywords} />
+                    <JobCard
+                      key={job.id}
+                      job={job}
+                      profileId={profileId}
+                      keywords={keywords}
+                      interview={interviewStatus[job.id] ?? null}
+                    />
                   ))}
                 </ul>
                 <Pagination pagination={data.pagination} query={query} />

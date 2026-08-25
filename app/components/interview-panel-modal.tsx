@@ -25,6 +25,17 @@ export interface PanelPayload {
   durationMin: number | null;
 }
 
+/**
+ * Note cap in CHARACTERS, matching `NOTE_MAX_CHARS` in the backend's
+ * interview.routes.ts — keep the two in step.
+ *
+ * 16,000 rather than the column's apparent 65,535: MySQL `TEXT` is capped in
+ * BYTES, and utf8mb4 spends up to four bytes per character, so a note of
+ * non-Latin text or emoji hits the ceiling at roughly a quarter of the
+ * character count the column length implies.
+ */
+const NOTE_MAX_CHARS = 16_000;
+
 const COMMON_ZONES = [
   'America/Los_Angeles',
   'America/Denver',
@@ -268,13 +279,30 @@ export function InterviewPanelModal({
         </div>
 
         <div>
-          <label className={label} htmlFor="panel-note">
-            Notes
-          </label>
+          <div className="flex items-baseline justify-between">
+            <label className={label} htmlFor="panel-note">
+              Notes
+            </label>
+            {/* Only once it is nearly relevant. A counter on every note is
+                noise; one that appears before the hard stop is a warning. */}
+            {note.length > NOTE_MAX_CHARS * 0.75 && (
+              <span
+                className={`mb-1.5 text-xs ${
+                  note.length >= NOTE_MAX_CHARS ? 'text-red-400' : 'text-[var(--muted)]'
+                }`}
+              >
+                {note.length.toLocaleString()} / {NOTE_MAX_CHARS.toLocaleString()}
+              </span>
+            )}
+          </div>
           <textarea
             id="panel-note"
             value={note}
             onChange={(e) => setNote(e.target.value)}
+            // Hard stop in the browser as well as at the API. Without it the
+            // only feedback on an over-long note is a rejected save after the
+            // typing is already done.
+            maxLength={NOTE_MAX_CHARS}
             rows={5}
             placeholder="Who you're meeting, what they said to prepare, how it went afterwards…"
             className={`${field} resize-y`}

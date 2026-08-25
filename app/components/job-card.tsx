@@ -5,17 +5,21 @@ import { ApplicationAction } from './application-action';
 import { AppliedAction, AppliedBadge } from './applied-action';
 import { JobDescription } from './job-description';
 import { DiscardAction, DiscardedBadge } from './discard-action';
+import { InterviewAction, InterviewBadge, type InterviewCardStatus } from './interview-action';
 import { JobPanel } from './job-panel';
 
 export function JobCard({
   job,
   profileId,
   keywords,
+  interview,
 }: {
   job: Job;
   profileId: number | null;
   /** Emphasis words to mark in the description, same list the detail page uses. */
   keywords: string[];
+  /** This profile's timeline for the job, or null when none was opened. */
+  interview: InterviewCardStatus | null;
 }) {
   /**
    * Which profile the detail page opens against.
@@ -47,6 +51,7 @@ export function JobCard({
                 to be caught while scanning twenty rows, so a posting already
                 answered is never opened a second time. */}
             <AppliedBadge jobId={job.id} />
+            <InterviewBadge jobId={job.id} profileId={profileId} interview={interview} />
             <DiscardedBadge jobId={job.id} />
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -138,6 +143,11 @@ export function JobCard({
             the backend no longer has. It generates in place — the full text of
             each lives behind JD Details. */}
         <ApplicationAction jobId={job.id} title={job.title} company={job.company} />
+        {/* Only appears once the job is applied — timelines start from an
+            application, so offering it earlier advertises a step the user
+            cannot take. Reads the provider, not the server snapshot, so it
+            shows up the moment Applied is ticked rather than after a refresh. */}
+        <InterviewAction jobId={job.id} interview={interview} />
         <a
           href={job.jobUrl}
           target="_blank"
