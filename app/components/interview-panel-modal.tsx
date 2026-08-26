@@ -4,16 +4,15 @@ import { useMemo, useState } from 'react';
 import { Modal } from './modal';
 import { useDisplayZone } from '@/lib/display-zone';
 import { shortZone } from './meeting-time';
+import { TimezoneSelect } from './timezone-select';
 import type { InterviewPanel } from '@/lib/interviews';
 import {
-  allZones,
   browserZone,
   formatInZone,
   timeInZone,
   utcToWallClock,
   wallClockToUtc,
   zoneAbbrev,
-  zoneOffsetLabel,
 } from '@/lib/tz';
 
 /** The request body both create and update send. */
@@ -36,21 +35,6 @@ export interface PanelPayload {
  * character count the column length implies.
  */
 const NOTE_MAX_CHARS = 16_000;
-
-const COMMON_ZONES = [
-  'America/Los_Angeles',
-  'America/Denver',
-  'America/Chicago',
-  'America/New_York',
-  'Europe/London',
-  'Europe/Berlin',
-  'Asia/Dubai',
-  'Asia/Kolkata',
-  'Asia/Singapore',
-  'Asia/Tokyo',
-  'Australia/Sydney',
-  'UTC',
-];
 
 /**
  * Create/edit form for one panel.
@@ -105,14 +89,6 @@ export function InterviewPanelModal({
     return panel?.scheduledAt ? utcToWallClock(new Date(panel.scheduledAt), tz) : '';
   });
   const [confirmDelete, setConfirmDelete] = useState(false);
-
-  const zones = useMemo(() => {
-    const all = allZones();
-    const common = [displayZone, ...COMMON_ZONES].filter(
-      (z, i, a) => all.includes(z) && a.indexOf(z) === i,
-    );
-    return { common, all };
-  }, [displayZone]);
 
   // Live echo of what will be stored, in both readings. This is the check that
   // catches a mis-picked zone before it becomes a missed interview.
@@ -217,27 +193,15 @@ export function InterviewPanelModal({
             <label className={label} htmlFor="panel-zone">
               …in this time zone
             </label>
-            <select
+            {/* Searchable, and never offering "device": a panel records the
+                zone the RECRUITER quoted, so an automatic value would be the
+                reader's clock masquerading as the invitation's. */}
+            <TimezoneSelect
               id="panel-zone"
               value={zone}
-              onChange={(e) => setZone(e.target.value)}
-              className={field}
-            >
-              <optgroup label="Common">
-                {zones.common.map((z) => (
-                  <option key={`c-${z}`} value={z}>
-                    {shortZone(z)} — {zoneOffsetLabel(new Date(), z)}
-                  </option>
-                ))}
-              </optgroup>
-              <optgroup label="All time zones">
-                {zones.all.map((z) => (
-                  <option key={z} value={z}>
-                    {z}
-                  </option>
-                ))}
-              </optgroup>
-            </select>
+              deviceZone={displayZone}
+              onChange={(z) => setZone(z ?? displayZone)}
+            />
           </div>
         </div>
 
