@@ -34,12 +34,16 @@ export const QUESTION_MAX_CHARS = 4_000;
  *
  * An empty textarea beside a "Generate" button is a blank page problem: the
  * feature can answer almost anything, which is exactly why it is hard to think
- * of the first thing to ask. These are the questions worth asking of a posting
- * you are deciding about.
+ * of the first thing to ask.
+ *
+ * Deliberately MIXED, because the prompt has two modes and the first one is not
+ * obvious. The first two are application-form questions and come back as a
+ * pasteable first-person answer; the last two ask for advice and come back
+ * addressed to you. Showing only one kind would hide half the feature.
  */
 export const SUGGESTED_QUESTIONS: string[] = [
-  'What are the biggest gaps between my background and this posting, and how should I address them in a screening call?',
-  'Draft three questions I should ask the interviewer about this role.',
-  'What salary range is realistic for me here, and what does my record support?',
-  'Which of my past projects should I lead with, and why?',
+  'Why are you interested in this role?',
+  'What relevant experience do you have for this position?',
+  'What are my biggest gaps for this role?',
+  'What should I ask the interviewer?',
 ];

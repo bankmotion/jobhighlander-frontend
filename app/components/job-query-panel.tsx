@@ -140,7 +140,7 @@ export function JobQueryPanel({
           maxLength={QUESTION_MAX_CHARS}
           rows={compact ? 4 : 5}
           disabled={busy}
-          placeholder="Ask anything about this job — how you match it, what to say in a screen, what to negotiate…"
+          placeholder="Paste an application question to get a pasteable answer, or ask for advice — gaps, what to ask them, whether to apply…"
           className="w-full resize-y rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--muted)] outline-none transition focus:border-[var(--primary)] disabled:opacity-60"
         />
 
@@ -154,7 +154,8 @@ export function JobQueryPanel({
             {busy ? 'Thinking…' : 'Generate'}
           </button>
           <span className="text-xs text-[var(--muted)]">
-            Your profile, resume and cover letter are sent with the question.
+            Sends your profile, resume and cover letter. Application questions come
+            back in first person, ready to paste.
           </span>
           {question.length > QUESTION_MAX_CHARS * 0.75 && (
             <span className="ml-auto text-xs text-[var(--muted)]">
