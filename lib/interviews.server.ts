@@ -1,5 +1,11 @@
 import { getToken } from './auth';
-import type { InterviewDetail, InterviewStatus, InterviewSummary, UpcomingPanel } from './interviews';
+import type {
+  CalendarPanel,
+  InterviewDetail,
+  InterviewStatus,
+  InterviewSummary,
+  UpcomingPanel,
+} from './interviews';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
@@ -66,4 +72,22 @@ export async function fetchInterviewStatus(
   if (!profileId || jobIds.length === 0) return {};
   const qs = new URLSearchParams({ profileId: String(profileId), jobIds: jobIds.join(',') });
   return authed(`/api/interviews/status?${qs}`, {});
+}
+
+/**
+ * Every sitting between two instants. Backs the calendar.
+ *
+ * The window is passed as ISO instants rather than a month, because which
+ * calendar days those instants fall on depends on the reader's time zone —
+ * which only the browser knows. The page therefore asks for a padded range and
+ * the grid buckets it client-side.
+ */
+export async function fetchCalendarPanels(
+  from: Date,
+  to: Date,
+  profileId?: number,
+): Promise<CalendarPanel[]> {
+  const qs = new URLSearchParams({ from: from.toISOString(), to: to.toISOString() });
+  if (profileId) qs.set('profileId', String(profileId));
+  return authed<CalendarPanel[]>(`/api/interviews/calendar?${qs}`, []);
 }

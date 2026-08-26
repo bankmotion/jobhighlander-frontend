@@ -8,6 +8,7 @@ import { fetchCoverLetterStatus } from '@/lib/cover-letters';
 import { fetchDiscardStatus, isDiscardedFilter, type DiscardedFilter } from '@/lib/discards';
 import { fetchInterviewStatus } from '@/lib/interviews.server';
 import { FiltersBar } from '@/app/components/filters-bar';
+import { JobFiltersRestore } from '@/app/components/job-filters-restore';
 import { JobCard } from '@/app/components/job-card';
 import { Pagination } from '@/app/components/pagination';
 import { AppliedProvider } from '@/app/components/applied-provider';
@@ -128,6 +129,10 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
       </div>
 
       {!profileId && <ResumeProfileNotice canManage={canManageProfiles} />}
+
+      {/* Renders nothing — re-applies the remembered filters when the list is
+          opened without any of its own. */}
+      <JobFiltersRestore profileId={profileId} />
 
       <FiltersBar filters={filters} current={query} canFilterApplied={Boolean(profileId)} />
 

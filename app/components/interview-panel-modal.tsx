@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { Modal } from './modal';
+import { useDisplayZone } from '@/lib/display-zone';
 import { shortZone } from './meeting-time';
 import type { InterviewPanel } from '@/lib/interviews';
 import {
@@ -93,22 +94,25 @@ export function InterviewPanelModal({
   const [duration, setDuration] = useState(
     panel?.durationMin != null ? String(panel.durationMin) : '',
   );
-  // An existing panel reopens on the zone it was WRITTEN in, so editing the
-  // note on a New York interview does not quietly re-stamp it as Dubai.
-  const [zone, setZone] = useState(() => panel?.timezone ?? browserZone());
+  // The reader's display zone seeds a NEW panel, because it is the clock they
+  // are thinking in. An existing panel always reopens on the zone it was
+  // WRITTEN in, so editing the note on a New York interview cannot quietly
+  // re-stamp it as whatever the reader currently has selected.
+  const displayZone = useDisplayZone() ?? browserZone();
+  const [zone, setZone] = useState(() => panel?.timezone ?? displayZone);
   const [wall, setWall] = useState(() => {
-    const tz = panel?.timezone ?? browserZone();
+    const tz = panel?.timezone ?? displayZone;
     return panel?.scheduledAt ? utcToWallClock(new Date(panel.scheduledAt), tz) : '';
   });
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const zones = useMemo(() => {
     const all = allZones();
-    const common = [browserZone(), ...COMMON_ZONES].filter(
+    const common = [displayZone, ...COMMON_ZONES].filter(
       (z, i, a) => all.includes(z) && a.indexOf(z) === i,
     );
     return { common, all };
-  }, []);
+  }, [displayZone]);
 
   // Live echo of what will be stored, in both readings. This is the check that
   // catches a mis-picked zone before it becomes a missed interview.
@@ -116,13 +120,15 @@ export function InterviewPanelModal({
     if (!wall || !zone) return null;
     const utc = wallClockToUtc(wall, zone);
     if (!utc) return null;
-    const viewer = browserZone();
     return {
       source: `${formatInZone(utc, zone)} ${zoneAbbrev(utc, zone)}`,
-      viewer: viewer === zone ? null : `${timeInZone(utc, viewer)} (${shortZone(viewer)})`,
+      viewer:
+        displayZone === zone
+          ? null
+          : `${timeInZone(utc, displayZone)} in ${shortZone(displayZone)}`,
       iso: utc.toISOString(),
     };
-  }, [wall, zone]);
+  }, [wall, zone, displayZone]);
 
   function save() {
     const trimmedUrl = meetingUrl.trim();
@@ -239,7 +245,7 @@ export function InterviewPanelModal({
           <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5 text-sm">
             <div className="text-[var(--text)]">{preview.source}</div>
             {preview.viewer && (
-              <div className="mt-0.5 text-[var(--muted)]">{preview.viewer} your time</div>
+              <div className="mt-0.5 text-[var(--muted)]">{preview.viewer}</div>
             )}
           </div>
         )}

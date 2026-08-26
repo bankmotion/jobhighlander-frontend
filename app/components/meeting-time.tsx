@@ -1,23 +1,7 @@
 'use client';
 
-import { useSyncExternalStore } from 'react';
-import { browserZone, formatInZone, timeInZone, zoneAbbrev } from '@/lib/tz';
-
-/**
- * The reader's zone as an external store: `null` on the server, the real zone
- * in the browser.
- *
- * `useSyncExternalStore` rather than `useState` + `useEffect`, because this is
- * literally what it is for — reading a value that lives outside React and
- * differs between server and client. The effect version does the same thing but
- * through a cascading re-render, which the React Compiler lint correctly
- * rejects.
- *
- * The zone never changes within a session, so `subscribe` returns an unsubscribe
- * that does nothing and is never called back.
- */
-const NEVER_CHANGES = () => () => {};
-const serverSnapshot = () => null;
+import { useDisplayZone } from '@/lib/display-zone';
+import { formatInZone, timeInZone, zoneAbbrev } from '@/lib/tz';
 
 /**
  * A meeting time in BOTH the zone the invitation quoted and the reader's own.
@@ -46,7 +30,8 @@ export function MeetingTime({
   durationMin?: number | null;
   size?: 'sm' | 'md';
 }) {
-  const viewerZone = useSyncExternalStore(NEVER_CHANGES, browserZone, serverSnapshot);
+  // Null while server-rendering; the second line simply waits a frame for it.
+  const viewerZone = useDisplayZone();
 
   if (!iso) return null;
   const date = new Date(iso);
@@ -72,11 +57,11 @@ export function MeetingTime({
 
       {showViewer && (
         <div className="mt-0.5 text-[var(--muted)]">
-          {timeInZone(date, viewerZone)} your time
-          {/* Named, not just "your time": a shared profile has several people
-              in several places, and the label has to survive being read by a
-              colleague over someone's shoulder. */}
-          <span className="ml-1 opacity-60">({shortZone(viewerZone)})</span>
+          {/* Named, never "your time": the reader can override the display
+              zone, and a colleague on a shared profile is somewhere else
+              anyway — so the label states WHICH clock rather than claiming
+              whose it is. */}
+          {timeInZone(date, viewerZone)} in {shortZone(viewerZone)}
         </div>
       )}
     </div>

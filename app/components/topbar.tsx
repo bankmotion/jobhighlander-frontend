@@ -1,5 +1,7 @@
 import { LogoutButton } from './logout-button';
 import { InboxMenu } from './inbox-menu';
+import { RefreshButton } from './refresh-button';
+import { TimezonePicker } from './timezone-picker';
 import { fetchMyInvitations } from '@/lib/profiles';
 import type { Session } from '@/lib/session';
 
@@ -22,6 +24,11 @@ export async function Topbar({ session }: { session: Session }) {
           Job<span className="text-[var(--primary)]">HighLander</span>
         </span>
         <div className="ml-auto flex items-center gap-3">
+          {/* Both live here so every page gets them from one place: refreshing
+              and "which zone am I reading?" are questions any screen raises,
+              not properties of a particular one. */}
+          <TimezonePicker />
+          <RefreshButton />
           <InboxMenu invitations={invitations} />
           <span className={`hidden rounded-full px-2.5 py-0.5 text-xs font-medium sm:inline ${ROLE_BADGE[session.role]}`}>
             {session.role}

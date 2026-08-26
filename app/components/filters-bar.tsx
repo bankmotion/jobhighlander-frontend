@@ -6,6 +6,7 @@ import type { JobFilters } from '@/lib/types';
 import type { AppliedFilter } from '@/lib/applications';
 import type { DiscardedFilter } from '@/lib/discards';
 import { MultiSelect } from './multi-select';
+import { saveJobFilters } from '@/lib/job-filters';
 
 interface Props {
   filters: JobFilters;
@@ -101,6 +102,9 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
     // reported alongside it.
     if (current.profile) qs.set('profile', String(current.profile));
     const s = qs.toString();
+    // Remembered for the next visit. `profile` is stripped on the way in — the
+    // candidate is chosen elsewhere and must not be pinned by a filter store.
+    saveJobFilters(s);
     router.push(s ? `/?${s}` : '/');
   }
 
@@ -142,6 +146,9 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
     setRemote(true); // back to the default (remote-only)
     setApplied('all');
     setDiscarded('all');
+    // Writing the EMPTY string is what makes clearing stick: without it the
+    // restore on the next visit would put the filters straight back.
+    saveJobFilters('');
     // Clearing FILTERS must not also reset the selected profile.
     router.push(current.profile ? `/?profile=${current.profile}` : '/');
   }

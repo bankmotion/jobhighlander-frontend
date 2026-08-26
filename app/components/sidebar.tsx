@@ -144,6 +144,14 @@ export function Sidebar({ role, profiles }: { role: Role; profiles: ProfileSumma
           </Link>
         )}
 
+        {/* A SINGLE entry, unlike Interviews above, and that is the point: the
+            calendar merges every profile onto one grid so a clash between two
+            candidates is visible. Splitting it per profile in the nav would
+            hide exactly the collision it exists to surface. */}
+        <Link href="/calendar" className={linkCls(pathname.startsWith('/calendar'))}>
+          <span className="text-base">📅</span> Calendar
+        </Link>
+
         {/* Profiles is NOT under Admin: bidders open it too, for the profiles
             they were invited to. Only creating one is an admin action. */}
         <Link href="/profiles" className={linkCls(pathname.startsWith('/profiles'))}>

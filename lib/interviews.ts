@@ -109,3 +109,37 @@ export const STEP_RESULT_LABELS: Record<StepResult, string> = {
   failed: 'Did not pass',
   cancelled: 'Cancelled',
 };
+
+/**
+ * One scheduled sitting as the calendar needs it.
+ *
+ * Carries more than `UpcomingPanel` because a month grid shows history as well
+ * as what is next: `stepResult` and `interviewStatus` are what let a cancelled
+ * round or a dead process render differently from a live one, instead of every
+ * entry looking equally like something to prepare for.
+ */
+export interface CalendarPanel {
+  panelId: number;
+  interviewId: number;
+  jobId: number | null;
+  jobTitle: string;
+  jobCompany: string | null;
+  profileId: number;
+  profileName: string;
+  stepTitle: string | null;
+  stepResult: StepResult;
+  interviewStatus: InterviewStatus;
+  stages: StageBadge[];
+  scheduledAt: string;
+  timezone: string | null;
+  durationMin: number | null;
+  meetingUrl: string | null;
+}
+
+/** Statuses whose sittings are history rather than something to prepare for. */
+export const CLOSED_STATUSES: ReadonlySet<InterviewStatus> = new Set<InterviewStatus>([
+  'rejected',
+  'withdrawn',
+  'ghosted',
+  'accepted',
+]);
