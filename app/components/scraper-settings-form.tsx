@@ -68,7 +68,6 @@ const GROUPS: Group[] = [
         hint: 'needs a residential exit for Cloudflare',
       },
       { key: 'indeed_search_url', label: 'Search URL', type: 'text', link: true },
-      { key: 'indeed_max_pages', label: 'Max pages', type: 'number' },
     ],
   },
   {
