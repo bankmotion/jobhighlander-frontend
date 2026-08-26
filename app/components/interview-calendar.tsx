@@ -26,12 +26,14 @@ export function InterviewCalendar({
   days,
   anchorIso,
   panels,
+  onSelect,
 }: {
   /** 42 "YYYY-MM-DD" keys, six weeks, Sunday-first. */
   days: string[];
   /** Any date inside the month being shown; decides which cells are greyed. */
   anchorIso: string;
   panels: CalendarPanel[];
+  onSelect: (panel: CalendarPanel) => void;
 }) {
   const viewerZone = useDisplayZone();
   const anchor = parseIsoDate(anchorIso);
@@ -87,6 +89,7 @@ export function InterviewCalendar({
                     panel={p}
                     zone={viewerZone!}
                     showProfile={showProfile}
+                    onSelect={onSelect}
                   />
                 ))}
               </div>

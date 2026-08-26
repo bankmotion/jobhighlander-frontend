@@ -4,7 +4,7 @@ import { useDisplayZone } from '@/lib/display-zone';
 import { timeInZone, zoneAbbrev } from '@/lib/tz';
 import { dayKeyInZone, weekdayLabel, dayNumber } from '@/lib/calendar';
 import { shortZone } from './meeting-time';
-import { EventLink, bucketByDay, eventColor, isPast } from './calendar-event';
+import { EventButton, bucketByDay, eventColor, isPast } from './calendar-event';
 import { STEP_RESULT_LABELS, type CalendarPanel } from '@/lib/interviews';
 
 /**
@@ -18,7 +18,15 @@ import { STEP_RESULT_LABELS, type CalendarPanel } from '@/lib/interviews';
  * It also has room the grids do not: full titles, the quoted zone spelled out,
  * and the meeting link as something you can actually hit with a thumb.
  */
-export function CalendarAgenda({ days, panels }: { days: string[]; panels: CalendarPanel[] }) {
+export function CalendarAgenda({
+  days,
+  panels,
+  onSelect,
+}: {
+  days: string[];
+  panels: CalendarPanel[];
+  onSelect: (panel: CalendarPanel) => void;
+}) {
   const zone = useDisplayZone();
   if (!zone) return <p className="py-8 text-center text-sm text-[var(--muted)]">Loading…</p>;
 
@@ -59,7 +67,7 @@ export function CalendarAgenda({ days, panels }: { days: string[]; panels: Calen
           <ul className="space-y-2">
             {(byDay.get(day) ?? []).map((panel) => (
               <li key={panel.panelId}>
-                <AgendaRow panel={panel} zone={zone} />
+                <AgendaRow panel={panel} zone={zone} onSelect={onSelect} />
               </li>
             ))}
           </ul>
@@ -73,7 +81,15 @@ export function CalendarAgenda({ days, panels }: { days: string[]; panels: Calen
   );
 }
 
-function AgendaRow({ panel, zone }: { panel: CalendarPanel; zone: string }) {
+function AgendaRow({
+  panel,
+  zone,
+  onSelect,
+}: {
+  panel: CalendarPanel;
+  zone: string;
+  onSelect: (panel: CalendarPanel) => void;
+}) {
   const at = new Date(panel.scheduledAt);
   const color = eventColor(panel);
   const dead = isPast(panel);
@@ -97,12 +113,13 @@ function AgendaRow({ panel, zone }: { panel: CalendarPanel; zone: string }) {
       </div>
 
       <div className="min-w-0 flex-1">
-        <EventLink
+        <EventButton
           panel={panel}
-          className="block truncate text-sm font-semibold text-white transition hover:text-[var(--primary)]"
+          onSelect={onSelect}
+          className="block max-w-full truncate text-left text-sm font-semibold text-white transition hover:text-[var(--primary)]"
         >
           {panel.jobCompany ?? panel.jobTitle}
-        </EventLink>
+        </EventButton>
         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--muted)]">
           {panel.stages.length > 0 && <span>{panel.stages.map((s) => s.name).join(' + ')}</span>}
           {panel.stepTitle && <span>· {panel.stepTitle}</span>}

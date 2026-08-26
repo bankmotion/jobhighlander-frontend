@@ -11,7 +11,7 @@ import {
 } from '@/lib/calendar';
 import { shortZone } from './meeting-time';
 import {
-  EventLink,
+  EventButton,
   bucketByDay,
   eventColor,
   hasManyProfiles,
@@ -54,10 +54,12 @@ interface Placed {
 export function CalendarTimeGrid({
   days,
   panels,
+  onSelect,
 }: {
   /** "YYYY-MM-DD" keys — 7 for a week, 1 for a day. */
   days: string[];
   panels: CalendarPanel[];
+  onSelect: (panel: CalendarPanel) => void;
 }) {
   const zone = useDisplayZone();
 
@@ -152,6 +154,7 @@ export function CalendarTimeGrid({
                 fromHour={fromHour}
                 zone={zone}
                 showProfile={showProfile}
+                onSelect={onSelect}
               />
             ))}
           </div>
@@ -171,11 +174,13 @@ function EventBlock({
   fromHour,
   zone,
   showProfile,
+  onSelect,
 }: {
   placed: Placed;
   fromHour: number;
   zone: string;
   showProfile: boolean;
+  onSelect: (panel: CalendarPanel) => void;
 }) {
   const { panel, startMin, endMin, lane, lanes } = placed;
   const color = eventColor(panel);
@@ -186,8 +191,9 @@ function EventBlock({
   const width = 100 / lanes;
 
   return (
-    <EventLink
+    <EventButton
       panel={panel}
+      onSelect={onSelect}
       style={{
         top,
         height,
@@ -216,7 +222,7 @@ function EventBlock({
       {height >= 52 && showProfile && (
         <span className="block truncate text-[10px] opacity-70">{panel.profileName}</span>
       )}
-    </EventLink>
+    </EventButton>
   );
 }
 

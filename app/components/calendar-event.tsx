@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { timeInZone, zoneAbbrev } from '@/lib/tz';
 import { dayKeyInZone } from '@/lib/calendar';
 import {
@@ -46,37 +45,41 @@ export function eventLabel(panel: CalendarPanel): string {
     .join(' · ');
 }
 
-/** Straight to the timeline this sitting belongs to. */
-export const eventHref = (panel: CalendarPanel): string | null =>
-  panel.jobId ? `/jobs/${panel.jobId}?tab=interview&profile=${panel.profileId}` : null;
-
 /**
- * Wraps an entry in a link when its posting still exists.
+ * An entry on the grid: a BUTTON that opens the drawer, not a link.
  *
- * A pruned job leaves `jobId` null — the sitting is still real and still
- * renders, there is simply nowhere to send the click.
+ * It used to navigate to the job page, which threw away the month you were
+ * reading to answer "what is this one?" — a question that does not need a new
+ * page. The drawer answers it in place and still offers the navigation, so the
+ * link is not lost, only demoted out of the primary click.
+ *
+ * Renders even when the posting has been pruned (`jobId` null): the sitting
+ * happened, and the drawer can still show the interview around it.
  */
-export function EventLink({
+export function EventButton({
   panel,
+  onSelect,
   className,
   style,
   children,
 }: {
   panel: CalendarPanel;
+  onSelect: (panel: CalendarPanel) => void;
   className?: string;
   style?: React.CSSProperties;
   children: React.ReactNode;
 }) {
-  const href = eventHref(panel);
   const title = eventLabel(panel);
-  return href ? (
-    <Link href={href} title={title} className={className} style={style}>
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(panel)}
+      title={panel.jobId ? title : `${title} · posting removed`}
+      className={className}
+      style={style}
+    >
       {children}
-    </Link>
-  ) : (
-    <span title={`${title} · posting removed`} className={className} style={style}>
-      {children}
-    </span>
+    </button>
   );
 }
 
@@ -85,17 +88,20 @@ export function EventChip({
   panel,
   zone,
   showProfile,
+  onSelect,
 }: {
   panel: CalendarPanel;
   zone: string;
   showProfile: boolean;
+  onSelect: (panel: CalendarPanel) => void;
 }) {
   const color = eventColor(panel);
   const dead = isPast(panel);
 
   return (
-    <EventLink
+    <EventButton
       panel={panel}
+      onSelect={onSelect}
       style={{ borderLeft: `2px solid ${color}` }}
       className={`block w-full rounded px-1 py-0.5 text-left text-[11px] leading-tight transition hover:bg-white/10 ${
         dead ? 'text-[var(--muted)]' : 'text-[var(--text)]'
@@ -117,7 +123,7 @@ export function EventChip({
       {showProfile && (
         <span className="block truncate pl-2.5 text-[10px] opacity-70">{panel.profileName}</span>
       )}
-    </EventLink>
+    </EventButton>
   );
 }
 

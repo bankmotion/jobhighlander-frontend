@@ -12,9 +12,7 @@ import {
   visibleDays,
   type CalendarView,
 } from '@/lib/calendar';
-import { InterviewCalendar } from '@/app/components/interview-calendar';
-import { CalendarTimeGrid } from '@/app/components/calendar-time-grid';
-import { CalendarAgenda } from '@/app/components/calendar-agenda';
+import { CalendarViews } from '@/app/components/calendar-views';
 import { CalendarProfilePicker } from '@/app/components/calendar-profile-picker';
 
 export const dynamic = 'force-dynamic';
@@ -133,20 +131,9 @@ export default async function CalendarPage({
         </div>
       </div>
 
-      {view === 'month' && (
-        <InterviewCalendar days={days} anchorIso={isoDate(anchor)} panels={panels} />
-      )}
-      {(view === 'week' || view === 'day') && (
-        <div className="overflow-x-auto">
-          {/* The week track needs room for seven columns; below that width it
-              scrolls rather than crushing each day to an unreadable sliver.
-              Agenda is the view that actually suits a phone. */}
-          <div className={view === 'week' ? 'min-w-[42rem]' : ''}>
-            <CalendarTimeGrid days={days} panels={panels} />
-          </div>
-        </div>
-      )}
-      {view === 'agenda' && <CalendarAgenda days={days} panels={panels} />}
+      {/* One client boundary for all four views, because "which entry is
+          selected" is client state and the drawer must outlive a view switch. */}
+      <CalendarViews view={view} days={days} anchorIso={isoDate(anchor)} panels={panels} />
     </div>
   );
 }
