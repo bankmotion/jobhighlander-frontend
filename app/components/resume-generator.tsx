@@ -13,7 +13,10 @@ interface Flagged {
 export interface TailoredResume {
   headline: string;
   summary: string;
-  skills: { name: string; inferred: boolean }[];
+  /** `category` groups adjacent skills; the API always sends it, but this
+   *  file renders skills flat, so it stays optional rather than forcing a
+   *  change here. */
+  skills: { name: string; category?: string; inferred: boolean }[];
   experience: {
     title: string;
     titleInferred: boolean;

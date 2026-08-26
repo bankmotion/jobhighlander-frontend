@@ -44,9 +44,14 @@ const VIEW_LABELS: Record<CalendarView, string> = {
 export default async function CalendarPage({
   searchParams,
 }: {
-  searchParams: Promise<{ view?: string; date?: string; profile?: string }>;
+  searchParams: Promise<{ view?: string; date?: string; profile?: string; panel?: string }>;
 }) {
-  const { view: viewParam, date: dateParam, profile: profileParam } = await searchParams;
+  const {
+    view: viewParam,
+    date: dateParam,
+    profile: profileParam,
+    panel: panelParam,
+  } = await searchParams;
 
   const view: CalendarView = isCalendarView(viewParam ?? '') ? (viewParam as CalendarView) : 'month';
   // The fallback reads the SERVER's clock, so within a few hours of midnight a
@@ -133,7 +138,16 @@ export default async function CalendarPage({
 
       {/* One client boundary for all four views, because "which entry is
           selected" is client state and the drawer must outlive a view switch. */}
-      <CalendarViews view={view} days={days} anchorIso={isoDate(anchor)} panels={panels} />
+      <CalendarViews
+        view={view}
+        days={days}
+        anchorIso={isoDate(anchor)}
+        panels={panels}
+        /* Read here rather than from `window` in the client, so a shared
+           `?panel=` link has its drawer open in the FIRST paint instead of
+           hydrating closed and then sliding in. */
+        initialPanelId={Number(panelParam) || null}
+      />
     </div>
   );
 }
