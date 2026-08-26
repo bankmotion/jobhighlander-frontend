@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { JobFilters } from '@/lib/types';
 import type { AppliedFilter } from '@/lib/applications';
@@ -59,41 +59,58 @@ export function siteMeta(s: string) {
 
 export function FiltersBar({ filters, current, canFilterApplied }: Props) {
   const router = useRouter();
-  const [q, setQ] = useState(current.q);
-  const [remote, setRemote] = useState(current.remote);
-  const [sites, setSites] = useState<string[]>(current.sites);
-  const [applied, setApplied] = useState<AppliedFilter>(current.applied);
-  const [discarded, setDiscarded] = useState<DiscardedFilter>(current.discarded);
-  const [open, setOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
 
-  // Close the sources dropdown on an outside click or Escape.
-  useEffect(() => {
-    function onDown(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setOpen(false);
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setOpen(false);
-    }
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, []);
+  /**
+   * THE URL IS THE STATE for every instant-apply filter.
+   *
+   * Each of these navigates the moment it changes, so a `useState` copy could
+   * only ever be a second version of the same fact — and it drifted: a
+   * `useState` initialiser runs once at mount, while the localStorage restore
+   * replaces the URL a moment LATER via `router.replace`. That re-renders the
+   * server component without remounting this one, so the list showed the
+   * restored filters while these controls still showed the defaults they had
+   * mounted with. Reading straight from `current` cannot go out of step.
+   */
+  const { sites, remote, applied, discarded } = current;
 
+  /**
+   * The search box is the one exception: it holds what is being TYPED, which
+   * the URL does not know until submit.
+   *
+   * `committedQ` re-seeds the draft whenever the committed query changes
+   * underneath it — the restore, a Back, a link. Adjusting state DURING RENDER
+   * rather than in an effect is React's documented pattern for exactly this:
+   * the render is discarded and re-run immediately, so nothing paints stale and
+   * there is no cascading effect for the compiler to reject.
+   */
+  const [qDraft, setQDraft] = useState(current.q);
+  const [committedQ, setCommittedQ] = useState(current.q);
+  if (committedQ !== current.q) {
+    setCommittedQ(current.q);
+    setQDraft(current.q);
+  }
+
+  /**
+   * Apply a change. Anything not named keeps whatever the URL currently says,
+   * so each control only has to state the one field it owns.
+   *
+   * `??` and never `||`: `remote: false` is a real value, and `||` would fall
+   * through to the current one and make the toggle refuse to switch off.
+   */
   function navigate(next: {
-    q: string;
-    sites: string[];
-    remote: boolean;
+    q?: string;
+    sites?: string[];
+    remote?: boolean;
     applied?: AppliedFilter;
     discarded?: DiscardedFilter;
   }) {
     const qs = new URLSearchParams();
-    if (next.q.trim()) qs.set('q', next.q.trim());
-    next.sites.forEach((s) => qs.append('site', s));
-    if (!next.remote) qs.set('remote', '0'); // remote-only is the default
+    // The in-progress draft rides along, so toggling a source also applies
+    // whatever has been typed but not yet submitted.
+    const nextQ = (next.q ?? qDraft).trim();
+    if (nextQ) qs.set('q', nextQ);
+    (next.sites ?? sites).forEach((s) => qs.append('site', s));
+    if (!(next.remote ?? remote)) qs.set('remote', '0'); // remote-only is the default
     const nextApplied = next.applied ?? applied;
     if (nextApplied !== 'all') qs.set('applied', nextApplied); // all is the default
     const nextDiscarded = next.discarded ?? discarded;
@@ -108,44 +125,19 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
     router.push(s ? `/?${s}` : '/');
   }
 
-  function selectApplied(next: AppliedFilter) {
-    setApplied(next);
-    navigate({ q, sites, remote, applied: next }); // applies instantly
-  }
-
-  function selectDiscarded(next: DiscardedFilter) {
-    setDiscarded(next);
-    navigate({ q, sites, remote, discarded: next }); // applies instantly
-  }
-
-  function toggleSite(s: string) {
-    const next = sites.includes(s) ? sites.filter((x) => x !== s) : [...sites, s];
-    setSites(next);
-    navigate({ q, sites: next, remote }); // sources apply instantly
-  }
-
-  function clearSites() {
-    setSites([]);
-    navigate({ q, sites: [], remote });
-  }
-
-  function toggleRemote() {
-    const next = !remote;
-    setRemote(next);
-    navigate({ q, sites, remote: next }); // applies instantly
-  }
+  const selectApplied = (next: AppliedFilter) => navigate({ applied: next });
+  const selectDiscarded = (next: DiscardedFilter) => navigate({ discarded: next });
+  const toggleRemote = () => navigate({ remote: !remote });
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    navigate({ q, sites, remote });
+    navigate({});
   }
 
   function clearAll() {
-    setQ('');
-    setSites([]);
-    setRemote(true); // back to the default (remote-only)
-    setApplied('all');
-    setDiscarded('all');
+    // The derived filters reset themselves once the URL below lands; only the
+    // draft, which the URL does not own, has to be cleared by hand.
+    setQDraft('');
     // Writing the EMPTY string is what makes clearing stick: without it the
     // restore on the next visit would put the filters straight back.
     saveJobFilters('');
@@ -155,7 +147,7 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
 
   // "Filtered" = anything other than the default (remote-only, everything else off).
   const hasFilters = Boolean(
-    q.trim() || sites.length || !remote || applied !== 'all' || discarded !== 'all',
+    qDraft.trim() || sites.length || !remote || applied !== 'all' || discarded !== 'all',
   );
 
   return (
@@ -177,8 +169,8 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
         </svg>
         <input
           type="text"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
+          value={qDraft}
+          onChange={(e) => setQDraft(e.target.value)}
           placeholder="Search jobs…"
           className={`w-full pl-9 ${inputCls}`}
         />
@@ -190,10 +182,7 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
         placeholder="All sources"
         options={filters.sites.map((x) => ({ value: x, ...siteMeta(x) }))}
         selected={sites}
-        onChange={(next) => {
-          setSites(next);
-          navigate({ q, sites: next, remote });
-        }}
+        onChange={(next) => navigate({ sites: next })}
       />
 
       {/* Remote-only toggle (checked by default) */}
@@ -314,26 +303,3 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
   );
 }
 
-function RowButton({
-  selected,
-  onClick,
-  children,
-}: {
-  selected: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      role="option"
-      aria-selected={selected}
-      onClick={onClick}
-      className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${
-        selected ? 'bg-[var(--primary)]/10 text-white' : 'text-[var(--text)] hover:bg-white/5'
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
