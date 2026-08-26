@@ -11,6 +11,8 @@ import { fetchResumeStatus, type ResumeStatusMap } from '@/lib/resumes';
 import { fetchInterviewForJob } from '@/lib/interviews.server';
 import type { InterviewDetail } from '@/lib/interviews';
 import { fetchStageTypes } from '@/lib/stage-types.server';
+import { fetchJobQueries } from '@/lib/job-queries.server';
+import type { JobQuery } from '@/lib/job-queries';
 import { getSession } from '@/lib/auth';
 import { HighlightedText } from '@/app/components/highlighted-text';
 import { ResumeGenerator } from '@/app/components/resume-generator';
@@ -19,6 +21,7 @@ import { AppliedProvider } from '@/app/components/applied-provider';
 import { CoverLetterGenerator } from '@/app/components/cover-letter-generator';
 import { AppliedAction, AppliedBadge } from '@/app/components/applied-action';
 import { InterviewTimeline } from '@/app/components/interview-timeline';
+import { JobQueryPanel } from '@/app/components/job-query-panel';
 
 export const dynamic = 'force-dynamic';
 
@@ -66,19 +69,23 @@ export default async function JobDetail({
   // tab has to know whether that step is done before offering to generate —
   // and finding out by attempting it would spend a request to learn something
   // the page could have said up front.
-  const [appliedStatus, coverLetter, resumeStatus, interview]: [
+  const [appliedStatus, coverLetter, resumeStatus, interview, queries]: [
     AppliedStatusMap,
     CoverLetter | null,
     ResumeStatusMap,
     InterviewDetail | null,
+    JobQuery[],
   ] = profileId
     ? await Promise.all([
         fetchAppliedStatus(profileId, [job.id]),
         fetchCoverLetter(job.id, profileId),
         fetchResumeStatus(profileId, [job.id]),
         fetchInterviewForJob(job.id, profileId),
+        // Fetched here rather than in the panel: this page can, so its first
+        // paint carries the whole log instead of popping it in a moment later.
+        fetchJobQueries(job.id, profileId),
       ])
-    : [{}, null, {}, null];
+    : [{}, null, {}, null, []];
   const hasResume = Boolean(resumeStatus[job.id]);
   const isApplied = Boolean(appliedStatus[job.id]);
 
@@ -210,6 +217,21 @@ export default async function JobDetail({
                   profile={activeProfile ?? null}
                   hasResume={hasResume}
                   initial={coverLetter}
+                />
+              ),
+            },
+            {
+              key: 'ask-ai',
+              label: 'Ask AI',
+              badge: queries.length > 0 ? String(queries.length) : undefined,
+              content: (
+                // Remount on profile change: the log belongs to one candidate,
+                // and a different profile is a different log entirely.
+                <JobQueryPanel
+                  key={profileId ?? 'none'}
+                  jobId={job.id}
+                  profileId={profileId}
+                  initial={queries}
                 />
               ),
             },

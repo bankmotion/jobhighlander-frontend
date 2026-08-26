@@ -7,6 +7,7 @@ import { fetchAppliedStatus, isAppliedFilter, type AppliedFilter } from '@/lib/a
 import { fetchCoverLetterStatus } from '@/lib/cover-letters';
 import { fetchDiscardStatus, isDiscardedFilter, type DiscardedFilter } from '@/lib/discards';
 import { fetchInterviewStatus } from '@/lib/interviews.server';
+import { fetchJobQueryCounts } from '@/lib/job-queries.server';
 import { FiltersBar } from '@/app/components/filters-bar';
 import { JobFiltersRestore } from '@/app/components/job-filters-restore';
 import { JobCard } from '@/app/components/job-card';
@@ -103,15 +104,23 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   // Both resolved on the server: fetching either from the client would paint
   // every card as "no resume, not applied" first and then correct itself.
   const jobIds = (data?.items ?? []).map((j) => j.id);
-  const [resumeStatus, appliedStatus, coverLetterStatus, discardStatus, interviewStatus] = profileId
+  const [
+    resumeStatus,
+    appliedStatus,
+    coverLetterStatus,
+    discardStatus,
+    interviewStatus,
+    queryCounts,
+  ] = profileId
     ? await Promise.all([
         fetchResumeStatus(profileId, jobIds),
         fetchAppliedStatus(profileId, jobIds),
         fetchCoverLetterStatus(profileId, jobIds),
         fetchDiscardStatus(profileId, jobIds),
         fetchInterviewStatus(profileId, jobIds),
+        fetchJobQueryCounts(profileId, jobIds),
       ])
-    : [{}, {}, {}, {}, {}];
+    : [{}, {}, {}, {}, {}, {}];
 
   return (
     <div>
@@ -184,6 +193,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                       profileId={profileId}
                       keywords={keywords}
                       interview={interviewStatus[job.id] ?? null}
+                      queryCount={queryCounts[job.id] ?? 0}
                     />
                   ))}
                 </ul>

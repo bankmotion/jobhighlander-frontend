@@ -6,6 +6,7 @@ import { AppliedAction, AppliedBadge } from './applied-action';
 import { JobDescription } from './job-description';
 import { DiscardAction, DiscardedBadge } from './discard-action';
 import { InterviewAction, InterviewBadge, type InterviewCardStatus } from './interview-action';
+import { JobQueryAction } from './job-query-action';
 import { JobPanel } from './job-panel';
 
 export function JobCard({
@@ -13,6 +14,7 @@ export function JobCard({
   profileId,
   keywords,
   interview,
+  queryCount,
 }: {
   job: Job;
   profileId: number | null;
@@ -20,6 +22,8 @@ export function JobCard({
   keywords: string[];
   /** This profile's timeline for the job, or null when none was opened. */
   interview: InterviewCardStatus | null;
+  /** How many AI questions this pairing already has. */
+  queryCount: number;
 }) {
   /**
    * Which profile the detail page opens against.
@@ -148,6 +152,15 @@ export function JobCard({
             cannot take. Reads the provider, not the server snapshot, so it
             shows up the moment Applied is ticked rather than after a refresh. */}
         <InterviewAction jobId={job.id} interview={interview} />
+        {/* Opens in a dialog rather than navigating: the question is usually
+            asked while scanning, and leaving the list to ask it defeats that. */}
+        <JobQueryAction
+          jobId={job.id}
+          profileId={profileId}
+          title={job.title}
+          company={job.company}
+          count={queryCount}
+        />
         <a
           href={job.jobUrl}
           target="_blank"
