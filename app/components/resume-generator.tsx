@@ -82,6 +82,7 @@ export function ResumeGenerator({
   const [error, setError] = useState<string | null>(null);
   const [resume, setResume] = useState<TailoredResume | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [docxLoading, setDocxLoading] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
   // Two keys, deliberately: `templateKey` is what the preview is showing and
   // changes on every pick, `savedTemplateKey` is what the database holds. The
@@ -281,8 +282,49 @@ export function ResumeGenerator({
     }
   }
 
+  /**
+   * Fetch the Word version on demand and hand it to the browser.
+   *
+   * Not rendered alongside the preview: there is nothing to preview a DOCX in,
+   * and building one for every generation would burn work most users never ask
+   * for. The blob URL is revoked straight after the click so it cannot leak.
+   */
+  async function downloadDocx(forResume: TailoredResume, forProfileId: number, forTemplate?: string) {
+    setDocxLoading(true);
+    try {
+      const res = await fetch('/api/resumes/docx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resume: forResume,
+          profileId: forProfileId,
+          pageSize: 'letter',
+          ...(forTemplate ? { templateKey: forTemplate } : {}),
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setError(data?.error ?? 'Could not render the Word file (' + res.status + ')');
+        return;
+      }
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = docxFileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError('Could not render the Word file.');
+    } finally {
+      setDocxLoading(false);
+    }
+  }
+
   const fileName =
     ((resume?.headline || 'resume').replace(/[^\w.-]+/g, '_').slice(0, 60) || 'resume') + '.pdf';
+  const docxFileName = fileName.slice(0, -4) + '.docx';
 
   if (profiles.length === 0) {
     return (
@@ -450,6 +492,14 @@ export function ResumeGenerator({
                   >
                     Download PDF <span aria-hidden>↓</span>
                   </a>
+                  <button
+                    type="button"
+                    onClick={() => downloadDocx(resume, Number(profileId), savedTemplateKey ?? undefined)}
+                    disabled={docxLoading}
+                    className="pointer-events-auto ml-2 inline-flex items-center gap-1.5 rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] px-3 py-1.5 text-sm font-medium text-[var(--text)] shadow-lg transition hover:bg-[var(--surface-2)] focus:opacity-100 disabled:opacity-60"
+                  >
+                    {docxLoading ? 'Preparing…' : 'Download Word'}
+                  </button>
                 </div>
               </div>
             )}
