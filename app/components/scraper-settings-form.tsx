@@ -34,6 +34,12 @@ const GROUPS: Group[] = [
       { key: 'max_age_days', label: 'Max age (days)', type: 'number', hint: '0 = no age limit' },
       { key: 'proxy_url', label: 'Proxy URL', type: 'text' },
       { key: 'fetch_descriptions', label: 'Fetch descriptions', type: 'bool' },
+      {
+        key: 'company_blocklist',
+        label: 'Blocked companies',
+        type: 'text',
+        hint: 'comma-separated; whole-name match, e.g. recruiting agencies',
+      },
     ],
   },
   {
