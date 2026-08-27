@@ -1,59 +1,133 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import Script from 'next/script';
+
+const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
+
+/**
+ * Google Identity Services, loaded from the CDN. Typed loosely on purpose —
+ * pulling in @types/google.accounts for two calls is not worth the dependency.
+ */
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        id: {
+          initialize: (o: Record<string, unknown>) => void;
+          renderButton: (el: HTMLElement, o: Record<string, unknown>) => void;
+        };
+      };
+    };
+  }
+}
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const buttonRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [scriptReady, setScriptReady] = useState(false);
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(data.error ?? 'Login failed');
+  /** Exchange Google's ID token for our own session cookie. */
+  const onCredential = useCallback(
+    async (response: { credential?: string }) => {
+      if (!response?.credential) {
+        setError('Google did not return a credential. Please try again.');
         return;
       }
-      router.replace('/');
-      router.refresh();
-    } catch {
-      setError('Could not reach the server.');
-    } finally {
-      setLoading(false);
-    }
+      setError(null);
+      setPending(false);
+      setLoading(true);
+      try {
+        const res = await fetch('/api/auth/google', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ credential: response.credential }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          // 403 is the approval gate: the account exists but a super admin has
+          // not granted it a role yet. That is a normal first-time state, not
+          // an error the user can fix by retrying.
+          if (res.status === 403) setPending(true);
+          else setError(data.error ?? 'Sign-in failed');
+          return;
+        }
+        router.replace('/');
+        router.refresh();
+      } catch {
+        setError('Could not reach the server.');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [router],
+  );
+
+  useEffect(() => {
+    if (!scriptReady || !CLIENT_ID || !buttonRef.current) return;
+    const gis = window.google?.accounts?.id;
+    if (!gis) return;
+    gis.initialize({ client_id: CLIENT_ID, callback: onCredential });
+    gis.renderButton(buttonRef.current, {
+      theme: 'filled_black',
+      size: 'large',
+      shape: 'pill',
+      text: 'signin_with',
+      width: 320,
+    });
+  }, [scriptReady, onCredential]);
+
+  if (pending) {
+    return (
+      <AuthShell title="Almost there" subtitle="Your account was created.">
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-300">
+          Your account is waiting for a super admin to approve it. You will be able
+          to sign in as soon as that happens.
+        </div>
+        <button
+          onClick={() => setPending(false)}
+          className="mt-4 w-full rounded-lg border border-[var(--border)] px-4 py-2 text-sm text-[var(--muted)] transition hover:text-[var(--text)]"
+        >
+          Back to sign in
+        </button>
+      </AuthShell>
+    );
   }
 
   return (
     <AuthShell title="Sign in" subtitle="Access the JobHighLander board.">
-      <form onSubmit={onSubmit} className="space-y-3">
-        <Field label="Email" type="email" value={email} onChange={setEmail} autoComplete="email" />
-        <Field label="Password" type="password" value={password} onChange={setPassword} autoComplete="current-password" />
-        {error && <p className="text-sm text-red-400">{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--primary-hover)] disabled:opacity-60"
-        >
-          {loading ? 'Signing in…' : 'Sign in'}
-        </button>
-      </form>
-      <p className="mt-4 text-center text-sm text-[var(--muted)]">
-        No account?{' '}
-        <Link href="/register" className="font-medium text-[var(--primary)] hover:underline">
-          Register
-        </Link>
+      <Script
+        src="https://accounts.google.com/gsi/client"
+        strategy="afterInteractive"
+        onReady={() => setScriptReady(true)}
+      />
+
+      {!CLIENT_ID ? (
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
+          Google sign-in is not configured. Set{' '}
+          <code className="font-mono">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> and restart
+          the app.
+        </div>
+      ) : (
+        <div className="flex flex-col items-center gap-3">
+          {/* Google renders its own button into this node. */}
+          <div ref={buttonRef} className="min-h-[44px]" />
+          {!scriptReady && (
+            <p className="text-sm text-[var(--muted)]">Loading Google sign-in…</p>
+          )}
+          {loading && <p className="text-sm text-[var(--muted)]">Signing in…</p>}
+        </div>
+      )}
+
+      {error && <p className="mt-3 text-center text-sm text-red-400">{error}</p>}
+
+      <p className="mt-5 text-center text-xs text-[var(--muted)]">
+        First time here? Signing in creates your account, and a super admin approves
+        it before you get access.
       </p>
     </AuthShell>
   );
@@ -84,33 +158,5 @@ export function AuthShell({
         </div>
       </div>
     </div>
-  );
-}
-
-export function Field({
-  label,
-  type,
-  value,
-  onChange,
-  autoComplete,
-}: {
-  label: string;
-  type: string;
-  value: string;
-  onChange: (v: string) => void;
-  autoComplete?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-sm font-medium text-[var(--text)]">{label}</span>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        autoComplete={autoComplete}
-        required
-        className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text)] outline-none transition focus:border-[var(--primary)]"
-      />
-    </label>
   );
 }

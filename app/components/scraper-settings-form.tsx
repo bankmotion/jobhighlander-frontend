@@ -199,6 +199,12 @@ const GROUPS: Group[] = [
         link: true,
       },
       {
+        key: 'themuse_max_age_days',
+        label: 'Max age (days)',
+        type: 'number',
+        hint: 'this site only; the URL filter has no 1-day option',
+      },
+      {
         key: 'themuse_us_only',
         label: 'US jobs only',
         type: 'bool',
@@ -229,6 +235,12 @@ const GROUPS: Group[] = [
         label: 'Country',
         type: 'text',
         hint: 'matches locationRestrictions',
+      },
+      {
+        key: 'himalayas_max_age_days',
+        label: 'Max age (days)',
+        type: 'number',
+        hint: 'this site only; the API has no date filter',
       },
       { key: 'himalayas_role_regex', label: 'Role regex', type: 'text' },
       {

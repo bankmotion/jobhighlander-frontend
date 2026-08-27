@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { verifyToken, isSuperAdmin, isAdminRole, type Role } from './lib/session';
 
-const PUBLIC_PATHS = ['/login', '/register'];
+// Google sign-in also creates the account, so there is no separate register page.
+const PUBLIC_PATHS = ['/login'];
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 /**
@@ -46,7 +47,7 @@ export async function middleware(req: NextRequest) {
     return res;
   }
 
-  // Signed in → keep them out of login/register.
+  // Signed in → keep them off the login page.
   if (isPublic) {
     const url = req.nextUrl.clone();
     url.pathname = '/';
