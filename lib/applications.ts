@@ -50,3 +50,53 @@ export async function fetchAppliedStatus(
     return {};
   }
 }
+
+/**
+ * A prior application at the same company as a job on screen.
+ *
+ * Distinct from `AppliedStatus`, which is about THIS posting: this one says
+ * "you have dealt with this employer before", which is the thing worth knowing
+ * while scanning a list of twenty cards from the same few agencies.
+ */
+export interface CompanyHistory {
+  company: string;
+  appliedAt: string;
+  jobTitle: string;
+  jobId: number | null;
+  count: number;
+}
+
+/** Keyed by the job id ON SCREEN, not by the earlier application's job. */
+export type CompanyHistoryMap = Record<number, CompanyHistory>;
+
+/**
+ * Prior-company applications for a page of jobs. Server-side for the same
+ * reason as `fetchAppliedStatus`: a client fetch would paint every card
+ * unbadged and then stamp them a moment later.
+ *
+ * Failure is not fatal — the badge is an aid, not a gate, so the list still
+ * renders without it.
+ */
+export async function fetchCompanyHistory(
+  profileId: number,
+  jobIds: number[],
+): Promise<CompanyHistoryMap> {
+  if (!profileId || jobIds.length === 0) return {};
+  const token = await getToken();
+  if (!token) return {};
+
+  const qs = new URLSearchParams({
+    profileId: String(profileId),
+    jobIds: jobIds.join(','),
+  });
+  try {
+    const res = await fetch(`${API_URL}/api/applications/company-history?${qs}`, {
+      cache: 'no-store',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return {};
+    return await res.json();
+  } catch {
+    return {};
+  }
+}

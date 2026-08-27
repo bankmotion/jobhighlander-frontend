@@ -3,7 +3,7 @@ import { fetchKeywords } from '@/lib/keywords';
 import { fetchProfiles } from '@/lib/profiles';
 import { fetchPresets } from '@/lib/templates';
 import { fetchResumeStatus } from '@/lib/resumes';
-import { fetchAppliedStatus, isAppliedFilter, type AppliedFilter } from '@/lib/applications';
+import { fetchAppliedStatus, fetchCompanyHistory, isAppliedFilter, type AppliedFilter } from '@/lib/applications';
 import { fetchCoverLetterStatus } from '@/lib/cover-letters';
 import { fetchDiscardStatus, isDiscardedFilter, type DiscardedFilter } from '@/lib/discards';
 import { fetchInterviewStatus } from '@/lib/interviews.server';
@@ -111,6 +111,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
     discardStatus,
     interviewStatus,
     queryCounts,
+    companyHistory,
   ] = profileId
     ? await Promise.all([
         fetchResumeStatus(profileId, jobIds),
@@ -119,8 +120,9 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
         fetchDiscardStatus(profileId, jobIds),
         fetchInterviewStatus(profileId, jobIds),
         fetchJobQueryCounts(profileId, jobIds),
+        fetchCompanyHistory(profileId, jobIds),
       ])
-    : [{}, {}, {}, {}, {}, {}];
+    : [{}, {}, {}, {}, {}, {}, {}];
 
   return (
     <div>
@@ -156,6 +158,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
           key={profileId ?? 'none'}
           profileId={profileId}
           initial={appliedStatus}
+          companyHistory={companyHistory}
           viewerEmail={session?.email ?? null}
         >
           <ResumeListProvider

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { Job } from '@/lib/types';
 import { formatPostedRelative } from '@/lib/format';
 import { ApplicationAction } from './application-action';
-import { AppliedAction, AppliedBadge } from './applied-action';
+import { AppliedAction, AppliedBadge, PreviouslyAppliedBadge } from './applied-action';
 import { JobDescription } from './job-description';
 import { DiscardAction, DiscardedBadge } from './discard-action';
 import { InterviewAction, InterviewBadge, type InterviewCardStatus } from './interview-action';
@@ -55,6 +55,7 @@ export function JobCard({
                 to be caught while scanning twenty rows, so a posting already
                 answered is never opened a second time. */}
             <AppliedBadge jobId={job.id} />
+            <PreviouslyAppliedBadge jobId={job.id} />
             <InterviewBadge jobId={job.id} profileId={profileId} interview={interview} />
             <DiscardedBadge jobId={job.id} />
           </div>

@@ -2,7 +2,12 @@
 
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import type { AppliedStatus, AppliedStatusMap } from '@/lib/applications';
+import type {
+  AppliedStatus,
+  AppliedStatusMap,
+  CompanyHistory,
+  CompanyHistoryMap,
+} from '@/lib/applications';
 import { Toast, useToast } from './toast';
 
 interface Ctx {
@@ -11,6 +16,8 @@ interface Ctx {
   /** The signed-in user, so "someone else marked this" can be told apart. */
   viewerEmail: string | null;
   appliedOn: (jobId: number) => AppliedStatus | undefined;
+  /** A prior application at the same company, when there is one. */
+  companyHistoryOn: (jobId: number) => CompanyHistory | undefined;
   isBusy: (jobId: number) => boolean;
   toggle: (jobId: number) => void;
 }
@@ -33,11 +40,17 @@ export function useApplied(): Ctx {
 export function AppliedProvider({
   profileId,
   initial,
+  companyHistory = {},
   viewerEmail = null,
   children,
 }: {
   profileId: number | null;
   initial: AppliedStatusMap;
+  /**
+   * Prior applications at the same companies. Read-only: it reflects history,
+   * so unlike `initial` it is never mutated by marking something on screen.
+   */
+  companyHistory?: CompanyHistoryMap;
   /**
    * Who is looking. A profile shared with a team collects marks from several
    * people: "applied by you" is noise, "applied by someone else" is the thing
@@ -67,6 +80,10 @@ export function AppliedProvider({
   }
 
   const appliedOn = useCallback((jobId: number) => applied[jobId], [applied]);
+  const companyHistoryOn = useCallback(
+    (jobId: number) => companyHistory[jobId],
+    [companyHistory],
+  );
   const isBusy = useCallback((jobId: number) => busy.has(jobId), [busy]);
 
   const setBusyFor = useCallback((jobId: number, on: boolean) => {
@@ -128,7 +145,7 @@ export function AppliedProvider({
   );
 
   return (
-    <AppliedCtx.Provider value={{ profileId, viewerEmail, appliedOn, isBusy, toggle }}>
+    <AppliedCtx.Provider value={{ profileId, viewerEmail, appliedOn, companyHistoryOn, isBusy, toggle }}>
       {children}
       <Toast toast={toast} onDismiss={dismiss} />
     </AppliedCtx.Provider>

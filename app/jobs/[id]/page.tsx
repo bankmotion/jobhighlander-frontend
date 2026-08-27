@@ -5,7 +5,7 @@ import { fetchKeywords } from '@/lib/keywords';
 import { fetchProfiles } from '@/lib/profiles';
 import { fetchPresets } from '@/lib/templates';
 import { formatPostedRelative } from '@/lib/format';
-import { fetchAppliedStatus, type AppliedStatusMap } from '@/lib/applications';
+import { fetchAppliedStatus, fetchCompanyHistory, type AppliedStatusMap, type CompanyHistoryMap } from '@/lib/applications';
 import { fetchCoverLetter, type CoverLetter } from '@/lib/cover-letters';
 import { fetchResumeStatus, type ResumeStatusMap } from '@/lib/resumes';
 import { fetchInterviewForJob } from '@/lib/interviews.server';
@@ -19,7 +19,11 @@ import { ResumeGenerator } from '@/app/components/resume-generator';
 import { JobTabs } from '@/app/components/job-tabs';
 import { AppliedProvider } from '@/app/components/applied-provider';
 import { CoverLetterGenerator } from '@/app/components/cover-letter-generator';
-import { AppliedAction, AppliedBadge } from '@/app/components/applied-action';
+import {
+  AppliedAction,
+  AppliedBadge,
+  PreviouslyAppliedBadge,
+} from '@/app/components/applied-action';
 import { InterviewTimeline } from '@/app/components/interview-timeline';
 import { JobQueryPanel } from '@/app/components/job-query-panel';
 
@@ -69,12 +73,13 @@ export default async function JobDetail({
   // tab has to know whether that step is done before offering to generate —
   // and finding out by attempting it would spend a request to learn something
   // the page could have said up front.
-  const [appliedStatus, coverLetter, resumeStatus, interview, queries]: [
+  const [appliedStatus, coverLetter, resumeStatus, interview, queries, companyHistory]: [
     AppliedStatusMap,
     CoverLetter | null,
     ResumeStatusMap,
     InterviewDetail | null,
     JobQuery[],
+    CompanyHistoryMap,
   ] = profileId
     ? await Promise.all([
         fetchAppliedStatus(profileId, [job.id]),
@@ -84,8 +89,9 @@ export default async function JobDetail({
         // Fetched here rather than in the panel: this page can, so its first
         // paint carries the whole log instead of popping it in a moment later.
         fetchJobQueries(job.id, profileId),
+        fetchCompanyHistory(profileId, [job.id]),
       ])
-    : [{}, null, {}, null, []];
+    : [{}, null, {}, null, [], {}];
   const hasResume = Boolean(resumeStatus[job.id]);
   const isApplied = Boolean(appliedStatus[job.id]);
 
@@ -94,6 +100,7 @@ export default async function JobDetail({
       key={profileId ?? 'none'}
       profileId={profileId}
       initial={appliedStatus}
+      companyHistory={companyHistory}
       viewerEmail={session?.email ?? null}
     >
       <article>
@@ -109,6 +116,7 @@ export default async function JobDetail({
                   {job.site}
                 </span>
                 <AppliedBadge jobId={job.id} size="lg" />
+                <PreviouslyAppliedBadge jobId={job.id} size="lg" />
               </div>
               <h1 className="mt-3 text-2xl font-bold tracking-tight text-white">{job.title}</h1>
               <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[var(--muted)]">

@@ -140,6 +140,53 @@ export function AppliedAction({ jobId, size = 'sm' }: { jobId: number; size?: 's
  * strings — a composed `from-${tone}-500` compiles to no CSS at all, silently
  * and with no build error.
  */
+/**
+ * "You have applied to this employer before."
+ *
+ * Deliberately NOT the same colour as AppliedBadge. That one is a statement
+ * about THIS posting and stops you answering it twice; this one is a memory
+ * aid about the COMPANY, and dressing them alike would make a card you have
+ * never applied to read, at a glance, as one you have.
+ *
+ * Absent when there is no prior application, and never shown for the posting
+ * that application was actually for — the service excludes it.
+ */
+export function PreviouslyAppliedBadge({ jobId, size = 'sm' }: { jobId: number; size?: 'sm' | 'lg' }) {
+  const { companyHistoryOn } = useApplied();
+  const history = companyHistoryOn(jobId);
+  if (!history) return null;
+
+  const lg = size === 'lg';
+  const more = history.count > 1 ? ` (${history.count} times)` : '';
+
+  return (
+    <span
+      // The earlier role lives in the tooltip: it is the first thing you want
+      // once the badge has caught your eye, and the last thing that fits on it.
+      title={`Previously applied to ${history.company}${more} — most recently ${when(
+        history.appliedAt,
+      )} for "${history.jobTitle}"`}
+      className={`inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 font-semibold text-amber-300 ring-1 ring-inset ring-amber-400/30 ${
+        lg ? 'px-3 py-1.5 text-sm' : 'px-2.5 py-1 text-xs'
+      }`}
+    >
+      <IconHistory className={lg ? 'h-3.5 w-3.5' : 'h-3 w-3'} />
+      Previously applied to this company on {when(history.appliedAt)}
+    </span>
+  );
+}
+
+/** Clock-with-arrow: "before", without implying success or failure. */
+function IconHistory({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+      <path d="M3 12a9 9 0 1 0 3-6.7L3 8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 4v4h4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 7v5l3 2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 export function AppliedBadge({ jobId, size = 'sm' }: { jobId: number; size?: 'sm' | 'lg' }) {
   const { viewerEmail, appliedOn } = useApplied();
   const status = appliedOn(jobId);
