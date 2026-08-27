@@ -78,6 +78,17 @@ function IconEye() {
   );
 }
 
+/** Word document. A letterform, not a logo — the other icons are line art too. */
+function IconWord() {
+  return (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path d="M6 3h8l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+      <path d="M14 3v5h5" />
+      <path d="M8.5 12l1.2 5 1.8-3.6L13.3 17l1.2-5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function IconDownload() {
   return (
     <svg
@@ -259,6 +270,24 @@ export function ApplicationAction({ jobId, title, company }: ResumeTarget) {
           className={ICON_BOX}
         >
           {saving ? <Spinner /> : <IconDownload />}
+        </button>
+
+        {/* Word alongside the PDF: the same resume, rendered from the same
+            structured document rather than converted, so a recruiter who
+            wants an editable file does not have to ask for one. */}
+        <button
+          type="button"
+          onClick={() => download(target, 'docx')}
+          disabled={saving}
+          title={saving ? 'Rendering…' : 'Download the resume as a Word document'}
+          aria-label={
+            saving
+              ? `Rendering the resume for ${where}`
+              : `Download the resume for ${where} as a Word document`
+          }
+          className={ICON_BOX}
+        >
+          {saving ? <Spinner /> : <IconWord />}
         </button>
 
         <button

@@ -67,7 +67,8 @@ interface Ctx {
   generateQuiet: (t: ResumeTarget) => void;
   view: (t: ResumeTarget) => void;
   /** Renders and saves the PDF without opening the dialog. */
-  download: (t: ResumeTarget) => void;
+  /** `format` defaults to 'pdf' so existing callers are unaffected. */
+  download: (t: ResumeTarget, format?: ResumeFormat) => void;
   /** So the card can show the wait — a render is a round trip, not instant. */
   isDownloading: (jobId: number) => boolean;
 }
@@ -86,6 +87,10 @@ type ResumeDoc = Record<string, unknown>;
  * Company and job id, not just the headline: every resume written for the same
  * role would otherwise land in the downloads folder under an identical name.
  */
+export type ResumeFormat = 'pdf' | 'docx';
+
+const MIME_EXT: Record<ResumeFormat, string> = { pdf: 'pdf', docx: 'docx' };
+
 function fileNameFor(t: ResumeTarget): string {
   return (
     [t.company, t.title, t.jobId]
@@ -483,7 +488,7 @@ export function ResumeListProvider({
    * beside this card — and revoke the very URL its iframe is showing.
    */
   const download = useCallback(
-    async (t: ResumeTarget) => {
+    async (t: ResumeTarget, format: ResumeFormat = 'pdf') => {
       if (!profileId || downloadingRef.current.has(t.jobId)) return;
       markDownloading(t.jobId, true);
       try {
@@ -502,7 +507,7 @@ export function ResumeListProvider({
           templateKey = loaded.templateKey;
         }
 
-        const res = await fetch('/api/resumes/pdf', {
+        const res = await fetch(`/api/resumes/${format}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -514,14 +519,14 @@ export function ResumeListProvider({
         });
         if (!res.ok) {
           const err = await res.json().catch(() => null);
-          show(err?.error ?? `Could not render the PDF (${res.status})`, 'error');
+          show(err?.error ?? `Could not render the ${format.toUpperCase()} (${res.status})`, 'error');
           return;
         }
 
         const url = URL.createObjectURL(await res.blob());
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${fileNameFor(t)}.pdf`;
+        a.download = `${fileNameFor(t)}.${MIME_EXT[format]}`;
         // Appended before clicking: a detached anchor is ignored by Firefox.
         document.body.appendChild(a);
         a.click();
@@ -532,7 +537,7 @@ export function ResumeListProvider({
         // tearing the URL down there would kill a download in flight.
         setTimeout(() => URL.revokeObjectURL(url), 60_000);
       } catch {
-        show('Could not download the PDF.', 'error');
+        show(`Could not download the ${format.toUpperCase()}.`, 'error');
       } finally {
         markDownloading(t.jobId, false);
       }
@@ -594,7 +599,7 @@ export function ResumeListProvider({
     generate,
     generateQuiet,
     view,
-    download: (t) => void download(t),
+    download: (t, format) => void download(t, format),
     isDownloading: (jobId) => downloadingIds.includes(jobId),
   };
 
@@ -692,6 +697,16 @@ export function ResumeListProvider({
               >
                 Download PDF
               </a>
+            )}
+            {target && (
+              <button
+                type="button"
+                onClick={() => download(target, 'docx')}
+                disabled={!!target && downloadingIds.includes(target.jobId)}
+                className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--text)] transition hover:bg-white/5 disabled:opacity-60"
+              >
+                {target && downloadingIds.includes(target.jobId) ? 'Preparing…' : 'Download Word'}
+              </button>
             )}
           </>
         }
@@ -879,6 +894,18 @@ export function ResumeListProvider({
                 >
                   Download the PDF instead.
                 </a>
+                {target && (
+                  <>
+                    {' · '}
+                    <button
+                      type="button"
+                      onClick={() => download(target, 'docx')}
+                      className="underline hover:text-white"
+                    >
+                      Download as Word
+                    </button>
+                  </>
+                )}
               </p>
             </>
           )}
