@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
@@ -145,11 +146,18 @@ export function AuthShell({
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <div className="mb-6 flex items-center justify-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--primary)] text-sm font-bold text-white">
-            JH
-          </span>
-          <span className="text-lg font-semibold tracking-tight">JobHighLander</span>
+        <div className="mb-6 flex flex-col items-center justify-center">
+          {/* Room for the real artwork here, unlike the 32px sidebar chip.
+              Sized so the JOB knockout and the vehicle both stay legible. */}
+          <Image
+            src="/logo.png"
+            alt="JobHighLander"
+            width={560}
+            height={403}
+            preload
+            className="h-auto w-[188px] select-none"
+          />
+          <span className="mt-2 text-lg font-semibold tracking-tight text-white">JobHighLander</span>
         </div>
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl">
           <h1 className="text-xl font-bold tracking-tight text-white">{title}</h1>

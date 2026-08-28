@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import './globals.css';
@@ -55,9 +56,17 @@ function SidebarSkeleton() {
   return (
     <aside className="hidden w-60 shrink-0 border-r border-[var(--border)] bg-[var(--surface)] md:flex md:flex-col md:sticky md:top-0 md:h-screen">
       <div className="flex items-center gap-2 px-5 py-5">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--primary)] text-sm font-bold text-white">
-          JH
-        </span>
+        {/* The mark, not a lettermark: the full logo is illustration and
+            turns to mush below ~64px, while the JOB knockout stays legible
+            down to 16px. Large art is used on the sign-in screen instead. */}
+        <Image
+          src="/logo-job.png"
+          alt=""
+          width={32}
+          height={32}
+          loading="eager"
+          className="h-8 w-8 rounded-lg bg-white/[0.06] object-contain p-1 ring-1 ring-inset ring-white/10"
+        />
         <span className="text-[15px] font-semibold tracking-tight">JobHighLander</span>
       </div>
       <div className="space-y-2 px-3 py-2" aria-hidden>
