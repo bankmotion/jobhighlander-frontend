@@ -94,5 +94,8 @@ export async function middleware(req: NextRequest) {
 // with no session cookie, so a redirect here turns every preview into a 400.
 export const config = {
   // Gate everything except Next internals and the auth route handlers.
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|template-thumbs|api/auth).*)'],
+  // Static images are exempt: the sign-in page renders the logo BEFORE there
+  // is a session, so gating them redirects the asset to /login and the image
+  // breaks. They are public files either way — gating them protected nothing.
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|template-thumbs|api/auth|.*\.(?:png|jpg|jpeg|svg|webp|ico)$).*)'],
 };
