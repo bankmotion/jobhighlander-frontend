@@ -2,8 +2,10 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import type { ProfileSummary } from '@/lib/types';
 import {
   bucketDaily,
+  dateInputValue,
   pctText,
   siteLabel,
   FUNNEL_RAMP,
@@ -25,43 +27,156 @@ import {
  * nothing here needs the reader to tell series apart by colour, so every mark
  * carries a text label and colour stays a single validated hue.
  */
-export function BidPerformanceDashboard({ data }: { data: BidPerformance }) {
+export function BidPerformanceDashboard({
+  data,
+  profiles,
+  profileId,
+  custom,
+}: {
+  data: BidPerformance;
+  profiles: ProfileSummary[];
+  /** null = every profile the viewer may use, aggregated. */
+  profileId: number | null;
+  /** The custom window currently in the URL, if the user picked dates. */
+  custom: { from: string; to: string } | null;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [days, setDays] = useState(data.range.days);
+  const [from, setFrom] = useState(custom?.from ?? dateInputValue(new Date(data.range.from)));
+  const [to, setTo] = useState(custom?.to ?? dateInputValue(new Date(data.range.to)));
+  const today = dateInputValue(new Date());
+  const rangeInvalid = from > to;
 
   const series = useMemo(() => bucketDaily(data.daily), [data.daily]);
   const weekly = data.daily.length > 31;
 
+  /**
+   * Push the window into the URL rather than holding it in state.
+   *
+   * The server does the aggregation, so the URL has to carry the question — and
+   * it also makes a particular view shareable. `days` and `from`/`to` are
+   * mutually exclusive: sending both would leave the backend to guess, and it
+   * resolves in favour of the explicit dates.
+   */
+  function navigate(next: { days?: number; from?: string; to?: string }) {
+    const q = new URLSearchParams();
+    if (next.from && next.to) {
+      q.set('from', next.from);
+      q.set('to', next.to);
+    } else {
+      q.set('days', String(next.days ?? days));
+    }
+    if (profileId) q.set('profile', String(profileId));
+    startTransition(() => router.push(`?${q}`, { scroll: false }));
+  }
+
   function setRange(next: number) {
     setDays(next);
-    // `days` is the only query this page carries, so the URL can be written
-    // outright. That also avoids useSearchParams, which the Next 16 docs say
-    // needs a Suspense boundary to keep the tree prerenderable.
-    startTransition(() => router.push(`?days=${next}`, { scroll: false }));
+    navigate({ days: next });
+  }
+
+  function setProfile(next: string) {
+    const q = new URLSearchParams();
+    if (custom) {
+      q.set('from', custom.from);
+      q.set('to', custom.to);
+    } else {
+      q.set('days', String(days));
+    }
+    if (next) q.set('profile', next);
+    startTransition(() => router.push(`?${q}`, { scroll: false }));
   }
 
   const empty = data.totals.applications === 0;
 
   return (
     <div className={pending ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
-      {/* Filters sit in one row above the charts. */}
-      <div className="mb-5 flex flex-wrap items-center gap-2">
-        {RANGES.map((r) => (
+      {/* Every control that changes the question sits in one row above the
+          charts, so nothing that alters the numbers is hidden below them. */}
+      <div className="mb-5 space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          {RANGES.map((r) => (
+            <button
+              key={r.days}
+              type="button"
+              onClick={() => setRange(r.days)}
+              aria-pressed={!custom && days === r.days}
+              className={`rounded-lg px-3 py-1.5 text-sm transition ${
+                !custom && days === r.days
+                  ? 'bg-[var(--primary)] font-medium text-white'
+                  : 'border border-[var(--border)] text-[var(--muted)] hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">From</span>
+            <input
+              type="date"
+              value={from}
+              max={today}
+              onChange={(e) => setFrom(e.target.value)}
+              className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-sm text-[var(--text)] outline-none transition focus:border-[var(--primary)]"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">To</span>
+            <input
+              type="date"
+              value={to}
+              max={today}
+              onChange={(e) => setTo(e.target.value)}
+              className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-sm text-[var(--text)] outline-none transition focus:border-[var(--primary)]"
+            />
+          </label>
           <button
-            key={r.days}
             type="button"
-            onClick={() => setRange(r.days)}
-            aria-pressed={days === r.days}
-            className={`rounded-lg px-3 py-1.5 text-sm transition ${
-              days === r.days
-                ? 'bg-[var(--primary)] font-medium text-white'
-                : 'border border-[var(--border)] text-[var(--muted)] hover:bg-white/5 hover:text-white'
-            }`}
+            onClick={() => navigate({ from, to })}
+            disabled={rangeInvalid}
+            className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--text)] transition hover:bg-white/5 disabled:opacity-50"
           >
-            {r.label}
+            Apply range
           </button>
-        ))}
+          {custom && (
+            <button
+              type="button"
+              onClick={() => setRange(90)}
+              className="rounded-lg px-2 py-1.5 text-sm text-[var(--muted)] underline transition hover:text-white"
+            >
+              Clear
+            </button>
+          )}
+
+          {/* Only worth the space when there is a choice to make. */}
+          {profiles.length > 1 && (
+            <label className="ml-auto flex flex-col gap-1">
+              <span className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
+                Profile
+              </span>
+              <select
+                value={profileId ?? ''}
+                onChange={(e) => setProfile(e.target.value)}
+                className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-sm text-[var(--text)] outline-none transition focus:border-[var(--primary)]"
+              >
+                <option value="">All profiles</option>
+                {profiles.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {[p.firstName, p.lastName].filter(Boolean).join(' ') || p.email || `Profile #${p.id}`}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </div>
+
+        {rangeInvalid && (
+          <p className="text-xs text-red-400">The start date must be on or before the end date.</p>
+        )}
       </div>
 
       <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">

@@ -11,13 +11,21 @@ import type { BidPerformance } from './stats';
  */
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
+/** Either a rolling day count or an explicit `YYYY-MM-DD` window. */
+export type StatsWindow = { days: number } | { from: string; to: string };
+
 export async function fetchBidPerformance(
-  days = 90,
+  window: StatsWindow = { days: 90 },
   profileId?: number,
 ): Promise<BidPerformance | null> {
   const token = await getToken();
   if (!token) return null;
-  const qs = new URLSearchParams({ days: String(days) });
+  const qs = new URLSearchParams();
+  if ('days' in window) qs.set('days', String(window.days));
+  else {
+    qs.set('from', window.from);
+    qs.set('to', window.to);
+  }
   if (profileId) qs.set('profileId', String(profileId));
   try {
     const res = await fetch(`${API_URL}/api/stats/bid-performance?${qs}`, {

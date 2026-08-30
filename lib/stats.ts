@@ -32,11 +32,17 @@ export interface BidPerformance {
 
 /** Ranges the page offers. Bounded by what the API accepts. */
 export const RANGES = [
+  { days: 1, label: '24 hours' },
+  { days: 3, label: '3 days' },
+  { days: 7, label: '7 days' },
   { days: 30, label: '30 days' },
   { days: 90, label: '90 days' },
   { days: 180, label: '6 months' },
   { days: 365, label: '1 year' },
 ] as const;
+
+/** `YYYY-MM-DD` in UTC — the shape <input type="date"> expects. */
+export const dateInputValue = (d: Date): string => d.toISOString().slice(0, 10);
 
 /**
  * Chart palette — validated with the dataviz validator against this app's chart
