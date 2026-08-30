@@ -171,13 +171,14 @@ export function Sidebar({ role, profiles }: { role: Role; profiles: ProfileSumma
             spends real money on a shared key, so the person deciding whether to
             regenerate is the one who needs to see the cost. Scoped to the
             caller by the API, so a bidder sees only their own. */}
-        {/* Statistics groups the two read-only dashboards. Neither is admin:
-            a bidder spends the AI budget and works the pipeline, so a bidder
-            is exactly who needs to see both. Each entry is scoped to the
-            viewer server-side. */}
+        {/* "My" is load-bearing, not decoration: both dashboards are scoped to
+            the signed-in user — their own bids, their own AI spend — and on a
+            shared profile that is a different number from the profile's total.
+            Neither is admin: the person spending the budget and working the
+            pipeline is exactly who needs to see them. */}
         <NavGroup
           icon="📊"
-          label="Statistics"
+          label="My Statistics"
           active={pathname.startsWith('/statistics')}
           maxHeight={120}
         >

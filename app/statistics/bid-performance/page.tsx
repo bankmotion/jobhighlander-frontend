@@ -51,10 +51,11 @@ export default async function BidPerformancePage({
 
   return (
     <div>
-      <h1 className="mb-1 text-2xl font-bold tracking-tight text-white">Bid performance</h1>
+      <h1 className="mb-1 text-2xl font-bold tracking-tight text-white">My bid performance</h1>
       <p className="mb-5 text-sm text-[var(--muted)]">
-        What happened to the jobs you applied to — volume, conversion to interviews, and which
-        sources and employers are worth the effort.
+        What happened to the jobs <strong className="font-medium text-[var(--text)]">you</strong>{' '}
+        applied to — volume, conversion to interviews, and which sources and employers are worth
+        the effort. On a shared profile these are your own bids, not the whole team&apos;s.
       </p>
 
       {data ? (
