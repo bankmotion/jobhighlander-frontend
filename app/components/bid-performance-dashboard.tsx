@@ -177,9 +177,16 @@ export function BidPerformanceDashboard({
             </label>
           )}
 
-          {/* Only on the team view: `bidders` is empty in the personal scope,
-              where the caller is the only bidder in the data anyway. */}
-          {data.bidders.length > 1 && (
+          {/* Shown whenever ANY bidder is in scope, not only when there are two
+              or more. With one bidder the filter changes no numbers, but it does
+              two things worth the space: it names who that bidder is, and it
+              stays available to clear a `user` already in the URL. Hiding it at
+              one option created a dead end — pick a profile that person never
+              worked and you get zeros with no control to undo it.
+
+              Empty in the personal scope, where the caller is the only bidder in
+              the data anyway, so this renders on the team page only. */}
+          {data.bidders.length > 0 && (
             <label className="flex flex-col gap-1">
               <span className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
                 Bidder
