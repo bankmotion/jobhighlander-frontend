@@ -171,9 +171,29 @@ export function Sidebar({ role, profiles }: { role: Role; profiles: ProfileSumma
             spends real money on a shared key, so the person deciding whether to
             regenerate is the one who needs to see the cost. Scoped to the
             caller by the API, so a bidder sees only their own. */}
-        <Link href="/ai-usage" className={linkCls(pathname === '/ai-usage')}>
-          <span className="text-base">💰</span> My AI Usage
-        </Link>
+        {/* Statistics groups the two read-only dashboards. Neither is admin:
+            a bidder spends the AI budget and works the pipeline, so a bidder
+            is exactly who needs to see both. Each entry is scoped to the
+            viewer server-side. */}
+        <NavGroup
+          icon="📊"
+          label="Statistics"
+          active={pathname.startsWith('/statistics')}
+          maxHeight={120}
+        >
+          <Link
+            href="/statistics/bid-performance"
+            className={linkCls(pathname.startsWith('/statistics/bid-performance'))}
+          >
+            Bid performance
+          </Link>
+          <Link
+            href="/statistics/ai-usage"
+            className={linkCls(pathname.startsWith('/statistics/ai-usage'))}
+          >
+            AI usage
+          </Link>
+        </NavGroup>
 
         {isAdmin && (
           <NavGroup

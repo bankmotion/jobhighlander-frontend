@@ -162,6 +162,10 @@ export function JobCard({
           company={job.company}
           count={queryCount}
         />
+        {/* Stays inside the button group rather than trailing the row: after
+            the ml-auto link it was the one control pushed onto a second line,
+            which read as a separate section instead of the last action. */}
+        <AppliedAction jobId={job.id} />
         <a
           href={job.jobUrl}
           target="_blank"
@@ -170,7 +174,6 @@ export function JobCard({
         >
           Original posting ↗
         </a>
-        <AppliedAction jobId={job.id} />
       </div>
     </JobPanel>
   );
