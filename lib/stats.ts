@@ -28,6 +28,8 @@ export interface BidPerformance {
   byCompany: { company: string; applications: number; interviews: number }[];
   byProfile: { profileId: number; name: string; applications: number; interviews: number; offers: number }[];
   outcomes: { status: string; label: string; count: number }[];
+  /** Populated only in the team (admin) scope; empty in the personal view. */
+  byUser: { userId: number; email: string; applications: number; interviews: number; offers: number }[];
 }
 
 /** Ranges the page offers. Bounded by what the API accepts. */

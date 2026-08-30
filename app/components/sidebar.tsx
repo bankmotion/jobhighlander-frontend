@@ -201,8 +201,11 @@ export function Sidebar({ role, profiles }: { role: Role; profiles: ProfileSumma
             icon="🛠️"
             label="Admin"
             active={
-              pathname.startsWith('/admin/bidders') || pathname.startsWith('/admin/templates')
+              pathname.startsWith('/admin/bidders') ||
+              pathname.startsWith('/admin/templates') ||
+              pathname.startsWith('/admin/bid-performance')
             }
+            maxHeight={160}
           >
             <Link href="/admin/bidders" className={linkCls(pathname.startsWith('/admin/bidders'))}>
               <span className="text-base">🤝</span> Bidders
@@ -212,6 +215,14 @@ export function Sidebar({ role, profiles }: { role: Role; profiles: ProfileSumma
               className={linkCls(pathname.startsWith('/admin/templates'))}
             >
               <span className="text-base">📄</span> Resume Templates
+            </Link>
+            {/* The team's bids on the profiles this admin runs. "My Statistics"
+                above is the same page scoped to the caller's own bids. */}
+            <Link
+              href="/admin/bid-performance"
+              className={linkCls(pathname.startsWith('/admin/bid-performance'))}
+            >
+              <span className="text-base">📈</span> Bid Stats (team)
             </Link>
           </NavGroup>
         )}

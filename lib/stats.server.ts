@@ -14,8 +14,27 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 /** Either a rolling day count or an explicit `YYYY-MM-DD` window. */
 export type StatsWindow = { days: number } | { from: string; to: string };
 
+/**
+ * Team-wide bids: every bidder's applications on the profiles the caller may
+ * use. Admin and super admin only — the backend enforces that, this just asks.
+ */
+export async function fetchTeamBidPerformance(
+  window: StatsWindow = { days: 90 },
+  profileId?: number,
+): Promise<BidPerformance | null> {
+  return get('/api/stats/bid-performance/all', window, profileId);
+}
+
 export async function fetchBidPerformance(
   window: StatsWindow = { days: 90 },
+  profileId?: number,
+): Promise<BidPerformance | null> {
+  return get('/api/stats/bid-performance', window, profileId);
+}
+
+async function get(
+  path: string,
+  window: StatsWindow,
   profileId?: number,
 ): Promise<BidPerformance | null> {
   const token = await getToken();
@@ -28,7 +47,7 @@ export async function fetchBidPerformance(
   }
   if (profileId) qs.set('profileId', String(profileId));
   try {
-    const res = await fetch(`${API_URL}/api/stats/bid-performance?${qs}`, {
+    const res = await fetch(`${API_URL}${path}?${qs}`, {
       cache: 'no-store',
       headers: { Authorization: `Bearer ${token}` },
     });

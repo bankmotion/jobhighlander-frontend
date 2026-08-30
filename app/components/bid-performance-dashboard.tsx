@@ -233,6 +233,12 @@ export function BidPerformanceDashboard({
             </Card>
           </div>
 
+          {data.byUser.length > 0 && (
+            <Card title="By bidder" note="Who sent the bids on these profiles">
+              <BidderTable rows={data.byUser} />
+            </Card>
+          )}
+
           {data.byProfile.length > 1 && (
             <Card title="By profile">
               <ProfileTable rows={data.byProfile} />
@@ -454,6 +460,38 @@ function ProfileTable({ rows }: { rows: BidPerformance['byProfile'] }) {
           {rows.map((r) => (
             <tr key={r.profileId} className="border-b border-[var(--border)] last:border-0">
               <td className="py-2 text-[var(--text)]">{r.name}</td>
+              <td className="py-2 text-right tabular-nums text-white">{r.applications}</td>
+              <td className="py-2 text-right tabular-nums text-[var(--muted)]">{r.interviews}</td>
+              <td className="py-2 text-right tabular-nums text-[var(--muted)]">{r.offers}</td>
+              <td className="py-2 text-right tabular-nums text-[var(--muted)]">
+                {pctText(r.applications ? Math.round((r.interviews / r.applications) * 1000) / 10 : 0)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** Per-bidder totals. Only rendered in the team scope — see `byUser`. */
+function BidderTable({ rows }: { rows: BidPerformance['byUser'] }) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-[var(--border)] text-left text-xs uppercase tracking-wide text-[var(--muted)]">
+            <th className="pb-2 font-medium">Bidder</th>
+            <th className="pb-2 text-right font-medium">Applied</th>
+            <th className="pb-2 text-right font-medium">Interviews</th>
+            <th className="pb-2 text-right font-medium">Offers</th>
+            <th className="pb-2 text-right font-medium">Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.userId} className="border-b border-[var(--border)] last:border-0">
+              <td className="py-2 text-[var(--text)]">{r.email}</td>
               <td className="py-2 text-right tabular-nums text-white">{r.applications}</td>
               <td className="py-2 text-right tabular-nums text-[var(--muted)]">{r.interviews}</td>
               <td className="py-2 text-right tabular-nums text-[var(--muted)]">{r.offers}</td>
