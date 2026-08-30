@@ -1,11 +1,3 @@
-/**
- * Bid-performance types and formatters.
- *
- * Client-safe: the dashboard is a client component and imports these as values,
- * so nothing here may reach into `next/headers`. The token-reading fetcher lives
- * in `stats.server.ts` for the same reason `ai-usage.server.ts` exists — see the
- * note there before merging the two.
- */
 
 export type FunnelStage = 'applied' | 'interviewing' | 'offer' | 'accepted';
 
@@ -28,13 +20,10 @@ export interface BidPerformance {
   byCompany: { company: string; applications: number; interviews: number }[];
   byProfile: { profileId: number; name: string; applications: number; interviews: number; offers: number }[];
   outcomes: { status: string; label: string; count: number }[];
-  /** Populated only in the team (admin) scope; empty in the personal view. */
   byUser: { userId: number; email: string; applications: number; interviews: number; offers: number }[];
-  /** Option list for the bidder filter — unaffected by the current filters. */
   bidders: { userId: number; email: string }[];
 }
 
-/** Ranges the page offers. Bounded by what the API accepts. */
 export const RANGES = [
   { days: 1, label: '24 hours' },
   { days: 3, label: '3 days' },
@@ -45,20 +34,8 @@ export const RANGES = [
   { days: 365, label: '1 year' },
 ] as const;
 
-/** `YYYY-MM-DD` in UTC — the shape <input type="date"> expects. */
 export const dateInputValue = (d: Date): string => d.toISOString().slice(0, 10);
 
-/**
- * Chart palette — validated with the dataviz validator against this app's chart
- * surface (#12121b), not chosen by eye.
- *
- * `SERIES` is the single-series hue (all checks pass). `FUNNEL` is an ordinal
- * one-hue ramp, light→dark, which passed the monotonic-lightness, step-gap and
- * light-end-contrast checks. Status colours are deliberately NOT used to encode
- * outcomes: run through the categorical checks they fail the normal-vision floor
- * (warning vs serious ΔE 13.6, below 15), so outcome identity is carried by the
- * row label and magnitude by bar length instead.
- */
 export const SERIES = '#3987e5';
 export const FUNNEL_RAMP = ['#86b6ef', '#5598e7', '#2a78d6', '#1c5cab'] as const;
 
@@ -87,13 +64,6 @@ export const shortDate = (iso: string): string =>
     timeZone: 'UTC',
   });
 
-/**
- * Bucket the daily series so a long range stays readable.
- *
- * A year of daily bars is 365 marks in a few hundred pixels — each one sub-pixel
- * and most of them zero, which reads as an empty chart rather than a sparse one.
- * Weekly buckets keep the shape while giving every mark room to exist.
- */
 export function bucketDaily(
   daily: BidPerformance['daily'],
 ): { key: string; label: string; applications: number; interviews: number }[] {

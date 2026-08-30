@@ -6,9 +6,7 @@ import type { DiscardStatus, DiscardStatusMap } from '@/lib/discards';
 import { Toast, useToast } from './toast';
 
 interface Ctx {
-  /** Null when there is no usable profile — discarding needs one to discard FOR. */
   profileId: number | null;
-  /** The signed-in user, so "someone else dismissed this" can be told apart. */
   viewerEmail: string | null;
   discardedOn: (jobId: number) => DiscardStatus | undefined;
   isBusy: (jobId: number) => boolean;
@@ -23,15 +21,6 @@ export function useDiscard(): Ctx {
   return ctx;
 }
 
-/**
- * Discard state for the jobs on screen.
- *
- * A deliberate twin of `AppliedProvider` — same optimistic-toggle shape, same
- * re-seed-on-new-snapshot rule, same router.refresh() after a change. The two
- * are kept structurally identical because they are the same interaction on
- * opposite judgements, and a reader who has understood one should not have to
- * re-learn the other.
- */
 export function DiscardProvider({
   profileId,
   initial,
@@ -40,11 +29,6 @@ export function DiscardProvider({
 }: {
   profileId: number | null;
   initial: DiscardStatusMap;
-  /**
-   * Who is looking. On a profile shared with a team, "you dismissed this" is
-   * noise and "a colleague dismissed this" is the thing worth reading before
-   * spending an hour on the posting they already rejected.
-   */
   viewerEmail?: string | null;
   children: ReactNode;
 }) {
@@ -53,14 +37,6 @@ export function DiscardProvider({
   const [busy, setBusy] = useState<Set<number>>(() => new Set());
   const { toast, show, dismiss } = useToast();
 
-  /**
-   * Re-seed when the server sends a new snapshot.
-   *
-   * `initial` is a fresh object per RSC payload and stable across client
-   * re-renders, so its identity is the signal for "the server just told us
-   * something new". Without this, a client navigation — switching profile,
-   * changing a filter, paging — would keep the previous page's marks.
-   */
   const [seededFrom, setSeededFrom] = useState<DiscardStatusMap>(initial);
   if (seededFrom !== initial) {
     setSeededFrom(initial);

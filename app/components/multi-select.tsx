@@ -11,14 +11,6 @@ export interface MultiOption {
 const inputCls =
   'rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--muted)] outline-none transition focus:border-[var(--primary)]';
 
-/**
- * Dropdown of checkable options — the sources picker from the jobs page, lifted
- * out so the scrape-status filters look and behave identically instead of being
- * a second, differently-styled control.
- *
- * `Select all` / `Clear all` matter here because the lists are long enough
- * (every site, every status) that toggling them one by one is tedious.
- */
 export function MultiSelect({
   options,
   selected,

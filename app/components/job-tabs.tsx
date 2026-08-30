@@ -5,17 +5,10 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 export interface JobTab {
   key: string;
   label: string;
-  /** Rendered on the server and passed down, so switching never refetches. */
   content: ReactNode;
-  /** Small count or hint shown beside the label. */
   badge?: string;
 }
 
-/**
- * Tabs for the job detail page. Every panel is rendered up front and hidden with
- * `hidden` rather than unmounted — switching back to the resume tab must not
- * discard a generated result or the notes the user typed.
- */
 export function JobTabs({ tabs, initialTab }: { tabs: JobTab[]; initialTab?: string }) {
   // The server resolves the tab from `?tab=`, so the first paint is already
   // correct and there is no hydration mismatch from reading `window` here.

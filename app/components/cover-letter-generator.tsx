@@ -9,14 +9,6 @@ import { Toast, useToast } from './toast';
 const label = (p: ProfileSummary) =>
   [p.firstName, p.lastName].filter(Boolean).join(' ') || p.email || `Profile #${p.id}`;
 
-/**
- * The cover letter tab.
- *
- * A cover letter here is TEXT, not a rendered document — the thing you paste
- * into an email or an application form. So the primary action is Copy, the body
- * is directly editable, and there is no preview/download split: what you see is
- * the artifact.
- */
 export function CoverLetterGenerator({
   jobId,
   profileId,
@@ -27,7 +19,6 @@ export function CoverLetterGenerator({
   jobId: number;
   profileId: number | null;
   profile: ProfileSummary | null;
-  /** The letter is written FROM the tailored resume, so it gates generation. */
   hasResume: boolean;
   initial: CoverLetter | null;
 }) {
@@ -147,8 +138,6 @@ export function CoverLetterGenerator({
         </div>
       </div>
 
-      {/* The resume is the letter's source material, so its absence is a step to
-          take rather than an error to report. */}
       {!hasResume && (
         <p className="mb-4 rounded-lg border border-dashed border-[var(--border-strong)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted)]">
           Generate the <span className="text-[var(--text)]">Tailored Resume</span> for this job

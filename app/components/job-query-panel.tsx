@@ -10,17 +10,6 @@ import {
   type QueryContext,
 } from '@/lib/job-queries';
 
-/**
- * Ask the model about one posting, and read what has been asked before.
- *
- * ONE COMPONENT, TWO HOSTS. The job list opens it in a modal; the detail page
- * renders it as a tab. Both need the same thing — a box, a button, an answer,
- * and the log — so duplicating it would guarantee the two drifted.
- *
- * `initial` distinguishes them. The detail page fetches the log on the server
- * and passes it, so its first paint is complete. The modal cannot: it does not
- * exist until a click, so it passes null and this component fetches on mount.
- */
 export function JobQueryPanel({
   jobId,
   profileId,
@@ -29,9 +18,7 @@ export function JobQueryPanel({
 }: {
   jobId: number;
   profileId: number | null;
-  /** Server-fetched log, or null to load it here. */
   initial: JobQuery[] | null;
-  /** Tighter spacing for the modal. */
   compact?: boolean;
 }) {
   const [log, setLog] = useState<JobQuery[]>(initial ?? []);
@@ -165,8 +152,6 @@ export function JobQueryPanel({
         </div>
       </div>
 
-      {/* The blank-page problem: this can answer almost anything, which is why
-          the first question is the hard one. */}
       {log.length === 0 && !question && !busy && (
         <div className="flex flex-wrap gap-1.5">
           {SUGGESTED_QUESTIONS.map((s) => (
@@ -206,9 +191,6 @@ export function JobQueryPanel({
             <li key={row.id}>
               <QueryCard
                 row={row}
-                /* The newest is open; the rest are collapsed. A log of
-                   ten full answers is unscrollable, and the one just
-                   generated is the one being read. */
                 defaultOpen={i === 0}
                 busy={busy}
                 onDelete={() => setConfirmId(row.id)}
@@ -276,9 +258,6 @@ function QueryCard({
 
       {open && (
         <div className="border-t border-[var(--border)] px-3 py-2.5">
-          {/* `whitespace-pre-wrap`, not a markdown renderer: the prompt asks for
-              plain prose with blank lines between paragraphs, so the paragraph
-              breaks are the only structure there is to preserve. */}
           <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--text)]/90">
             {row.answer}
           </p>
@@ -288,13 +267,6 @@ function QueryCard({
   );
 }
 
-/**
- * What the model actually had in front of it.
- *
- * Worth a line on every entry: the same question answered before and after the
- * resume existed are different answers, and the log is the only place that
- * distinction survives.
- */
 function ContextNote({ context }: { context: QueryContext }) {
   const had = [
     context.profile && 'profile',
@@ -313,7 +285,6 @@ function ContextNote({ context }: { context: QueryContext }) {
   );
 }
 
-/** Locale pinned and zone explicit, for the reason given in `lib/tz.ts`. */
 const when = (iso: string, zone: string) =>
   new Intl.DateTimeFormat('en-US', {
     timeZone: zone,

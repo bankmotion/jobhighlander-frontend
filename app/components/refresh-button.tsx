@@ -3,26 +3,6 @@
 import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
 
-/**
- * Re-fetch the current page's server data.
- *
- * IN THE TOP BAR, so every page has it from one implementation rather than each
- * screen growing its own. Every page in this app is `force-dynamic` and reads a
- * backend that a scraper, a colleague on a shared profile, or another tab can
- * change underneath it — so "is this still true?" is a question any screen can
- * raise, not a property of one of them.
- *
- * `router.refresh()`, NOT `location.reload()`. A full reload throws away client
- * state that has nothing to do with staleness — an open modal, a half-typed
- * note, the scroll position, an expanded nav group. `refresh()` re-runs the
- * server render and reconciles, so what is on screen updates and what is being
- * worked on survives.
- *
- * `useTransition` supplies the pending flag: `refresh()` returns void and gives
- * no completion signal of its own, so without it the button cannot tell the
- * user anything happened — and a control with no feedback gets clicked four
- * times.
- */
 export function RefreshButton() {
   const router = useRouter();
   const [pending, startTransition] = useTransition();

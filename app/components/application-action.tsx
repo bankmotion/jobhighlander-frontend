@@ -5,22 +5,6 @@ import { useResumeList, type ResumeTarget } from './resume-list-provider';
 import { useCoverLetters } from './cover-letter-provider';
 import { BOX, ICON_BOX, TONE } from './resume-action';
 
-/**
- * The one generation control on a job card.
- *
- * ONE BUTTON, NOT TWO, because there is no longer anything to sequence: a
- * single model call writes the resume and the cover letter together, so a card
- * offering them separately would be describing a shape the backend no longer
- * has — and a second click would pay for the whole pair again.
- *
- * NO DIALOG WHILE GENERATING. The button itself carries the wait — a modal
- * opening the moment you click interrupts a scan of the list to show something
- * you have not asked to read yet. Viewing is a separate, deliberate click.
- *
- * Once both documents exist the card offers all four things you want from them
- * without leaving the list: view (the PDF and the letter, tabbed in one
- * dialog), download the PDF, and copy the letter.
- */
 function IconSparkle() {
   return (
     <svg
@@ -78,7 +62,6 @@ function IconEye() {
   );
 }
 
-/** Word document. A letterform, not a logo — the other icons are line art too. */
 function IconWord() {
   return (
     <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.8">
@@ -169,14 +152,6 @@ export function ApplicationAction({ jobId, title, company }: ResumeTarget) {
   // show several indistinguishable buttons.
   const where = `${company ? `${title} at ${company}` : title}, posting ${jobId}`;
 
-  /**
-   * The resume's arrival is also the letter's.
-   *
-   * One call wrote both, but only the resume provider watched that request, so
-   * this is what tells the cover letter provider its own state changed. Without
-   * it the copy icon would stay hidden until a reload, and the card would go on
-   * offering to write a letter that already exists.
-   */
   useEffect(() => {
     if (status) noteLetterWritten(jobId);
   }, [status, jobId, noteLetterWritten]);
@@ -243,9 +218,6 @@ export function ApplicationAction({ jobId, title, company }: ResumeTarget) {
           )}
         </button>
 
-        {/* The chip opens the viewer too, but a coloured word does not read as
-            a control at a glance, so the thing you most often want gets its own
-            affordance beside the download and copy icons. */}
         <button
           type="button"
           onClick={() => view(target)}
@@ -272,9 +244,6 @@ export function ApplicationAction({ jobId, title, company }: ResumeTarget) {
           {saving ? <Spinner /> : <IconDownload />}
         </button>
 
-        {/* Word alongside the PDF: the same resume, rendered from the same
-            structured document rather than converted, so a recruiter who
-            wants an editable file does not have to ask for one. */}
         <button
           type="button"
           onClick={() => download(target, 'docx')}

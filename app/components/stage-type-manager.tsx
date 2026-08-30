@@ -6,7 +6,6 @@ import { ConfirmModal } from './confirm-modal';
 import { StageChip } from './stage-badge';
 import type { StageTypeWithUsage } from '@/lib/stage-types';
 
-/** Starting colours for a new badge — enough spread to stay distinguishable. */
 const SWATCHES = [
   '#8b5cf6',
   '#6366f1',
@@ -71,13 +70,6 @@ export function StageTypeManager({ initial }: { initial: StageTypeWithUsage[] })
     }
   }
 
-  /**
-   * Move a badge one place, by swapping `sortOrder` with its neighbour.
-   *
-   * Two writes rather than a bulk reorder endpoint: the list is a dozen rows
-   * edited by one super admin, so the extra round trip costs nothing and there
-   * is no ordering payload to keep in sync with the server's idea of it.
-   */
   async function move(index: number, delta: number) {
     const a = initial[index];
     const b = initial[index + delta];

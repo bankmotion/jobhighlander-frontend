@@ -30,7 +30,6 @@ function href(page: number, query: Props['query']): string {
   return `/?${qs.toString()}`;
 }
 
-/** Windowed page list with ellipses: 1 … 4 5 [6] 7 8 … 26 */
 function pageList(current: number, total: number): (number | 'gap')[] {
   const delta = 2;
   const start = Math.max(1, current - delta);
@@ -70,8 +69,6 @@ export function Pagination({ pagination, query }: Props) {
   );
 }
 
-/** The sticky pager itself — page numbers with ellipses, driven by whatever
- *  href builder the caller supplies (jobs list, scrape status, …). */
 export function PageNav({
   page,
   totalPages,

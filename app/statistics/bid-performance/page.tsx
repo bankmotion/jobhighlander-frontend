@@ -6,18 +6,6 @@ export const dynamic = 'force-dynamic';
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-/**
- * How the bids are actually doing.
- *
- * Scoped in the backend to the profiles the viewer may use, so a bidder sees the
- * pipeline they work and nothing else — the same rule that governs marking an
- * application in the first place. `profile` narrows that further; omitting it
- * aggregates every profile the viewer can see.
- *
- * The window lives in the URL so a particular view is shareable and the first
- * paint is already correct. An explicit `from`/`to` wins over `days`, matching
- * how the API resolves the same pair.
- */
 export default async function BidPerformancePage({
   searchParams,
 }: {

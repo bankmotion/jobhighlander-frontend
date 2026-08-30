@@ -4,23 +4,11 @@ import { useState } from 'react';
 import { Modal } from './modal';
 import { JobQueryPanel } from './job-query-panel';
 
-/**
- * The list-card entry point: a button that opens the ask-AI panel in a dialog.
- *
- * A MODAL RATHER THAN A LINK to the detail page, because the question is
- * usually asked WHILE scanning — "is this one worth opening at all?" — and
- * navigating away to ask defeats the point. The detail page hosts the same
- * panel as a tab for when you are already there.
- *
- * The panel loads its own log, since this dialog does not exist until clicked
- * and the server had nothing to prefetch for it.
- */
 export function JobQueryAction({
   jobId,
   profileId,
   title,
   company,
-  /** How many questions already exist, from the list's one batched lookup. */
   count = 0,
 }: {
   jobId: number;

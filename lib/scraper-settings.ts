@@ -8,7 +8,6 @@ export interface ScraperSetting {
   updatedAt: string;
 }
 
-/** All scraper settings (server-side, forwards the session JWT). Super-admin only. */
 export async function fetchScraperSettings(): Promise<ScraperSetting[]> {
   const token = await getToken();
   const res = await fetch(`${API_URL}/api/scraper-settings`, {

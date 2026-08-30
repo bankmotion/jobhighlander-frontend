@@ -7,25 +7,6 @@ function label(p: ProfileSummary): string {
   return [p.firstName, p.lastName].filter(Boolean).join(' ') || p.email || `Profile #${p.id}`;
 }
 
-/**
- * Which profile the list's resume actions build from.
- *
- * Rendered only when the user has more than one — with a single profile there
- * is no decision, and a control offering one option is just noise.
- *
- * The choice goes in the URL rather than local state so the server render is
- * already correct and the resume status for the page arrives with the first
- * paint.
- *
- * Owned and shared profiles are split into two groups rather than listed flat.
- * Two profiles can carry the SAME person's name — an admin's own and one an
- * admin shared with them — and the name alone would not say which is which, or
- * that generating from the shared one writes onto a profile someone else owns.
- *
- * Shown only below `md`, where the sidebar is hidden and its per-profile Jobs
- * entries are unreachable. On a wide screen the sidebar IS this control, and
- * two selects driving one piece of state is a bug report waiting to happen.
- */
 export function ResumeProfilePicker({
   profiles,
   selectedId,
@@ -56,8 +37,6 @@ export function ResumeProfilePicker({
         onChange={(e) => select(e.target.value)}
         className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1.5 text-sm text-[var(--text)]"
       >
-        {/* Groups are omitted when one side is empty: a lone "Shared with you"
-            heading over every option is a label, not a distinction. */}
         {owned.length > 0 && shared.length > 0 ? (
           <>
             <optgroup label="Your profiles">

@@ -24,9 +24,6 @@ export async function Topbar({ session }: { session: Session }) {
           Job<span className="text-[var(--primary)]">HighLander</span>
         </span>
         <div className="ml-auto flex items-center gap-3">
-          {/* Both live here so every page gets them from one place: refreshing
-              and "which zone am I reading?" are questions any screen raises,
-              not properties of a particular one. */}
           <TimezonePicker />
           <RefreshButton />
           <InboxMenu invitations={invitations} />

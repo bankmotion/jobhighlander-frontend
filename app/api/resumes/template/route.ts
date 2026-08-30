@@ -4,12 +4,6 @@ import { parseJsonBody } from '@/lib/http';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
-/**
- * POST /api/resumes/template — apply a template to the saved resume.
- *
- * The resume is addressed by (jobId, profileId) rather than by row id: exactly
- * one exists per pairing, and the client already knows both.
- */
 export async function POST(req: Request) {
   const parsed = await parseJsonBody(req);
   if (!parsed.ok) return parsed.response;

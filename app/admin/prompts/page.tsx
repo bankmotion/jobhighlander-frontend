@@ -3,12 +3,6 @@ import { PromptManager } from '@/app/components/prompt-manager';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * Super-admin only, and deliberately not open to admins: a prompt decides what
- * every generated document says, on every profile in the app — including
- * profiles its editor was only invited to. That is a wider blast radius than
- * anything else an admin touches, so it sits with scraper config.
- */
 export default async function PromptsPage() {
   const prompts = await fetchPrompts();
 

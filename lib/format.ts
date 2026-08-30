@@ -1,4 +1,3 @@
-/** Full date (e.g. "Aug 7, 2026"), rendered in UTC to avoid a day shift. */
 export function formatPostedDate(iso: string | null): string | null {
   if (!iso) return null;
   const d = new Date(iso);
@@ -11,10 +10,6 @@ export function formatPostedDate(iso: string | null): string | null {
   });
 }
 
-/**
- * Relative time: "just now", "2 mins ago", "5 hours ago", "4 days ago".
- * Older than ~1 month falls back to the full date.
- */
 export function formatPostedRelative(iso: string | null): string | null {
   if (!iso) return null;
   const d = new Date(iso);

@@ -2,7 +2,6 @@ import { getToken } from './auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
-/** What the job list knows about a resume without downloading the document. */
 export interface ResumeStatus {
   jobId: number;
   templateKey: string;
@@ -13,16 +12,8 @@ export interface ResumeStatus {
   reviewNoteCount: number;
 }
 
-/** Keyed by job id. A job with no resume is simply absent. */
 export type ResumeStatusMap = Record<number, ResumeStatus>;
 
-/**
- * Resume status for a page of jobs, fetched on the server so the first paint is
- * already correct — a client-side fetch would flash "no resume" on every card.
- *
- * Failure is not fatal: the list still renders, every card just offers to
- * generate. That is a better outcome than a page that will not load.
- */
 export async function fetchResumeStatus(
   profileId: number,
   jobIds: number[],

@@ -8,16 +8,6 @@ export const dynamic = 'force-dynamic';
 export default async function TemplatesPage() {
   const [presets, usable] = await Promise.all([fetchPresets(), fetchProfiles()]);
 
-  /**
-   * OWNED profiles only.
-   *
-   * A profile's default template is part of the profile, so the backend scopes
-   * `setDefault` to its owner. `fetchProfiles` returns everything the user may
-   * USE — their own plus the ones they accepted an invitation to — and offering
-   * a shared one here would build a picker whose every save comes back 404.
-   * The rule is enforced by the API either way; this is what stops the UI
-   * inviting a click that cannot work.
-   */
   const profiles = usable.filter((p) => p.canEdit);
   const sharedCount = usable.length - profiles.length;
 
@@ -37,8 +27,6 @@ export default async function TemplatesPage() {
         candidate, so what differs between them is the design.
       </p>
 
-      {/* Said once, here, rather than as a disabled row per profile: the reason
-          is about ownership in general, not about any one of them. */}
       {sharedCount > 0 && (
         <p className="mb-6 rounded-lg border border-dashed border-[var(--border-strong)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--muted)]">
           {sharedCount} profile{sharedCount === 1 ? '' : 's'} shared with you {sharedCount === 1 ? 'is' : 'are'}{' '}

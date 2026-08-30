@@ -1,14 +1,5 @@
-/**
- * Shape of the skeleton, matched to the page it stands in for.
- *
- * A skeleton that does not resemble its page is worse than none: the content
- * arrives and everything jumps, which reads as a second load rather than the
- * end of the first one.
- */
 export type LoadingVariant = 'list' | 'grid' | 'table' | 'article';
 
-/** Shared loading UI: an indeterminate top bar + a lightweight skeleton.
- *  Rendered by route `loading.tsx` files while a page's server data loads. */
 export function LoadingView({
   rows = 6,
   variant = 'list',
@@ -20,10 +11,8 @@ export function LoadingView({
     <div aria-busy="true" aria-live="polite">
       <span className="sr-only">Loading…</span>
 
-      {/* the loading bar */}
       <div className="jh-loading-track mb-6" />
 
-      {/* header skeleton */}
       <div className="mb-2 h-7 w-52 animate-pulse rounded-md bg-[var(--surface-2)]" />
       <div className="mb-6 h-4 w-72 animate-pulse rounded bg-[var(--surface-2)]" />
 

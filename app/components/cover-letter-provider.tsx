@@ -6,24 +6,12 @@ import { Modal } from './modal';
 import { Toast, useToast } from './toast';
 
 interface Ctx {
-  /** Null when there is no usable profile — a letter is written FOR someone. */
   profileId: number | null;
   hasLetter: (jobId: number) => boolean;
-  /**
-   * Record that a letter now exists for this job.
-   *
-   * The resume generation call writes BOTH documents, so the letter appears
-   * without this provider ever issuing a request. Without being told, the card
-   * would keep offering to write a letter that is already saved — and writing
-   * it would pay for a second full generation.
-   */
   noteLetterWritten: (jobId: number) => void;
   isBusy: (jobId: number) => boolean;
-  /** Generate (or regenerate) and open the letter. */
   write: (jobId: number) => void;
-  /** Open an already-written letter without spending a generation. */
   open: (jobId: number) => void;
-  /** Copy an already-written letter straight to the clipboard. */
   copyLetter: (jobId: number) => void;
   isCopying: (jobId: number) => boolean;
 }
@@ -36,13 +24,6 @@ export function useCoverLetters(): Ctx {
   return ctx;
 }
 
-/**
- * Cover letter state for the jobs on screen, plus the modal that shows one.
- *
- * The list only ever holds a per-job "does one exist" flag; the letter body is
- * fetched when a card is opened. A page of twenty letters would be tens of
- * kilobytes fetched to render a one-word badge, and most of them never opened.
- */
 export function CoverLetterProvider({
   profileId,
   initial,
@@ -58,20 +39,9 @@ export function CoverLetterProvider({
   const [letter, setLetter] = useState<CoverLetter | null>(null);
   const [loading, setLoading] = useState(false);
   const [copying, setCopying] = useState<Set<number>>(() => new Set());
-  /**
-   * Bodies already fetched, so copying the same letter twice costs one request.
-   * A ref rather than state: nothing renders from it, and re-rendering twenty
-   * cards because one letter was cached would be pure waste.
-   */
   const bodies = useRef<Map<number, string>>(new Map());
   const { toast, show, dismiss } = useToast();
 
-  /**
-   * Re-seed when the server sends a new snapshot — a different profile, filter
-   * or page. Same reasoning as the resume and applied providers: `useState`
-   * seeds once, and a client navigation reconciles this component in place
-   * rather than remounting it.
-   */
   const [seededFrom, setSeededFrom] = useState<CoverLetterStatusMap>(initial);
   if (seededFrom !== initial) {
     setSeededFrom(initial);
@@ -181,15 +151,6 @@ export function CoverLetterProvider({
 
   const isCopying = useCallback((jobId: number) => copying.has(jobId), [copying]);
 
-  /**
-   * Copy a letter without opening it.
-   *
-   * The list holds only "a letter exists", so the body is fetched on first use
-   * and cached. The fetch happens BEFORE the clipboard write on purpose — some
-   * browsers drop the user-activation that permits a write once an await has
-   * resolved, so the failure path has to say what to do instead of silently
-   * doing nothing.
-   */
   const copyLetter = useCallback(
     async (jobId: number) => {
       if (!profileId || copying.has(jobId)) return;
@@ -261,9 +222,6 @@ export function CoverLetterProvider({
           </p>
         ) : letter ? (
           <div>
-            {/* Monospace and pre-wrap: this is the text as it will be pasted,
-                and a proportional font hides the blank-line structure that makes
-                a letter read as a letter. */}
             <pre className="whitespace-pre-wrap rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4 font-mono text-[13px] leading-relaxed text-[var(--text)]">
               {letter.body}
             </pre>

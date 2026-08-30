@@ -4,10 +4,6 @@ import { parseJsonBody } from '@/lib/http';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
-/**
- * Proxies the PDF render. Unlike the JSON routes this must forward BINARY —
- * running the response through `NextResponse.json` would corrupt the file.
- */
 export async function POST(req: Request) {
   const parsed = await parseJsonBody(req);
   if (!parsed.ok) return parsed.response;

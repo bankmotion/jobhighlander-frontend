@@ -18,22 +18,10 @@ export function JobCard({
 }: {
   job: Job;
   profileId: number | null;
-  /** Emphasis words to mark in the description, same list the detail page uses. */
   keywords: string[];
-  /** This profile's timeline for the job, or null when none was opened. */
   interview: InterviewCardStatus | null;
-  /** How many AI questions this pairing already has. */
   queryCount: number;
 }) {
-  /**
-   * Which profile the detail page opens against.
-   *
-   * Carried explicitly because the detail page resolves `?profile=` the same
-   * way the list does — first match, else `profiles[0]`. A bare `/jobs/123`
-   * therefore lands on the viewer's FIRST profile, which is often not the one
-   * the list was showing, so a card badged Applied could open a page reporting
-   * nothing applied. Same reason the filter and pagination links carry it.
-   */
   const detailHref = profileId ? `/jobs/${job.id}?profile=${profileId}` : `/jobs/${job.id}`;
 
   const posted = formatPostedRelative(job.postedAt);
@@ -51,9 +39,6 @@ export function JobCard({
             <span className="inline-block rounded-md bg-[var(--blue)]/15 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-blue-300">
               {job.site}
             </span>
-            {/* Top of the card, next to the source: the point of the badge is
-                to be caught while scanning twenty rows, so a posting already
-                answered is never opened a second time. */}
             <AppliedBadge jobId={job.id} />
             <PreviouslyAppliedBadge jobId={job.id} />
             <InterviewBadge jobId={job.id} profileId={profileId} interview={interview} />
@@ -116,9 +101,6 @@ export function JobCard({
           )}
         </div>
 
-        {/* Top-right corner of the panel. Discard sits OUTSIDE Apply Now, at
-            the very edge, so the destructive control is never the one a thumb
-            reaches for on the way to the primary action. */}
         <div className="flex shrink-0 items-start gap-2">
           <a
             href={applyHref}
@@ -143,18 +125,8 @@ export function JobCard({
         >
           JD Details
         </Link>
-        {/* One control for both documents: a single model call writes them
-            together, so a card offering them separately would describe a shape
-            the backend no longer has. It generates in place — the full text of
-            each lives behind JD Details. */}
         <ApplicationAction jobId={job.id} title={job.title} company={job.company} />
-        {/* Only appears once the job is applied — timelines start from an
-            application, so offering it earlier advertises a step the user
-            cannot take. Reads the provider, not the server snapshot, so it
-            shows up the moment Applied is ticked rather than after a refresh. */}
         <InterviewAction jobId={job.id} interview={interview} />
-        {/* Opens in a dialog rather than navigating: the question is usually
-            asked while scanning, and leaving the list to ask it defeats that. */}
         <JobQueryAction
           jobId={job.id}
           profileId={profileId}
@@ -162,9 +134,6 @@ export function JobCard({
           company={job.company}
           count={queryCount}
         />
-        {/* Stays inside the button group rather than trailing the row: after
-            the ml-auto link it was the one control pushed onto a second line,
-            which read as a separate section instead of the last action. */}
         <AppliedAction jobId={job.id} />
         <a
           href={job.jobUrl}

@@ -32,16 +32,12 @@ import {
 import { Modal } from './modal';
 import { Toast, useToast } from './toast';
 
-/** Notes the user typed on a job detail page, shared across postings. */
 const NOTES_KEY = 'jh:resume-notes';
 
-/** Concurrent generations allowed from one tab. Each is a paid model call. */
 const MAX_CONCURRENT = 3;
 
-/** Client-side ceiling on a run; matches the store's own stale-run timeout. */
 const REQUEST_TIMEOUT_MS = 180_000;
 
-/** Two failures of the same job usually means a third will fail identically. */
 const MAX_ATTEMPTS = 2;
 
 export interface ResumeTarget {
@@ -51,25 +47,13 @@ export interface ResumeTarget {
 }
 
 interface Ctx {
-  /** Null when there is no usable profile — the action renders a prompt. */
   profileId: number | null;
   statusOf: (jobId: number) => ResumeStatus | undefined;
   runOf: (jobId: number) => Run | undefined;
   generate: (t: ResumeTarget) => void;
-  /**
-   * Generate without opening the preview dialog.
-   *
-   * The card's Generate button uses this: a modal popping open the moment you
-   * click interrupts a scan of the list to show something you have not asked to
-   * read. The button carries the wait, and View opens the dialog when you want
-   * it.
-   */
   generateQuiet: (t: ResumeTarget) => void;
   view: (t: ResumeTarget) => void;
-  /** Renders and saves the PDF without opening the dialog. */
-  /** `format` defaults to 'pdf' so existing callers are unaffected. */
   download: (t: ResumeTarget, format?: ResumeFormat) => void;
-  /** So the card can show the wait — a render is a round trip, not instant. */
   isDownloading: (jobId: number) => boolean;
 }
 
@@ -83,10 +67,6 @@ export function useResumeList(): Ctx {
 
 type ResumeDoc = Record<string, unknown>;
 
-/**
- * Company and job id, not just the headline: every resume written for the same
- * role would otherwise land in the downloads folder under an identical name.
- */
 export type ResumeFormat = 'pdf' | 'docx';
 
 const MIME_EXT: Record<ResumeFormat, string> = { pdf: 'pdf', docx: 'docx' };
@@ -101,7 +81,6 @@ function fileNameFor(t: ResumeTarget): string {
   );
 }
 
-/** Seed state with anything that finished while nothing was mounted. */
 function mergeSettled(initial: ResumeStatusMap, settled: Run[]): ResumeStatusMap {
   const out = { ...initial };
   for (const r of settled) {
@@ -130,25 +109,6 @@ export function ResumeListProvider({
     profileId ? mergeSettled(initialStatus, drainSettled(profileId)) : initialStatus,
   );
 
-  /**
-   * Re-seed when the SERVER sends a new snapshot.
-   *
-   * The initializer above runs once per mount, and a client-side navigation
-   * does not remount this provider — React reconciles it in place. So a prop
-   * change alone used to leave `status` holding the previous navigation's map:
-   * switch profile from the sidebar and every card kept reporting the old
-   * profile's resumes until a full reload rebuilt the tree. Prefetched links
-   * made it reliable rather than intermittent, because an instant navigation
-   * never renders the loading fallback that would otherwise have unmounted us.
-   *
-   * `initialStatus` is a fresh object per RSC payload and a stable reference
-   * across client re-renders, which makes its identity exactly the signal for
-   * "the server just told us something new" — profile, filter or page alike.
-   *
-   * Adjusted during render rather than in an effect: an effect would paint the
-   * stale badges and correct them a frame later, which is the same bug with a
-   * shorter life. `drainSettled` only reads, so this stays pure.
-   */
   const [seededFrom, setSeededFrom] = useState<ResumeStatusMap>(initialStatus);
   if (seededFrom !== initialStatus) {
     setSeededFrom(initialStatus);
@@ -164,14 +124,6 @@ export function ResumeListProvider({
   // each change is a new reference React can actually see.
   const [downloadingIds, setDownloadingIds] = useState<number[]>([]);
 
-  /**
-   * The dialog shows BOTH documents, because one generation writes both.
-   *
-   * The letter is fetched here rather than read from `useCoverLetters()`:
-   * CoverLetterProvider is nested INSIDE this one (see app/page.tsx), so its
-   * context does not reach this component. One endpoint, loaded lazily the
-   * first time the tab is opened — a letter nobody looks at costs nothing.
-   */
   const [docTab, setDocTab] = useState<'resume' | 'letter'>('resume');
   const [letterBody, setLetterBody] = useState<string | null>(null);
   const [letterLoading, setLetterLoading] = useState(false);
@@ -268,7 +220,6 @@ export function ResumeListProvider({
     [replacePdfUrl],
   );
 
-  /** The stored document for a job, from cache when possible. */
   const loadDoc = useCallback(
     async (jobId: number): Promise<{ doc: ResumeDoc; templateKey: string } | null> => {
       if (!profileId) return null;
@@ -331,9 +282,7 @@ export function ResumeListProvider({
       let notes = '';
       try {
         notes = localStorage.getItem(NOTES_KEY) ?? '';
-      } catch {
-        /* private mode — an empty note is the correct fallback */
-      }
+      } catch {}
 
       try {
         const res = await fetch('/api/resumes/preview', {
@@ -428,7 +377,6 @@ export function ResumeListProvider({
     [openFor, runGeneration],
   );
 
-  /** Same run as `generate`, no dialog. See the context type. */
   const generateQuiet = useCallback(
     (t: ResumeTarget) => {
       void runGeneration(t);
@@ -467,11 +415,6 @@ export function ResumeListProvider({
     [loadDoc, openFor, profileId, renderPdf, status],
   );
 
-  /**
-   * Live downloads, held in a ref as well as state: the double-click guard has
-   * to read the CURRENT set synchronously, and state read inside an async
-   * callback is the value captured when the callback was created.
-   */
   const downloadingRef = useRef<Set<number>>(new Set());
   const markDownloading = useCallback((jobId: number, on: boolean) => {
     const set = downloadingRef.current;
@@ -480,13 +423,6 @@ export function ResumeListProvider({
     if (mountedRef.current) setDownloadingIds([...set]);
   }, []);
 
-  /**
-   * Save the PDF straight from the card.
-   *
-   * Deliberately NOT `renderPdf`: that one owns the dialog's blob URL and its
-   * loading flag, so reusing it here would blank a preview the user has open
-   * beside this card — and revoke the very URL its iframe is showing.
-   */
   const download = useCallback(
     async (t: ResumeTarget, format: ResumeFormat = 'pdf') => {
       if (!profileId || downloadingRef.current.has(t.jobId)) return;
@@ -555,7 +491,6 @@ export function ResumeListProvider({
     setLetterError(null);
   }, [replacePdfUrl]);
 
-  /** Fetch the letter for the open job, once, when its tab is first shown. */
   const showLetter = useCallback(async () => {
     setDocTab('letter');
     const t = targetRef.current;
@@ -649,8 +584,6 @@ export function ResumeListProvider({
                 {st.updatedAt && (
                   <>
                     <span aria-hidden>·</span>
-                    {/* Absolute, not "3m ago": a relative label needs the clock
-                        during render, which React 19 rejects as impure. */}
                     <time dateTime={st.updatedAt}>{new Date(st.updatedAt).toLocaleString()}</time>
                   </>
                 )}
@@ -677,9 +610,6 @@ export function ResumeListProvider({
                 Open full editor ↗
               </Link>
             )}
-            {/* Offered whenever there is something to replace or recover from,
-                not only on the happy path — otherwise a card stuck in a bad
-                state cannot be fixed without a reload. */}
             {!generating && (st || pdfError || failed) && !confirmRegen && !exhausted && (
               <button
                 type="button"
@@ -789,9 +719,6 @@ export function ResumeListProvider({
             </p>
           )}
 
-          {/* One generation writes both documents, so one dialog shows both.
-              Tabs rather than side by side: a PDF at half width is unreadable,
-              and these are read one at a time anyway. */}
           {!generating && !failed && st && (
             <div
               role="tablist"
@@ -848,9 +775,6 @@ export function ResumeListProvider({
                       Copy to clipboard
                     </button>
                   </div>
-                  {/* Monospace and pre-wrap: this is the text as it will be
-                      pasted, and a proportional font hides the blank-line
-                      structure that makes a letter read as a letter. */}
                   <pre className="whitespace-pre-wrap rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-4 font-mono text-[13px] leading-relaxed text-[var(--text)]">
                     {letterBody}
                   </pre>
@@ -881,10 +805,6 @@ export function ResumeListProvider({
                 title={`Resume PDF for ${target?.title ?? 'this job'}`}
                 className="block h-[65vh] w-full rounded-lg border border-[var(--border-strong)] bg-white"
               />
-              {/* Always rendered: mobile Safari and Android Chrome show nothing
-                  at all for a blob: PDF in an iframe, and there is no reliable
-                  way to detect that from here. Without this line the whole
-                  mobile experience is a blank white box. */}
               <p className="mt-2 text-xs text-[var(--muted)]">
                 Not showing?{' '}
                 <a
@@ -915,7 +835,6 @@ export function ResumeListProvider({
   );
 }
 
-/** Whole seconds a run has been going, against a clock held in state. */
 function elapsedSince(run: Run | undefined, now: number): number {
   if (run?.state !== 'running' || !now) return 0;
   return Math.max(0, Math.floor((now - run.startedAt) / 1000));

@@ -52,7 +52,6 @@ export interface WorkExperience {
   endDate: string | null;
 }
 
-/** How precise an education entry's dates are. */
 export type DatePrecision = 'year' | 'month';
 
 export interface Education {
@@ -62,15 +61,9 @@ export interface Education {
   degree: string | null;
   startDate: string | null;
   endDate: string | null;
-  /**
-   * Whether the dates mean a year or a month. Optional on the way IN because a
-   * profile saved before this existed has no value for it; the API defaults
-   * those to 'month', which is how they were entered.
-   */
   datePrecision?: DatePrecision;
 }
 
-/** The account a profile belongs to, as returned alongside every profile. */
 export interface ProfileOwner {
   id: number;
   email: string;
@@ -80,10 +73,6 @@ export interface Profile {
   id: number;
   ownerId: number;
   owner: ProfileOwner;
-  /**
-   * Whether the CURRENT user may edit this profile — true only for its owner.
-   * Comes from the API rather than being derived here so one rule decides it.
-   */
   canEdit: boolean;
   email: string | null;
   firstName: string | null;
@@ -121,7 +110,6 @@ export interface InvitedUser {
   role: Role;
 }
 
-/** One invitation as the OWNER sees it — who it went to and what they said. */
 export interface ProfileInvitation {
   id: number;
   status: InvitationStatus;
@@ -130,7 +118,6 @@ export interface ProfileInvitation {
   user: InvitedUser;
 }
 
-/** A profile the caller owns, with everyone it is shared with. */
 export interface SharedProfile {
   id: number;
   email: string | null;
@@ -141,7 +128,6 @@ export interface SharedProfile {
   invitations: ProfileInvitation[];
 }
 
-/** One invitation as the INVITEE sees it — which profile, and from whom. */
 export interface ReceivedInvitation {
   id: number;
   status: InvitationStatus;

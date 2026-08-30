@@ -3,17 +3,6 @@ import { AiUsageDashboard } from '@/app/components/ai-usage-dashboard';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * Your own AI spend. Open to every signed-in role, bidders included.
- *
- * Not gated behind admin on purpose: generating a resume spends real money on a
- * shared API key, and the person deciding whether to regenerate one more time is
- * the one who needs to see what that costs.
- *
- * Everyone sees their own spend and nobody sees anyone else's — there is no
- * admin view of the whole table, and the backend has no endpoint that would
- * serve one. The figures here are scoped to the session's user.
- */
 export default async function MyAiUsagePage() {
   const usage = await fetchMyAiUsage(30);
 

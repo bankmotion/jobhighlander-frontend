@@ -5,11 +5,6 @@ import { ProfilesManager } from '@/app/components/profiles-manager';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * Profiles is a normal page, not an admin one: bidders reach it too, for the
- * profiles they were invited to. What the role decides is only whether the
- * "New Profile" button is there — everything else is per-profile ownership.
- */
 export default async function ProfilesPage() {
   const [profiles, invitations, session] = await Promise.all([
     fetchProfiles(),

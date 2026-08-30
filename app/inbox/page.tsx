@@ -3,13 +3,6 @@ import { InboxList } from '@/app/components/inbox-list';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * Every invitation addressed to the signed-in user, answered or not.
- *
- * The Profiles page also prompts for the pending ones, because that is where a
- * newly accepted profile appears. This page is the full history — including the
- * declined ones, so a user can see what they turned down.
- */
 export default async function InboxPage() {
   const invitations = await fetchMyInvitations();
 

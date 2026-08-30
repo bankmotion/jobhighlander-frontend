@@ -10,7 +10,6 @@ export interface Session {
 
 const secret = new TextEncoder().encode(process.env.AUTH_SECRET ?? '');
 
-/** Verify a session JWT (HS256). Edge-safe (no next/headers). */
 export async function verifyToken(token: string): Promise<Session | null> {
   try {
     const { payload } = await jwtVerify(token, secret);

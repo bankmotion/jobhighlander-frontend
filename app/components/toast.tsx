@@ -5,15 +5,9 @@ import { useCallback, useEffect, useState } from 'react';
 export interface ToastState {
   message: string;
   tone: 'success' | 'error';
-  /** Distinguishes consecutive identical messages so the timer restarts. */
   id: number;
 }
 
-/**
- * Minimal toast. Deliberately not a provider/portal: one component owns one
- * toast, which is all any screen here needs, and it avoids threading context
- * through the tree for a two-second confirmation.
- */
 export function useToast(ms = 2600) {
   const [toast, setToast] = useState<ToastState | null>(null);
 

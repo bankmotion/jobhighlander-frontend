@@ -1,7 +1,6 @@
 import { proxy } from '@/lib/proxy';
 import { parseJsonBody } from '@/lib/http';
 
-/** Insert a panel — body: { position?, title?, note?, meetingUrl?, scheduledAt?, timezone?, durationMin? }. */
 export async function POST(req: Request, { params }: { params: Promise<{ stepId: string }> }) {
   const { stepId } = await params;
   const parsed = await parseJsonBody(req);

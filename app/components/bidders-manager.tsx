@@ -22,16 +22,8 @@ const STATUS_META: Record<InvitationStatus, { label: string; cls: string }> = {
 const profileName = (p: SharedProfile): string =>
   [p.firstName, p.lastName].filter(Boolean).join(' ') || p.email || `Profile #${p.id}`;
 
-/** What removing an invitation means depends on whether it was ever accepted. */
 type Removing = { profileId: number; user: InvitedUser; status: InvitationStatus };
 
-/**
- * Per-profile sharing for the profiles this admin owns.
- *
- * Invitations are a request, not a grant: sending one only puts it in the other
- * user's inbox, and the row stays `pending` until they answer. That is why a
- * freshly invited user shows as "Pending" here rather than as having access.
- */
 export function BiddersManager({ initial }: { initial: SharedProfile[] }) {
   const [profiles, setProfiles] = useState<SharedProfile[]>(initial);
   const [busyId, setBusyId] = useState<number | null>(null);
@@ -43,7 +35,6 @@ export function BiddersManager({ initial }: { initial: SharedProfile[] }) {
     if (res.ok) setProfiles(await res.json());
   }
 
-  /** Resolves to true when the invitation went out, so the card can clear its input. */
   async function invite(profileId: number, email: string): Promise<boolean> {
     setBusyId(profileId);
     try {
@@ -123,7 +114,6 @@ export function BiddersManager({ initial }: { initial: SharedProfile[] }) {
   );
 }
 
-/** One owned profile: who it is shared with, plus the invite-by-email control. */
 function ProfileShareCard({
   profile,
   busy,

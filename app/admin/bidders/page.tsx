@@ -4,12 +4,6 @@ import { BiddersManager } from '@/app/components/bidders-manager';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * Bidder management: who each of this admin's profiles is shared with.
- *
- * Only the profiles the signed-in admin OWNS appear — sharing is the owner's
- * call, so another admin's profiles are not theirs to hand out.
- */
 export default async function BiddersPage() {
   const profiles = await fetchSharedProfiles();
 

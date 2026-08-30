@@ -13,14 +13,6 @@ const ROLE_META: Record<Role, { label: string; badge: string; dot: string; desc:
   guest: { label: 'Guest', badge: 'bg-amber-500/15 text-amber-300', dot: 'bg-amber-400', desc: 'Revoked · no access' },
 };
 
-/**
- * What a super_admin can assign. Every role, including their own.
- *
- * `super_admin` is in the list but goes through a confirm step below: it is the
- * one choice here that hands over control of this page itself, and a role menu
- * where the irreversible option sits one click away next to "Bidder" is a
- * mis-click waiting to happen.
- */
 const ASSIGNABLE: Role[] = ['super_admin', 'admin', 'bidder', 'guest'];
 
 export function UserRow({
@@ -56,8 +48,6 @@ export function UserRow({
   );
 }
 
-/** A dark-themed dropdown for changing a user's role. Menu is portaled so the
- *  table's horizontal-scroll wrapper can't clip it. */
 function RoleSelect({ userId, email, current }: { userId: number; email: string; current: Role }) {
   const router = useRouter();
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -66,7 +56,6 @@ function RoleSelect({ userId, email, current }: { userId: number; email: string;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pos, setPos] = useState<{ left: number; top: number; width: number } | null>(null);
-  /** Set while the super_admin choice is waiting to be confirmed. */
   const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
@@ -109,14 +98,6 @@ function RoleSelect({ userId, email, current }: { userId: number; email: string;
     };
   }, [open]);
 
-  /**
-   * Act on a menu choice.
-   *
-   * Every role applies on the click except `super_admin`, which arms the
-   * confirm panel instead and leaves the menu open. The grant is not undoable
-   * by the grantor alone — once promoted, that user can change roles back,
-   * including this one's — so it gets a second deliberate press.
-   */
   function choose(role: Role) {
     if (role === current) {
       setOpen(false);

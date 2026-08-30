@@ -24,23 +24,6 @@ const VIEW_LABELS: Record<CalendarView, string> = {
   agenda: 'Agenda',
 };
 
-/**
- * Every interview sitting, across every profile, in whichever view suits the
- * question being asked.
- *
- * Deliberately NOT scoped to a profile the way `/interviews` is. The value of a
- * calendar is the collision check — two candidates booked into the same
- * afternoon is exactly what a per-profile view cannot show, and it is the thing
- * that actually goes wrong when several processes run at once.
- *
- * ONE ANCHOR DATE DRIVES ALL FOUR VIEWS. `?view=` and `?date=` together decide
- * the period, so switching Month → Week keeps you on the week you were looking
- * at instead of jumping to today. Prev/next then step by whatever unit the
- * current view moves in.
- *
- * The grids render here; the events are placed in the browser, because which
- * day — and which hour — an instant belongs to depends on the reader's zone.
- */
 export default async function CalendarPage({
   searchParams,
 }: {
@@ -106,13 +89,10 @@ export default async function CalendarPage({
         </nav>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Only worth the space when there is a choice to make. */}
           {profiles.length > 1 && (
             <CalendarProfilePicker profiles={profiles} selectedId={activeProfile?.id ?? null} />
           )}
 
-          {/* Switching view KEEPS the anchor date, so Month → Day lands on the
-              day you were looking at rather than resetting to today. */}
           <div
             role="group"
             aria-label="Calendar view"
@@ -136,16 +116,11 @@ export default async function CalendarPage({
         </div>
       </div>
 
-      {/* One client boundary for all four views, because "which entry is
-          selected" is client state and the drawer must outlive a view switch. */}
       <CalendarViews
         view={view}
         days={days}
         anchorIso={isoDate(anchor)}
         panels={panels}
-        /* Read here rather than from `window` in the client, so a shared
-           `?panel=` link has its drawer open in the FIRST paint instead of
-           hydrating closed and then sliding in. */
         initialPanelId={Number(panelParam) || null}
       />
     </div>

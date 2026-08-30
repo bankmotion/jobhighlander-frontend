@@ -7,10 +7,6 @@ import Script from 'next/script';
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
 
-/**
- * Google Identity Services, loaded from the CDN. Typed loosely on purpose —
- * pulling in @types/google.accounts for two calls is not worth the dependency.
- */
 declare global {
   interface Window {
     google?: {
@@ -32,7 +28,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [scriptReady, setScriptReady] = useState(false);
 
-  /** Exchange Google's ID token for our own session cookie. */
   const onCredential = useCallback(
     async (response: { credential?: string }) => {
       if (!response?.credential) {
@@ -115,7 +110,6 @@ export default function LoginPage() {
         </div>
       ) : (
         <div className="flex flex-col items-center gap-3">
-          {/* Google renders its own button into this node. */}
           <div ref={buttonRef} className="min-h-[44px]" />
           {!scriptReady && (
             <p className="text-sm text-[var(--muted)]">Loading Google sign-in…</p>
@@ -147,8 +141,6 @@ export function AuthShell({
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center justify-center">
-          {/* Room for the real artwork here, unlike the 32px sidebar chip.
-              Sized so the JOB knockout and the vehicle both stay legible. */}
           <Image
             src="/logo.png"
             alt="JobHighLander"

@@ -9,34 +9,15 @@ const SIZES = {
   xl: 'max-w-5xl',
 } as const;
 
-/**
- * Elements that can hold focus, for the tab cycle.
- *
- * `iframe` is deliberately EXCLUDED. Keystrokes inside a cross-document frame
- * (the PDF viewer) never reach this document, so once focus lands there Escape
- * and Tab both stop working and no listener on our side can recover it. Leaving
- * it out means Tab cycles the dialog's real controls instead; the trade is that
- * the preview cannot be scrolled with the keyboard, which the Download button
- * covers.
- */
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-/**
- * Accessible modal shell.
- *
- * Does the three things `confirm-modal.tsx` does not: traps Tab inside the
- * dialog, restores focus to whatever opened it, and locks background scroll.
- * Without focus restore, dismissing a modal opened from a list drops the user
- * back at the top of the page with nothing focused.
- */
 export function Modal({
   open,
   onClose,
   title,
   subtitle,
   size = 'md',
-  /** Blocks Escape and backdrop dismissal while something is in flight. */
   busy = false,
   restoreFocusTo,
   footer,
@@ -48,9 +29,6 @@ export function Modal({
   subtitle?: ReactNode;
   size?: keyof typeof SIZES;
   busy?: boolean;
-  /** Fallback for focus restore when the opening element is gone — a list can
-   *  re-render while the dialog is open and detach the captured node, after
-   *  which .focus() silently no-ops onto <body>. */
   restoreFocusTo?: () => HTMLElement | null;
   footer?: ReactNode;
   children: ReactNode;

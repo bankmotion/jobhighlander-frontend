@@ -6,25 +6,6 @@ export const dynamic = 'force-dynamic';
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-/**
- * The team's bids, across every profile this admin runs.
- *
- * ADMIN LEVEL, deliberately unlike `/admin/ai-usage`, which is super-admin only.
- * The AI page exposes the shared API key's whole bill — a billing question that
- * belongs to whoever owns the key. This one answers "how is my team doing",
- * which is an admin's actual job, so it sits with Bidders and Resume Templates
- * in the admin tier.
- *
- * It stays bounded by profile access: an admin sees every bidder working the
- * profiles they own or were invited to, not every profile in the database.
- * Middleware gates the path and the backend re-checks the role — the path is
- * the first gate, not the only one.
- *
- * Distinct from `/statistics/bid-performance`, which every role reaches and
- * which counts only the caller's own bids. Two pages rather than one that
- * changes shape by role: "how am I doing" and "how is the team doing" have
- * different answers and different audiences.
- */
 export default async function AdminBidPerformancePage({
   searchParams,
 }: {

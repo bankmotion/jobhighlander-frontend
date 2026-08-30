@@ -22,7 +22,6 @@ export interface ScrapeRunPage {
   pagination: { page: number; pageSize: number; total: number; totalPages: number };
 }
 
-/** One page of scraper runs (server-side, forwards the session JWT). Super-admin only. */
 export async function fetchScrapeRuns(
   page = 1,
   filters: { sites?: string[]; statuses?: string[] } = {},

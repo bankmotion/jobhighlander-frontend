@@ -3,7 +3,6 @@ import type { Keyword } from './types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
-/** All emphasis keywords (any signed-in user — used to highlight descriptions). */
 export async function fetchKeywords(): Promise<Keyword[]> {
   const token = await getToken();
   const res = await fetch(`${API_URL}/api/keywords`, {

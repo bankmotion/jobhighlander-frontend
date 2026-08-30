@@ -18,7 +18,6 @@ interface Props {
     applied: AppliedFilter;
     discarded: DiscardedFilter;
   };
-  /** Applied is per profile; without one the control has nothing to filter by. */
   canFilterApplied: boolean;
 }
 
@@ -37,7 +36,6 @@ const APPLIED_TABS: { value: AppliedFilter; label: string }[] = [
 const inputCls =
   'rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--muted)] outline-none transition focus:border-[var(--primary)]';
 
-/** Per-source display name + accent dot. Falls back to a capitalised label. */
 export const SITE_META: Record<string, { label: string; dot: string }> = {
   indeed: { label: 'Indeed', dot: '#4f74e3' },
   glassdoor: { label: 'Glassdoor', dot: '#22c55e' },
@@ -60,29 +58,8 @@ export function siteMeta(s: string) {
 export function FiltersBar({ filters, current, canFilterApplied }: Props) {
   const router = useRouter();
 
-  /**
-   * THE URL IS THE STATE for every instant-apply filter.
-   *
-   * Each of these navigates the moment it changes, so a `useState` copy could
-   * only ever be a second version of the same fact — and it drifted: a
-   * `useState` initialiser runs once at mount, while the localStorage restore
-   * replaces the URL a moment LATER via `router.replace`. That re-renders the
-   * server component without remounting this one, so the list showed the
-   * restored filters while these controls still showed the defaults they had
-   * mounted with. Reading straight from `current` cannot go out of step.
-   */
   const { sites, remote, applied, discarded } = current;
 
-  /**
-   * The search box is the one exception: it holds what is being TYPED, which
-   * the URL does not know until submit.
-   *
-   * `committedQ` re-seeds the draft whenever the committed query changes
-   * underneath it — the restore, a Back, a link. Adjusting state DURING RENDER
-   * rather than in an effect is React's documented pattern for exactly this:
-   * the render is discarded and re-run immediately, so nothing paints stale and
-   * there is no cascading effect for the compiler to reject.
-   */
   const [qDraft, setQDraft] = useState(current.q);
   const [committedQ, setCommittedQ] = useState(current.q);
   if (committedQ !== current.q) {
@@ -90,13 +67,6 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
     setQDraft(current.q);
   }
 
-  /**
-   * Apply a change. Anything not named keeps whatever the URL currently says,
-   * so each control only has to state the one field it owns.
-   *
-   * `??` and never `||`: `remote: false` is a real value, and `||` would fall
-   * through to the current one and make the toggle refuse to switch off.
-   */
   function navigate(next: {
     q?: string;
     sites?: string[];
@@ -155,7 +125,6 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
       onSubmit={submit}
       className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3"
     >
-      {/* Search */}
       <div className="relative min-w-[220px] flex-1">
         <svg
           viewBox="0 0 24 24"
@@ -176,8 +145,6 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
         />
       </div>
 
-      {/* Sources — shared control, so this and the scrape-status filters behave
-          identically (including Select all / Clear all). */}
       <MultiSelect
         placeholder="All sources"
         options={filters.sites.map((x) => ({ value: x, ...siteMeta(x) }))}
@@ -185,7 +152,6 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
         onChange={(next) => navigate({ sites: next })}
       />
 
-      {/* Remote-only toggle (checked by default) */}
       <button
         type="button"
         role="checkbox"
@@ -217,10 +183,6 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
         Remote only
       </button>
 
-      {/* Applied — a segmented control rather than a checkbox, because there
-          are three states and "all" is a real choice, not the absence of one.
-          Hidden without a profile: applied is recorded per profile, so with
-          none there is nothing the filter could select on. */}
       {canFilterApplied && (
         <div
           role="radiogroup"
@@ -249,14 +211,6 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
         </div>
       )}
 
-      {/* Discarded — its own control rather than a fourth tab on the applied
-          one: the two are independent, and "not discarded AND not applied" is
-          the shortlist someone actually works from. Folding them into one
-          three-state control would make that combination unreachable.
-
-          "Kept" rather than "Not discarded": it is the state most of the list
-          is in, and a segmented control reads better with a positive middle
-          option than with a negated one. */}
       {canFilterApplied && (
         <div
           role="radiogroup"

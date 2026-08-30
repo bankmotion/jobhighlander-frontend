@@ -28,7 +28,6 @@ export function TemplatePicker({
 }: {
   presets: Preset[];
   profiles: ProfileSummary[];
-  /** profileId -> currently saved preset key */
   defaults: Record<number, string | null>;
 }) {
   const [profileId, setProfileId] = useState<number | ''>(profiles[0]?.id ?? '');
@@ -150,8 +149,6 @@ export function TemplatePicker({
                       : 'border-[var(--border)] hover:border-[var(--border-strong)]'
                   }`}
                 >
-                  {/* Every thumbnail shows the same fictional candidate, so what
-                      varies between cards is the design and nothing else. */}
                   <div className="relative aspect-[816/1056] bg-white">
                     <Image
                       src={`/template-thumbs/${p.key}.webp`}
@@ -164,9 +161,6 @@ export function TemplatePicker({
                       Preview
                     </span>
 
-                    {/* On the artwork, not just in the caption: the grid is
-                        scanned as a wall of thumbnails, and a mark down in the
-                        text row is missed at that glance. */}
                     {isCurrent && (
                       <span
                         title="Default template for this profile"
@@ -251,8 +245,6 @@ export function TemplatePicker({
             </div>
 
             <div className="max-h-[70vh] overflow-y-auto bg-[var(--bg)] p-4">
-              {/* Full page at its natural aspect, scaled to the dialog. The
-                  thumbnail is rendered at 2x so this stays sharp. */}
               <div className="relative mx-auto aspect-[816/1056] w-full max-w-[640px] bg-white shadow-lg">
                 <Image
                   src={`/template-thumbs/${preview.key}.webp`}

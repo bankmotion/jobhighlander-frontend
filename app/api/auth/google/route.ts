@@ -4,13 +4,6 @@ import { parseJsonBody } from '@/lib/http';
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const WEEK = 60 * 60 * 24 * 7;
 
-/**
- * Exchange a Google ID token for our own session cookie.
- *
- * The Google credential never reaches the browser's storage and our JWT never
- * reaches client JS: the token is swapped server-side and set httpOnly, the
- * same shape the password login used.
- */
 export async function POST(req: Request) {
   const parsed = await parseJsonBody(req);
   if (!parsed.ok) return parsed.response;

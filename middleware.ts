@@ -5,14 +5,6 @@ import { verifyToken, isSuperAdmin, isAdminRole, type Role } from './lib/session
 const PUBLIC_PATHS = ['/login'];
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
-/**
- * Ask the backend for the caller's *current* role (the source of truth) so a
- * just-granted or just-revoked role is honored right away, instead of when the
- * JWT is next reissued.
- *  - { role }    → backend answered; use this fresh role
- *  - { revoked } → backend rejected the token (revoked to guest / gone / bad)
- *  - { offline } → backend unreachable; caller should fall back to the token
- */
 async function currentRole(
   token: string,
 ): Promise<{ role: Role } | { revoked: true } | { offline: true }> {

@@ -4,23 +4,15 @@ import Link from 'next/link';
 import { useApplied } from './applied-provider';
 import { INTERVIEW_STATUS_LABELS, type InterviewStatus } from '@/lib/interviews';
 
-/** What a list card needs to badge a job, without loading the whole timeline. */
 export interface InterviewCardStatus {
   interviewId: number;
   status: InterviewStatus;
   steps: number;
 }
 
-/** Straight to the Interview tab on the profile the list is showing. */
 const timelineHref = (jobId: number, profileId: number | null) =>
   `/jobs/${jobId}?tab=interview${profileId ? `&profile=${profileId}` : ''}`;
 
-/**
- * Complete literal class strings, one per status.
- *
- * Tailwind v4 scans source statically, so a composed `bg-${tone}-500/15`
- * compiles to no CSS at all — silently, and with no build error.
- */
 const BADGE: Record<InterviewStatus, string> = {
   active: 'border-blue-500/40 bg-blue-500/15 text-blue-300',
   offer: 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300',
@@ -31,17 +23,6 @@ const BADGE: Record<InterviewStatus, string> = {
   on_hold: 'border-purple-500/40 bg-purple-500/15 text-purple-300',
 };
 
-/**
- * The interview badge, shown at the top of a card beside "Applied".
- *
- * Quieter than `AppliedBadge` on purpose. Applied is the scan signal that stops
- * a posting being answered twice, so it is loud; this one carries state about a
- * job you have already dealt with, and two competing gradients in the same row
- * would cost the first one exactly the attention it exists to collect.
- *
- * Renders nothing when there is no timeline — a placeholder on every card would
- * be noise on the many that never reach an interview.
- */
 export function InterviewBadge({
   jobId,
   profileId,
@@ -73,18 +54,6 @@ export function InterviewBadge({
   );
 }
 
-/**
- * The footer control.
- *
- * A LINK, not a button. Opening a timeline is a write, but it is also the point
- * at which you start entering real detail — so it belongs on the page that can
- * actually hold that detail rather than creating an empty record from a list
- * and leaving the user to find it later.
- *
- * Applied state comes from the provider, not from the server snapshot, so
- * marking a job applied in the list makes this appear immediately rather than
- * after a refresh.
- */
 export function InterviewAction({
   jobId,
   interview,

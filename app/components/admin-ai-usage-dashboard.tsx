@@ -25,28 +25,11 @@ import {
   UnpricedNotice,
 } from './ai-usage-parts';
 
-/**
- * Every user's Anthropic spend, across every profile. Super admin only.
- *
- * The whole bill comes off one shared API key, so the questions this has to
- * answer are "how much, and whose": the per-user and per-profile tables are the
- * point, and the day/model/generator ones are context. Clicking a row filters
- * everything below it, call log included, so a total always leads back to the
- * generations behind it.
- *
- * The filter is a VIEW, not a permission — the backend already decided this
- * caller may read every row. Nothing here is load-bearing for access control.
- *
- * Every fetch is driven by a click. The first page of both the summary and the
- * call log arrives from the server render, so there is no mount effect, no
- * loading flash, and no second request for data the page already has.
- */
 export function AdminAiUsageDashboard({
   initial,
   initialCalls,
 }: {
   initial: AdminUsageSummary;
-  /** null when the call log failed to load; distinct from an empty page. */
   initialCalls: UsageCallPage | null;
 }) {
   const [data, setData] = useState(initial);
@@ -58,16 +41,6 @@ export function AdminAiUsageDashboard({
   const [failed, setFailed] = useState(false);
   const [callsFailed, setCallsFailed] = useState(initialCalls === null);
 
-  /**
-   * Re-read everything for a range and filter.
-   *
-   * State moves only after the response lands. Setting it first would leave the
-   * pickers describing a view that failed to load, and on a spend page the
-   * caption is what tells you whose money you are looking at.
-   *
-   * The call log always restarts at page one: page four of a different question
-   * is nobody's intent, and its `total` no longer matches the offset.
-   */
   function load(nextDays: number, nextFilter: UsageFilter) {
     if (pending) return;
     setFailed(false);
@@ -91,7 +64,6 @@ export function AdminAiUsageDashboard({
     });
   }
 
-  /** Page the call log without re-reading the summary, which cannot change. */
   function loadCalls(offset: number) {
     if (callsPending) return;
     setCallsFailed(false);
@@ -190,10 +162,6 @@ export function AdminAiUsageDashboard({
           <Stat label="Output tokens" value={tokens(t.outputTokens)} hint="documents written" />
         </div>
 
-        {/* The title tracks the filter. A chart captioned "everyone" while
-            showing one person's three calls is a wrong statement, not a stale
-            one, and it is the part of the page most likely to be screenshotted
-            on its own. */}
         <CostChart
           daily={data.daily}
           title={
@@ -203,9 +171,6 @@ export function AdminAiUsageDashboard({
           }
         />
 
-        {/* The two breakdowns this page exists for, first and full width. Rows
-            are clickable: the name and the way to drill into it are then the
-            same control, instead of a table you read and a dropdown you hunt. */}
         <div className="mt-6 grid gap-5 lg:grid-cols-2">
           <BreakdownTable
             title="By user"
@@ -249,15 +214,6 @@ export function AdminAiUsageDashboard({
   );
 }
 
-/**
- * A generator name short enough for a table with eight other columns.
- *
- * The server's label spells out that `resume` and `cover_letter` are legacy
- * separate calls, which is the right thing to read in a breakdown of three
- * rows and far too wide to repeat on fifty. The full label stays on hover, and
- * an unrecognised feature falls back to it rather than being renamed to
- * something this map guessed.
- */
 const SHORT_FEATURE: Record<string, string> = {
   application: 'Resume + letter',
   resume: 'Resume',
@@ -276,21 +232,12 @@ async function getJson<T>(url: string): Promise<T> {
   return (await res.json()) as T;
 }
 
-/**
- * The numeric id behind a bucket key, or null for the rows that have none.
- *
- * Deleted users and profile-less calls are keyed by something other than an id
- * ("gone:someone@example.com", "none") precisely so their spend still appears.
- * Clicking those clears that half of the filter instead of sending a nonsense
- * id: there is nothing left to narrow to.
- */
 function idFromKey(row: UsageBucket, prefix: 'u' | 'p'): number | null {
   if (!row.key.startsWith(prefix)) return null;
   const id = Number(row.key.slice(prefix.length));
   return Number.isInteger(id) ? id : null;
 }
 
-/** A labelled "all / one of these" select. */
 function Picker({
   label,
   options,
@@ -327,15 +274,6 @@ function Picker({
   );
 }
 
-/**
- * The individual calls behind the totals, newest first.
- *
- * Paged separately from the summary rather than embedded in it: the summary is
- * a handful of numbers per bucket and this is unbounded, so paging one must not
- * re-aggregate the other. Purely presentational — the parent owns every fetch,
- * which is what keeps the page and the filter from ever describing different
- * requests.
- */
 function CallLog({
   page,
   pending,
@@ -377,10 +315,6 @@ function CallLog({
         <div
           className={`overflow-x-auto ${pending ? 'opacity-60 transition-opacity' : 'transition-opacity'}`}
         >
-          {/* Nine columns, not twelve. The three input columns are summed into
-              one with the split on hover: at eleven columns the Cost column —
-              the entire reason for the table — sat off the right edge behind a
-              horizontal scrollbar on a 1500px screen. */}
           <table className="w-full min-w-[820px] text-left text-sm">
             <thead>
               <tr className="text-xs uppercase tracking-wide text-[var(--muted)]">
@@ -412,9 +346,6 @@ function CallLog({
                     className="max-w-[190px] truncate py-2.5 pr-4 text-[var(--muted)]"
                     title={r.jobLabel ?? undefined}
                   >
-                    {/* Linked only while the posting still exists. A pruned one
-                        keeps its id in the label, so the row stays traceable
-                        even though there is nothing left to open. */}
                     {r.jobId != null && r.jobLabel && !r.jobLabel.endsWith('(pruned)') ? (
                       <a href={`/jobs/${r.jobId}`} className="underline hover:text-white">
                         {r.jobLabel}

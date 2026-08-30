@@ -2,19 +2,6 @@
 
 import type { StageBadge } from '@/lib/interviews';
 
-/**
- * One stage badge.
- *
- * Colour comes from the row as an INLINE STYLE, never a utility class. The
- * palette is admin-editable at runtime, and Tailwind v4 scans source
- * statically — a composed `bg-${color}` would compile to no CSS at all,
- * silently, with no build error. The schema comment on `color` says the same
- * thing; this is the place it would actually bite.
- *
- * The hex is widened with an alpha suffix (`#3b82f6` + `22`) so one stored
- * value drives fill, text and border at three different weights without the
- * admin having to pick three colours.
- */
 export function StageChip({
   stage,
   size = 'sm',
@@ -55,14 +42,6 @@ export function StageChip({
   );
 }
 
-/**
- * The badge picker: every live type as a toggle.
- *
- * Multi-select rather than a dropdown, because a step carrying two badges is
- * the common case ("tech + live coding, same 90 minutes"), not an edge one —
- * and a single-select control would force that into two steps and invent a gap
- * in the timeline that never happened.
- */
 export function StageBadgePicker({
   all,
   selected,

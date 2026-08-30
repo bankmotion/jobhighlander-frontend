@@ -10,15 +10,7 @@ interface Field {
   label: string;
   type: FieldType;
   hint?: string;
-  /** Show an "open" button — only for links you can actually browse. NOT for
-   *  API endpoints (they return JSON) or proxy_url (it carries credentials). */
   link?: boolean;
-  /**
-   * Granularity for a number field. `<input type="number">` defaults to step=1
-   * and marks anything fractional invalid, so every setting stored as a float
-   * needs one — otherwise a 1.5-hour gap or a 7.5-second delay reads as a
-   * validation error rather than a valid value.
-   */
   step?: string;
 }
 interface Group {
@@ -337,8 +329,6 @@ export function ScraperSettingsForm({ initial }: { initial: ScraperSetting[] }) 
         </section>
       ))}
 
-      {/* Sticky save bar — elevated (see `.jh-sticky-bar` in globals.css) so it
-          stands off the form instead of blending into the dark background. */}
       <div className="jh-sticky-bar sticky bottom-0 z-10 flex items-center justify-between gap-3 rounded-t-xl px-4 py-3">
         {msg ? (
           <span className={`text-sm ${msg.ok ? 'text-green-300' : 'text-red-400'}`}>

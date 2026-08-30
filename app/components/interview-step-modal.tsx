@@ -14,7 +14,6 @@ export interface StepPayload {
 
 const RESULTS: StepResult[] = ['pending', 'passed', 'failed', 'cancelled'];
 
-/** Create/edit form for one step: its badges, its name, and how it went. */
 export function InterviewStepModal({
   open,
   step,
@@ -26,7 +25,6 @@ export function InterviewStepModal({
   onDelete,
 }: {
   open: boolean;
-  /** null = creating a new step. */
   step: InterviewStep | null;
   stageTypes: StageType[];
   busy: boolean;
@@ -46,11 +44,6 @@ export function InterviewStepModal({
   const [ids, setIds] = useState<number[]>(() => step?.stages.map((s) => s.id) ?? []);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  /**
-   * An archived badge already on this step stays selectable, so saving an
-   * unrelated edit does not silently strip it. The picker itself only lists
-   * live types — offering retired ones is how they come back into use.
-   */
   const options: StageBadge[] = mergeArchivedInUse(stageTypes, step?.stages ?? []);
 
   const field =
@@ -141,13 +134,6 @@ export function InterviewStepModal({
   );
 }
 
-/**
- * Complete literal class strings, one per outcome.
- *
- * Tailwind v4 scans source statically, so a composed `border-${tone}-500/40`
- * compiles to nothing at all — silently, and with no build error. Same trap the
- * applied badge documents.
- */
 const RESULT_ACTIVE: Record<StepResult, string> = {
   pending: 'border-[var(--border-strong)] bg-white/10 text-white',
   passed: 'border-emerald-500/50 bg-emerald-500/15 text-emerald-300',
@@ -155,7 +141,6 @@ const RESULT_ACTIVE: Record<StepResult, string> = {
   cancelled: 'border-amber-500/50 bg-amber-500/15 text-amber-300',
 };
 
-/** Live types, plus any archived one this step already wears. */
 function mergeArchivedInUse(types: StageType[], inUse: StageBadge[]): StageBadge[] {
   const known = new Set(types.map((t) => t.id));
   return [...types, ...inUse.filter((s) => !known.has(s.id))];

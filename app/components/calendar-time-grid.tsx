@@ -19,44 +19,25 @@ import {
 } from './calendar-event';
 import type { CalendarPanel } from '@/lib/interviews';
 
-/** Row height for one hour. Drives every vertical position on the track. */
 const HOUR_PX = 52;
 
-/** Assumed length when a panel has no duration, so it still has a block. */
 const DEFAULT_MIN = 30;
 
-/** Below this a block cannot hold its own text. */
 const MIN_BLOCK_PX = 22;
 
 interface Placed {
   panel: CalendarPanel;
   startMin: number;
   endMin: number;
-  /** Column within its overlap cluster. */
   lane: number;
-  /** How many columns that cluster needs. */
   lanes: number;
 }
 
-/**
- * Hour-by-hour track for the Day and Week views.
- *
- * THIS IS WHERE `durationMin` STOPS BEING TRIVIA. On the month grid a 30-minute
- * screen and a 3-hour onsite are the same one-line chip; here they are a short
- * block and a tall one, and two calls an hour apart visibly leave you an hour.
- * That is the question a day view gets asked — "can I fit this in?" — and it is
- * unanswerable from a list.
- *
- * Day is simply this with one column. Keeping them one component means the
- * overlap packing, the hour range and the now-line cannot drift apart between
- * two views that are meant to read identically.
- */
 export function CalendarTimeGrid({
   days,
   panels,
   onSelect,
 }: {
-  /** "YYYY-MM-DD" keys — 7 for a week, 1 for a day. */
   days: string[];
   panels: CalendarPanel[];
   onSelect: (panel: CalendarPanel) => void;
@@ -82,7 +63,6 @@ export function CalendarTimeGrid({
 
   return (
     <div>
-      {/* Day headers, offset by the hour gutter so they sit over their columns. */}
       <div className="flex border-b border-[var(--border)]">
         <div className="w-14 shrink-0" />
         {days.map((day) => {
@@ -105,7 +85,6 @@ export function CalendarTimeGrid({
       </div>
 
       <div className="flex overflow-hidden rounded-b-xl border border-t-0 border-[var(--border)]">
-        {/* Hour gutter */}
         <div className="w-14 shrink-0 border-r border-[var(--border)]">
           <div style={{ height }} className="relative">
             {range(fromHour, toHour).map((h) => (
@@ -126,7 +105,6 @@ export function CalendarTimeGrid({
             className="relative min-w-0 flex-1 border-r border-[var(--border)] last:border-r-0"
             style={{ height }}
           >
-            {/* Hour lines */}
             {range(fromHour, toHour).map((h) => (
               <div
                 key={h}
@@ -135,9 +113,6 @@ export function CalendarTimeGrid({
               />
             ))}
 
-            {/* Where we are now. A snapshot at render, not a ticking clock —
-                the top bar's refresh moves it, and a line that silently drifts
-                out of date is worse than one you know the age of. */}
             {nowVisible && day === todayKey && (
               <div
                 style={{ top: ((nowMin - fromHour * 60) / 60) * HOUR_PX }}
@@ -211,8 +186,6 @@ function EventBlock({
       <span className={`block truncate font-semibold ${dead ? 'line-through' : ''}`}>
         {panel.jobCompany ?? panel.jobTitle}
       </span>
-      {/* Only when the block is tall enough to hold a second line — squeezing
-          it in regardless is what makes short blocks unreadable. */}
       {height >= 34 && (
         <span className="block truncate opacity-80">
           {timeInZone(new Date(panel.scheduledAt), zone)}
@@ -226,7 +199,6 @@ function EventBlock({
   );
 }
 
-/** The frame, drawn before the reader's zone is known so nothing jumps later. */
 function TrackSkeleton({ days }: { days: string[] }) {
   const height = 11 * HOUR_PX;
   return (
@@ -250,21 +222,7 @@ function TrackSkeleton({ days }: { days: string[] }) {
   );
 }
 
-/* ── layout ───────────────────────────────────────────────────────────── */
 
-/**
- * Position every sitting on one day, giving overlapping ones their own column.
- *
- * Two interviews at the same hour is not hypothetical here — it is precisely
- * the clash the calendar exists to reveal — so they must sit SIDE BY SIDE.
- * Stacked, the one underneath is invisible and the collision reads as a free
- * afternoon.
- *
- * Greedy interval packing: events are grouped into clusters of transitively
- * overlapping blocks, and within a cluster each takes the first column whose
- * previous occupant has finished. Every member of a cluster is then drawn at
- * the same width, so the columns line up.
- */
 function layoutDay(events: CalendarPanel[], zone: string): Placed[] {
   const items = events
     .map((panel) => {
@@ -307,12 +265,6 @@ function layoutDay(events: CalendarPanel[], zone: string): Placed[] {
   return out;
 }
 
-/**
- * The hours to draw.
- *
- * Always covers 8am–7pm so an empty day still looks like a working day rather
- * than a sliver, and expands with an hour of margin to fit anything outside it.
- */
 function hourRange(placed: Placed[]): [number, number] {
   if (placed.length === 0) return [8, 19];
   const earliest = Math.floor(Math.min(...placed.map((p) => p.startMin)) / 60);

@@ -15,7 +15,6 @@ import {
   zoneAbbrev,
 } from '@/lib/tz';
 
-/** The request body both create and update send. */
 export interface PanelPayload {
   title: string | null;
   note: string | null;
@@ -25,30 +24,8 @@ export interface PanelPayload {
   durationMin: number | null;
 }
 
-/**
- * Note cap in CHARACTERS, matching `NOTE_MAX_CHARS` in the backend's
- * interview.routes.ts — keep the two in step.
- *
- * 16,000 rather than the column's apparent 65,535: MySQL `TEXT` is capped in
- * BYTES, and utf8mb4 spends up to four bytes per character, so a note of
- * non-Latin text or emoji hits the ceiling at roughly a quarter of the
- * character count the column length implies.
- */
 const NOTE_MAX_CHARS = 16_000;
 
-/**
- * Create/edit form for one panel.
- *
- * Every field is optional, matching the column definitions: a panel gets made
- * the moment an email lands, when all that is known is "they want to talk next
- * week". Requiring anything here would mean inventing data to get past the
- * form.
- *
- * THE TIME AND ITS ZONE ARE ONE FIELD, not two that happen to sit together.
- * A wall clock without a zone is not a time — and since the recruiter picks the
- * zone, not the reader, the picker defaults to the reader's own only as a
- * starting point and is meant to be changed to whatever the email said.
- */
 export function InterviewPanelModal({
   open,
   panel,
@@ -59,7 +36,6 @@ export function InterviewPanelModal({
   onDelete,
 }: {
   open: boolean;
-  /** null = creating a new panel. */
   panel: InterviewPanel | null;
   busy: boolean;
   error: string | null;
@@ -193,9 +169,6 @@ export function InterviewPanelModal({
             <label className={label} htmlFor="panel-zone">
               …in this time zone
             </label>
-            {/* Searchable, and never offering "device": a panel records the
-                zone the RECRUITER quoted, so an automatic value would be the
-                reader's clock masquerading as the invitation's. */}
             <TimezoneSelect
               id="panel-zone"
               value={zone}
@@ -253,8 +226,6 @@ export function InterviewPanelModal({
             <label className={label} htmlFor="panel-note">
               Notes
             </label>
-            {/* Only once it is nearly relevant. A counter on every note is
-                noise; one that appears before the hard stop is a warning. */}
             {note.length > NOTE_MAX_CHARS * 0.75 && (
               <span
                 className={`mb-1.5 text-xs ${

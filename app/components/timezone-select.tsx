@@ -4,10 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { allZones, zoneAbbrev, zoneOffsetLabel } from '@/lib/tz';
 import { shortZone } from './meeting-time';
 
-/** How many matches to render at once. */
 const MAX_RESULTS = 60;
 
-/** Offered first, before the alphabetical remainder. */
 const COMMON_ZONES = [
   'America/Los_Angeles',
   'America/Denver',
@@ -28,26 +26,11 @@ const COMMON_ZONES = [
 interface ZoneEntry {
   zone: string;
   label: string;
-  /** The abbreviation right now — "EDT" in August, "EST" in January. */
   abbrev: string;
   offset: string;
-  /** Lower-cased haystack: path, both seasonal abbreviations, and the offset. */
   search: string;
 }
 
-/**
- * Build the searchable catalogue.
- *
- * BOTH SEASONS ARE INDEXED. People search for "EST" year-round, but in August
- * New York reports EDT — so an index built only from today's abbreviation
- * would fail the single most likely query for half the year. Sampling six
- * months out picks up the other name.
- *
- * Called ONCE, on first open, never at mount. Each entry costs three
- * `Intl.DateTimeFormat` constructions and there are roughly 400 zones; paying
- * that on every page load, for a control most visits never touch, would be a
- * visible cost on a component that lives in the top bar.
- */
 function buildCatalog(): ZoneEntry[] {
   const now = new Date();
   // Six months away, so whichever side of DST today sits on, this is the other.
@@ -72,22 +55,12 @@ function buildCatalog(): ZoneEntry[] {
 }
 
 interface Option {
-  /** null is the "follow this device" entry. */
   value: string | null;
   label: string;
   abbrev: string;
   offset: string;
 }
 
-/**
- * A searchable time-zone combobox.
- *
- * A `<select>` cannot do this job. The IANA list runs to roughly 400 entries
- * and a native dropdown offers no way through it but scrolling — its type-ahead
- * matches leading characters only, so finding "America/Argentina/Ushuaia" means
- * knowing it sorts under A. Typing "ushuaia", or "EST", or "+05:30", is how
- * anyone actually looks for one.
- */
 export function TimezoneSelect({
   value,
   onChange,
@@ -96,13 +69,10 @@ export function TimezoneSelect({
   compact = false,
   id,
 }: {
-  /** The chosen zone, or null when following the device. */
   value: string | null;
   onChange: (zone: string | null) => void;
-  /** Labels the "device" entry and the trigger when `value` is null. */
   deviceZone: string;
   allowAuto?: boolean;
-  /** Tighter trigger, for the top bar. */
   compact?: boolean;
   id?: string;
 }) {

@@ -11,9 +11,6 @@ const STATUS_DOTS: Record<string, string> = {
 };
 const STATUSES = ['success', 'failed', 'running'];
 
-/** Site + status filters for the run log — the same multi-select the jobs page
- *  uses. Changing a filter drops back to page 1: keeping the old page number
- *  could land you past the end of a shorter filtered set. */
 export function ScrapeRunsFilters({
   sites,
   current,

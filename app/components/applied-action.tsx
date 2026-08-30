@@ -19,7 +19,6 @@ function IconCheck({ className = 'h-4 w-4' }: { className?: string }) {
   );
 }
 
-/** Dark disc with a knocked-out check — the badge's anchor at small sizes. */
 function CheckDisc({ lg }: { lg: boolean }) {
   return (
     <span
@@ -40,27 +39,11 @@ const when = (iso: string) =>
     year: 'numeric',
   });
 
-/** Local part of an email — enough to identify a colleague, short enough to fit. */
 const shortName = (email: string) => email.split('@')[0];
 
-/**
- * Who marked it, phrased for the reader: "you" when it was, their name if not.
- *
- * Both halves matter on a shared profile. Reading your own name on every card
- * you marked is noise; NOT seeing a colleague's is how two people apply to the
- * same posting under one candidate's name.
- */
 const byLine = (markedBy: string, viewerEmail: string | null): string =>
   markedBy === viewerEmail ? 'you' : shortName(markedBy);
 
-/**
- * The Mark-as-Applied control.
- *
- * Applying happens on the employer's site, so this records a fact the app
- * cannot observe — which makes it a toggle rather than a one-way action. A
- * mis-click that could not be undone would leave a job permanently filtered out
- * of "not applied" with no way back.
- */
 export function AppliedAction({ jobId, size = 'sm' }: { jobId: number; size?: 'sm' | 'lg' }) {
   const { profileId, viewerEmail, appliedOn, isBusy, toggle } = useApplied();
   const status = appliedOn(jobId);
@@ -124,33 +107,6 @@ export function AppliedAction({ jobId, size = 'sm' }: { jobId: number; size?: 's
   );
 }
 
-/**
- * The "Applied!" badge.
- *
- * Loud on purpose and at the top of the card on purpose: its whole job is to be
- * caught while scanning twenty rows, so a posting already answered is never
- * opened twice. Every other chip on a card is flat and translucent, so this one
- * is the opposite — a solid gradient pill carrying its own glow, which is what
- * makes it the first thing the eye lands on rather than the fourth.
- *
- * Renders nothing when the job is not applied to: a placeholder on every card
- * would spend exactly the attention the badge exists to collect.
- *
- * Tailwind v4 scans source statically, so the classes are COMPLETE literal
- * strings — a composed `from-${tone}-500` compiles to no CSS at all, silently
- * and with no build error.
- */
-/**
- * "You have applied to this employer before."
- *
- * Deliberately NOT the same colour as AppliedBadge. That one is a statement
- * about THIS posting and stops you answering it twice; this one is a memory
- * aid about the COMPANY, and dressing them alike would make a card you have
- * never applied to read, at a glance, as one you have.
- *
- * Absent when there is no prior application, and never shown for the posting
- * that application was actually for — the service excludes it.
- */
 export function PreviouslyAppliedBadge({ jobId, size = 'sm' }: { jobId: number; size?: 'sm' | 'lg' }) {
   const { companyHistoryOn } = useApplied();
   const history = companyHistoryOn(jobId);
@@ -176,7 +132,6 @@ export function PreviouslyAppliedBadge({ jobId, size = 'sm' }: { jobId: number; 
   );
 }
 
-/** Clock-with-arrow: "before", without implying success or failure. */
 function IconHistory({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
@@ -215,9 +170,6 @@ export function AppliedBadge({ jobId, size = 'sm' }: { jobId: number; size?: 'sm
       >
         {who}
       </span>
-      {/* The date only where there is room. On a list card the pill has to stay
-          short enough to sit beside the source chip without wrapping the title;
-          the tooltip and the footer button both carry it there. */}
       {lg && (
         <span className="font-medium normal-case tracking-normal text-white/80">
           {when(status.appliedAt)}

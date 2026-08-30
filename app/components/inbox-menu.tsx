@@ -5,7 +5,6 @@ import Link from 'next/link';
 import type { ReceivedInvitation } from '@/lib/types';
 import { invitationProfileName } from '@/lib/invitations';
 
-/** How many invitations the hover preview shows before deferring to the inbox. */
 const PREVIEW = 3;
 
 const STATUS_DOT: Record<ReceivedInvitation['status'], string> = {
@@ -23,14 +22,6 @@ const ago = (iso: string): string => {
   return `${Math.floor(hrs / 24)}d ago`;
 };
 
-/**
- * The header inbox: an icon with a pending-count badge, a hover preview of the
- * three most recent invitations, and a click through to the full inbox.
- *
- * Hover alone cannot be the only way in — it does not exist on touch, and it is
- * not keyboard-reachable — so the icon is a real link and the preview opens on
- * focus as well as on hover.
- */
 export function InboxMenu({ invitations }: { invitations: ReceivedInvitation[] }) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);

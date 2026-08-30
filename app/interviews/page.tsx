@@ -8,22 +8,9 @@ import { StatusChip } from '@/app/components/interview-timeline';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * The cross-job interview view.
- *
- * The timeline itself lives on the job page, where the description sits one tab
- * away and is worth having open while preparing. This page answers the two
- * questions that page cannot, because both span processes: "what is coming up
- * this week" and "which of these has gone quiet".
- *
- * Every row therefore LINKS BACK to the job page's Interview tab rather than
- * duplicating the timeline — one editor, one place, no second implementation to
- * keep in step.
- */
 export default async function InterviewsPage({
   searchParams,
 }: {
-  /** `profile` mirrors the sidebar submenu; absent means every profile. */
   searchParams: Promise<{ profile?: string }>;
 }) {
   const { profile: profileParam } = await searchParams;
@@ -118,7 +105,6 @@ export default async function InterviewsPage({
   );
 }
 
-/** Statuses that still need attention; the rest are history. */
 const OPEN_STATUSES = new Set(['active', 'offer', 'on_hold']);
 
 function Section({
@@ -164,8 +150,6 @@ function Row({ row }: { row: InterviewSummary }) {
           {row.jobTitle} · {row.profileName}
         </p>
       </div>
-      {/* Not a status the user set — a hint, so a silently-dropped application
-          surfaces instead of sitting here looking healthy forever. */}
       {row.stale && (
         <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-300">
           No movement in 3 weeks
@@ -189,19 +173,13 @@ function Row({ row }: { row: InterviewSummary }) {
   );
 }
 
-/** Straight to the Interview tab, on the profile the process belongs to. */
 const timelineHref = (jobId: number, profileId: number | null) =>
   `/jobs/${jobId}?tab=interview${profileId ? `&profile=${profileId}` : ''}`;
 
-/** The agenda carries no profile id, so borrow it from the matching summary. */
 function interviewProfile(rows: InterviewSummary[], interviewId: number): number | null {
   return rows.find((r) => r.id === interviewId)?.profileId ?? null;
 }
 
-/**
- * "3 days ago". Computed on the server against a `force-dynamic` render, so it
- * is correct at request time and never hydration-mismatches.
- */
 function relative(iso: string): string {
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
   if (days <= 0) return 'today';
@@ -210,7 +188,6 @@ function relative(iso: string): string {
   return `${Math.floor(days / 30)}mo ago`;
 }
 
-/** Same label rule the sidebar and the profiles page use. */
 const profileName = (p: {
   id: number;
   firstName?: string | null;

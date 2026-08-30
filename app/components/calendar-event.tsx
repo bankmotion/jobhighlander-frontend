@@ -9,26 +9,11 @@ import {
   type CalendarPanel,
 } from '@/lib/interviews';
 
-/**
- * Whether a sitting is history rather than something to prepare for.
- *
- * Rendered struck through rather than hidden. A cancelled round still happened
- * to the schedule, and a calendar that quietly drops it makes the week around
- * it look wrong.
- */
 export const isPast = (panel: CalendarPanel): boolean =>
   panel.stepResult === 'cancelled' || CLOSED_STATUSES.has(panel.interviewStatus);
 
-/** The stage colour drives every accent on an entry. */
 export const eventColor = (panel: CalendarPanel): string => panel.stages[0]?.color ?? '#6c5cff';
 
-/**
- * The full tooltip — everything a compact chip cannot show.
- *
- * Always names the zone the invitation was QUOTED in, alongside the grid's own
- * reading. Those two differ for most entries here, and the quoted one is what
- * the candidate will be held to.
- */
 export function eventLabel(panel: CalendarPanel): string {
   const at = new Date(panel.scheduledAt);
   return [
@@ -45,17 +30,6 @@ export function eventLabel(panel: CalendarPanel): string {
     .join(' · ');
 }
 
-/**
- * An entry on the grid: a BUTTON that opens the drawer, not a link.
- *
- * It used to navigate to the job page, which threw away the month you were
- * reading to answer "what is this one?" — a question that does not need a new
- * page. The drawer answers it in place and still offers the navigation, so the
- * link is not lost, only demoted out of the primary click.
- *
- * Renders even when the posting has been pruned (`jobId` null): the sitting
- * happened, and the drawer can still show the interview around it.
- */
 export function EventButton({
   panel,
   onSelect,
@@ -83,7 +57,6 @@ export function EventButton({
   );
 }
 
-/** The one-line entry used in month cells. */
 export function EventChip({
   panel,
   zone,
@@ -127,7 +100,6 @@ export function EventChip({
   );
 }
 
-/** Group sittings by the calendar day they land on IN THE READER'S ZONE. */
 export function bucketByDay(
   panels: CalendarPanel[],
   zone: string,
@@ -146,6 +118,5 @@ export function bucketByDay(
   return out;
 }
 
-/** Whether more than one candidate appears — decides if chips name the profile. */
 export const hasManyProfiles = (panels: CalendarPanel[]): boolean =>
   new Set(panels.map((p) => p.profileId)).size > 1;

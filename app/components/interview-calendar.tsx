@@ -9,28 +9,13 @@ import type { CalendarPanel } from '@/lib/interviews';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-/**
- * A month of interview sittings.
- *
- * WHICH CALENDAR DAY AN EVENT FALLS ON IS A FUNCTION OF THE READER'S TIME ZONE.
- * A panel at 23:30 UTC is the 27th in London and the 28th in Tokyo — so the
- * server cannot bucket these into cells, because it does not know where the
- * reader is.
- *
- * The split that resolves it: the GRID is deterministic from its day keys and
- * renders on the server; the EVENTS are placed on the client once the zone is
- * known. The page paints its full shape immediately and fills in, rather than
- * either hydration-mismatching or silently bucketing by the server's zone.
- */
 export function InterviewCalendar({
   days,
   anchorIso,
   panels,
   onSelect,
 }: {
-  /** 42 "YYYY-MM-DD" keys, six weeks, Sunday-first. */
   days: string[];
-  /** Any date inside the month being shown; decides which cells are greyed. */
   anchorIso: string;
   panels: CalendarPanel[];
   onSelect: (panel: CalendarPanel) => void;
@@ -98,8 +83,6 @@ export function InterviewCalendar({
         })}
       </div>
 
-      {/* Without this the grid is just numbers: a time means nothing until you
-          know which clock it is on. */}
       {viewerZone && (
         <p className="mt-3 text-xs text-[var(--muted)]">
           Times shown in {shortZone(viewerZone)} ({zoneAbbrev(new Date(), viewerZone)}) — change it

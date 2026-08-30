@@ -7,10 +7,6 @@ const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const DOCX_MIME =
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
-/**
- * Proxies the DOCX render. Same shape as the PDF route — binary is forwarded as
- * an ArrayBuffer, since `NextResponse.json` would corrupt the file.
- */
 export async function POST(req: Request) {
   const parsed = await parseJsonBody(req);
   if (!parsed.ok) return parsed.response;

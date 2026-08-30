@@ -17,21 +17,6 @@ import {
 } from '@/lib/interviews';
 import type { StageType } from '@/lib/stage-types';
 
-/**
- * The vertical interview timeline for one (job, profile).
- *
- * SHAPE: a rail of STEPS; each step wears one or more stage badges and holds
- * one or more PANELS. A step is a point in the process ("the tech round"); a
- * panel is a sitting inside it ("the 90 minutes with Sarah on Thursday"). The
- * split exists because those two genuinely differ — an onsite loop is one step
- * with four panels, and a rescheduled call is one step with two.
- *
- * STATE: every mutation endpoint returns the WHOLE timeline, so each write is
- * `setInterview(response)` with no refetch and no `router.refresh()`. That is
- * deliberate — insert-between renumbers sibling `sortOrder`s server-side, so a
- * client trying to patch its own copy would have to reimplement that ordering
- * and would drift from it the first time the two disagreed.
- */
 export function InterviewTimeline({
   jobId,
   profileId,
@@ -41,7 +26,6 @@ export function InterviewTimeline({
 }: {
   jobId: number;
   profileId: number | null;
-  /** Timelines only open on a job already marked applied. */
   applied: boolean;
   initial: InterviewDetail | null;
   stageTypes: StageType[];
@@ -53,14 +37,6 @@ export function InterviewTimeline({
   const [panelModal, setPanelModal] = useState<PanelModalState>(null);
   const [confirmReset, setConfirmReset] = useState(false);
 
-  /**
-   * One request helper for every write.
-   *
-   * Errors are surfaced, never swallowed: the backend refuses a `javascript:`
-   * link and an unknown time zone with a message the user can act on, and
-   * replacing those with a generic failure would turn a fixable typo into a
-   * button that mysteriously does nothing.
-   */
   async function call<T = InterviewDetail>(
     path: string,
     init: { method: string; body?: unknown },
@@ -167,8 +143,6 @@ export function InterviewTimeline({
     }
   }
 
-  /* ── gates ──────────────────────────────────────────────────────────── */
-
   if (!profileId) {
     return (
       <Empty>
@@ -197,8 +171,6 @@ export function InterviewTimeline({
       </div>
     );
   }
-
-  /* ── the timeline ───────────────────────────────────────────────────── */
 
   const steps = interview.steps;
 
@@ -248,8 +220,6 @@ export function InterviewTimeline({
       {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
 
       <div className="relative">
-        {/* The rail. Left-aligned on mobile, centred once there is room for
-            cards on both sides. */}
         <div
           aria-hidden
           className="absolute bottom-2 left-4 top-2 w-px bg-[var(--border)] md:left-1/2"
@@ -261,9 +231,6 @@ export function InterviewTimeline({
           <Fragment key={step.id}>
             <StepRow
               step={step}
-              /* Alternating by STEP, not by panel: a step's panels belong
-                 together and splitting them across the rail would read as two
-                 unrelated stages. */
               side={i % 2 === 0 ? 'left' : 'right'}
               busy={busy}
               onEditStep={() => setStepModal({ mode: 'edit', step })}
@@ -284,11 +251,6 @@ export function InterviewTimeline({
         )}
       </div>
 
-      {/* Keyed so the dialog REMOUNTS whenever it opens on a different
-          subject. That is what lets both modals seed their form state from
-          props in `useState` initialisers instead of syncing it with a reset
-          effect — which the React Compiler lint rejects, and which would wipe
-          half-typed input every time this parent re-rendered. */}
       <InterviewStepModal
         key={stepModalKey(stepModal)}
         open={stepModal !== null}
@@ -334,7 +296,6 @@ type PanelModalState =
   | { mode: 'edit'; panel: InterviewPanel }
   | null;
 
-/** Remount keys — see the comment at the modals' call sites. */
 const stepModalKey = (s: StepModalState) =>
   s === null ? 'closed' : s.mode === 'edit' ? `step-${s.step.id}` : `new-step-${s.position}`;
 
@@ -345,14 +306,6 @@ const panelModalKey = (p: PanelModalState) =>
       ? `panel-${p.panel.id}`
       : `new-panel-${p.stepId}-${p.position}`;
 
-/* ── rows ─────────────────────────────────────────────────────────────── */
-
-/**
- * One step: the dot on the rail, the date opposite it, and the cards.
- *
- * The date is whatever the API derived from the earliest panel, so a step with
- * nothing scheduled shows no date rather than inventing one from `createdAt`.
- */
 function StepRow({
   step,
   side,
@@ -393,8 +346,6 @@ function StepRow({
         <h3 className="mb-2 text-sm font-semibold text-white">{step.title}</h3>
       )}
 
-      {/* The date again, inline, where the rail has no second column to put
-          it in. */}
       {dateLabel && (
         <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-[var(--muted)] md:hidden">
           {dateLabel}
@@ -446,7 +397,6 @@ function StepRow({
   );
 }
 
-/** One panel card — the white boxes on the rail. */
 function PanelCard({
   panel,
   busy,
@@ -510,13 +460,6 @@ function PanelCard({
   );
 }
 
-/**
- * The insert affordance that lives in every gap.
- *
- * Always visible rather than hover-only. A hover-revealed control is
- * undiscoverable on touch and invisible to keyboard users, and inserting a step
- * in the middle is the normal case here — a process is rarely logged in order.
- */
 function InsertRow({
   label,
   onClick,
@@ -544,14 +487,6 @@ function InsertRow({
   );
 }
 
-/* ── chips ────────────────────────────────────────────────────────────── */
-
-/**
- * Complete literal class strings per state.
- *
- * Tailwind v4 scans source statically, so a composed `bg-${tone}-500` compiles
- * to no CSS whatsoever — silently, and with no build error.
- */
 const DOT: Record<StepResult, string> = {
   pending: 'bg-[var(--surface-2)] ring-[var(--bg)]',
   passed: 'bg-emerald-500 ring-[var(--bg)]',
@@ -598,14 +533,6 @@ function Empty({ children }: { children: React.ReactNode }) {
   return <p className="py-8 text-center text-sm text-[var(--muted)]">{children}</p>;
 }
 
-/**
- * "MAR 18, 2026" — the rail label.
- *
- * Formatted in UTC with a pinned locale so the server and the browser produce
- * the same string. The rail is a coarse marker, not the meeting time; the exact
- * time lives on the panel card, where `MeetingTime` renders it in both the
- * quoted zone and the reader's.
- */
 function formatRailDate(iso: string): string {
   return new Intl.DateTimeFormat('en-US', {
     timeZone: 'UTC',

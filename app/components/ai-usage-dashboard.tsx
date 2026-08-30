@@ -13,14 +13,6 @@ import {
   UnpricedNotice,
 } from './ai-usage-parts';
 
-/**
- * The signed-in user's Anthropic spend, as a chart plus tables.
- *
- * Always one person's figures. The route handler it re-reads forwards only the
- * day count and the backend scopes the rest to the session, so there is no
- * prop, query parameter or code path here that could widen it to someone else.
- * The all-users view is a separate component against a separate endpoint.
- */
 export function AiUsageDashboard({ initial }: { initial: UsageSummary }) {
   const [data, setData] = useState(initial);
   const [days, setDays] = useState(initial.days);

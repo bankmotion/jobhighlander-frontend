@@ -16,15 +16,6 @@ const readOnlyCls = 'cursor-default border-dashed opacity-90 focus:border-[var(-
 let uid = 0;
 const key = () => `k${uid++}`;
 const ym = (s: string | null | undefined) => (s ? s.slice(0, 7) : null);
-/**
- * Re-shape an entry's dates when its precision changes.
- *
- * Switching to YEAR drops the month: keeping it would leave a hidden value the
- * pickers no longer show, which reappears the moment someone switches back and
- * contradicts what they saw. Switching to MONTH widens to January rather than
- * blanking the field, so the year they already chose survives the switch and
- * only the month needs picking.
- */
 function precisionChange(
   e: { startDate: string | null; endDate: string | null },
   g: DatePrecision,
@@ -34,7 +25,6 @@ function precisionChange(
   return { precision: g, startDate: to(e.startDate), endDate: to(e.endDate) };
 }
 
-/** Education is year-granularity; existing rows still carry a month and day. */
 const yr = (s: string | null | undefined) => (s ? s.slice(0, 4) : null);
 
 interface WorkRow {
@@ -53,7 +43,6 @@ interface EduRow {
   startDate: string | null;
   endDate: string | null;
   present: boolean;
-  /** Per entry: a degree year, or a month when someone wants that detail. */
   precision: DatePrecision;
 }
 
@@ -80,14 +69,7 @@ export function ProfileEditor({
   onSave: (data: ProfilePayload) => Promise<boolean>;
   onCancel: () => void;
   onDelete?: () => Promise<boolean>;
-  /**
-   * Viewing a profile someone shared with you: every field is disabled and the
-   * save/delete bar is replaced by a note. This is presentation only — the
-   * backend refuses the write regardless, so a user who re-enables the inputs
-   * in devtools still cannot save.
-   */
   readOnly?: boolean;
-  /** Whose profile this is; shown only in read-only mode. */
   ownerEmail?: string;
 }) {
   const [email, setEmail] = useState(profile?.email ?? '');
@@ -172,8 +154,6 @@ export function ProfileEditor({
 
   return (
     <div className="space-y-5">
-      {/* Header — navigation only; the actions live in the sticky bar below, so
-          they stay reachable on a long profile instead of scrolling away. */}
       <div className="flex items-center justify-between gap-3">
         <button onClick={onCancel} className="text-sm text-[var(--muted)] transition hover:text-white">
           ← Back to profiles
@@ -182,7 +162,6 @@ export function ProfileEditor({
 
       <h2 className="text-xl font-bold tracking-tight text-white">{fullName}</h2>
 
-      {/* Personal information */}
       <Section icon="👤" title="Personal Information">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="First name">
@@ -206,7 +185,6 @@ export function ProfileEditor({
         </div>
       </Section>
 
-      {/* Work experience */}
       <Section
         icon="💼"
         title="Work Experience"
@@ -244,7 +222,6 @@ export function ProfileEditor({
         </div>
       </Section>
 
-      {/* Education */}
       <Section
         icon="🎓"
         title="Education"
@@ -288,10 +265,6 @@ export function ProfileEditor({
         </div>
       </Section>
 
-      {/* Sticky action bar — same treatment as the jobs pagination and the
-          scraper-settings save bar (`.jh-sticky-bar` in globals.css). In
-          read-only mode it says WHY there is nothing to press, rather than
-          showing a disabled Save the user would keep clicking. */}
       <div className="jh-sticky-bar sticky bottom-0 z-10 flex items-center justify-between gap-3 rounded-t-xl px-4 py-3">
         <span className="truncate text-sm text-[var(--muted)]">{fullName}</span>
         {readOnly ? (
@@ -360,13 +333,7 @@ function PeriodRow({
   end: string | null;
   present: boolean;
   readOnly?: boolean;
-  /**
-   * 'month' for employment, where the exact span is the point; 'year' for
-   * education, where a degree is awarded in a year and a month claims a
-   * precision no resume carries.
-   */
   granularity?: 'month' | 'year';
-  /** Omitted for work experience, which is always month-precision. */
   onGranularity?: (g: DatePrecision) => void;
   onStart: (v: string | null) => void;
   onEnd: (v: string | null) => void;
@@ -378,9 +345,6 @@ function PeriodRow({
     <div className="mt-4">
       <div className="flex items-center justify-between gap-3">
         <label className={labelCls}>Period</label>
-        {/* Only where the choice exists. Employment is always month-precision;
-            a degree is usually remembered by year, and forcing a month there
-            invents detail the person may not have. */}
         {onGranularity && !readOnly && (
           <div
             role="radiogroup"
@@ -469,7 +433,6 @@ function EntryCard({
   children,
 }: {
   title: string;
-  /** Omitted in read-only mode — there is nothing to remove. */
   onRemove?: () => void;
   children: React.ReactNode;
 }) {

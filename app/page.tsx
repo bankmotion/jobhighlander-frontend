@@ -133,7 +133,6 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
             Postings scraped from job sites into the local database.
           </p>
         </div>
-        {/* Only worth the space when there is actually a choice to make. */}
         {profiles.length > 1 && profile && (
           <ResumeProfilePicker profiles={profiles} selectedId={profile.id} />
         )}
@@ -141,8 +140,6 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
 
       {!profileId && <ResumeProfileNotice canManage={canManageProfiles} />}
 
-      {/* Renders nothing — re-applies the remembered filters when the list is
-          opened without any of its own. */}
       <JobFiltersRestore profileId={profileId} />
 
       <FiltersBar filters={filters} current={query} canFilterApplied={Boolean(profileId)} />

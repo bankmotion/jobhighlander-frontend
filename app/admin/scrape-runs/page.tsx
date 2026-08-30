@@ -5,7 +5,6 @@ import { PageNav } from '@/app/components/pagination';
 
 export const dynamic = 'force-dynamic';
 
-/** `?site=a&site=b` arrives as a string, an array, or nothing. */
 function arr(v: string | string[] | undefined): string[] {
   if (Array.isArray(v)) return v;
   return v ? [v] : [];

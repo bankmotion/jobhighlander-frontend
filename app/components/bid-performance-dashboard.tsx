@@ -14,19 +14,6 @@ import {
   type BidPerformance,
 } from '@/lib/stats';
 
-/**
- * Bid performance.
- *
- * Every form here was picked from the data's job, not from what looks busy:
- * headline numbers are stat tiles rather than one-bar charts, magnitude
- * comparisons are bars in a single hue (length already encodes the value, so a
- * second colour channel would be decoration), and the funnel uses an ordinal
- * one-hue ramp because its stages are ordered, not distinct identities.
- *
- * There is no categorical palette anywhere on this page, which is deliberate:
- * nothing here needs the reader to tell series apart by colour, so every mark
- * carries a text label and colour stays a single validated hue.
- */
 export function BidPerformanceDashboard({
   data,
   profiles,
@@ -36,11 +23,8 @@ export function BidPerformanceDashboard({
 }: {
   data: BidPerformance;
   profiles: ProfileSummary[];
-  /** null = every profile the viewer may use, aggregated. */
   profileId: number | null;
-  /** null = every bidder in scope. Only offered when `data.bidders` has rows. */
   userId?: number | null;
-  /** The custom window currently in the URL, if the user picked dates. */
   custom: { from: string; to: string } | null;
 }) {
   const router = useRouter();
@@ -54,14 +38,6 @@ export function BidPerformanceDashboard({
   const series = useMemo(() => bucketDaily(data.daily), [data.daily]);
   const weekly = data.daily.length > 31;
 
-  /**
-   * Push the whole question into the URL.
-   *
-   * Window, profile and bidder are independent dimensions, so every change goes
-   * through here with the others carried forward — changing the bidder must not
-   * silently reset the date range. `days` and `from`/`to` stay mutually
-   * exclusive; the backend resolves in favour of explicit dates.
-   */
   function navigate(
     next: {
       days?: number;
@@ -96,8 +72,6 @@ export function BidPerformanceDashboard({
 
   return (
     <div className={pending ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
-      {/* Every control that changes the question sits in one row above the
-          charts, so nothing that alters the numbers is hidden below them. */}
       <div className="mb-5 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           {RANGES.map((r) => (
@@ -156,7 +130,6 @@ export function BidPerformanceDashboard({
             </button>
           )}
 
-          {/* Only worth the space when there is a choice to make. */}
           {profiles.length > 1 && (
             <label className="flex flex-col gap-1">
               <span className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
@@ -177,15 +150,6 @@ export function BidPerformanceDashboard({
             </label>
           )}
 
-          {/* Shown whenever ANY bidder is in scope, not only when there are two
-              or more. With one bidder the filter changes no numbers, but it does
-              two things worth the space: it names who that bidder is, and it
-              stays available to clear a `user` already in the URL. Hiding it at
-              one option created a dead end — pick a profile that person never
-              worked and you get zeros with no control to undo it.
-
-              Empty in the personal scope, where the caller is the only bidder in
-              the data anyway, so this renders on the team page only. */}
           {data.bidders.length > 0 && (
             <label className="flex flex-col gap-1">
               <span className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
@@ -283,7 +247,6 @@ export function BidPerformanceDashboard({
   );
 }
 
-/* ------------------------------- chrome --------------------------------- */
 
 function Card({ title, note, children }: { title: string; note?: string; children: React.ReactNode }) {
   return (
@@ -297,7 +260,6 @@ function Card({ title, note, children }: { title: string; note?: string; childre
   );
 }
 
-/** A headline number. The right form for one value — not a one-bar chart. */
 function Stat({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
   return (
     <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
@@ -312,13 +274,7 @@ function Empty({ children }: { children: React.ReactNode }) {
   return <p className="py-6 text-center text-sm text-[var(--muted)]">{children}</p>;
 }
 
-/* -------------------------------- charts -------------------------------- */
 
-/**
- * Applications over time. One series, so no legend — the card title names it.
- * Columns rather than a line: the values are counts of discrete events, and a
- * line between two sparse days implies a rate that was never measured.
- */
 function TrendChart({
   series,
 }: {
@@ -334,14 +290,11 @@ function TrendChart({
           const peak = d.applications === max && max > 0;
           return (
             <div key={d.key} className="group relative flex flex-1 flex-col items-center justify-end" style={{ height: H }}>
-              {/* Direct label on the peak only — a number on every mark is noise. */}
               {peak && (
                 <span className="mb-1 text-xs font-semibold tabular-nums text-[var(--text)]">
                   {d.applications}
                 </span>
               )}
-              {/* Capped at 24px: a sparse range must not render as giant slabs.
-                  The band's leftover is air, not mark. */}
               <div
                 className="w-full max-w-[24px] rounded-t-[4px] transition-opacity group-hover:opacity-80"
                 style={{ height: h, background: SERIES, minWidth: 2 }}
@@ -362,13 +315,6 @@ function TrendChart({
   );
 }
 
-/**
- * A ranked list that only draws bars when they say something.
- *
- * When every value is identical the bars are all full width and encode nothing —
- * ten equal bars read as a chart while carrying strictly less information than
- * the numbers beside them. In that case the list drops to plain rows.
- */
 function BarList({
   rows,
 }: {
@@ -416,10 +362,6 @@ function BarList({
   );
 }
 
-/**
- * The pipeline. An ordinal ramp (one hue, light→dark) because the stages are
- * ordered; a categorical palette here would imply they are unrelated classes.
- */
 function Funnel({ stages }: { stages: BidPerformance['funnel'] }) {
   const top = Math.max(1, stages[0]?.count ?? 1);
   return (
@@ -448,7 +390,6 @@ function Funnel({ stages }: { stages: BidPerformance['funnel'] }) {
   );
 }
 
-/** Magnitude by category → bars, single hue. Length is the encoding. */
 function SiteBars({ rows }: { rows: BidPerformance['bySite'] }) {
   if (rows.length === 0) return <Empty>No sources yet.</Empty>;
   const max = Math.max(1, ...rows.map((r) => r.applications));
@@ -475,7 +416,6 @@ function SiteBars({ rows }: { rows: BidPerformance['bySite'] }) {
   );
 }
 
-/** More than a handful of dimensions per row → a table, not more marks. */
 function ProfileTable({ rows }: { rows: BidPerformance['byProfile'] }) {
   return (
     <div className="overflow-x-auto">
@@ -507,7 +447,6 @@ function ProfileTable({ rows }: { rows: BidPerformance['byProfile'] }) {
   );
 }
 
-/** Per-bidder totals. Only rendered in the team scope — see `byUser`. */
 function BidderTable({ rows }: { rows: BidPerformance['byUser'] }) {
   return (
     <div className="overflow-x-auto">

@@ -8,7 +8,6 @@ async function authHeaders(): Promise<HeadersInit> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-/** Profiles the signed-in user may use — owned first, then accepted invites. */
 export async function fetchProfiles(): Promise<ProfileSummary[]> {
   const res = await fetch(`${API_URL}/api/profiles`, {
     cache: 'no-store',
@@ -18,7 +17,6 @@ export async function fetchProfiles(): Promise<ProfileSummary[]> {
   return res.json();
 }
 
-/** One profile with work experience + education, or null. */
 export async function fetchProfile(id: number): Promise<Profile | null> {
   const res = await fetch(`${API_URL}/api/profiles/${id}`, {
     cache: 'no-store',
@@ -28,7 +26,6 @@ export async function fetchProfile(id: number): Promise<Profile | null> {
   return res.json();
 }
 
-/** The caller's own profiles with who each is shared with (admins only). */
 export async function fetchSharedProfiles(): Promise<SharedProfile[]> {
   const res = await fetch(`${API_URL}/api/invitations/sent`, {
     cache: 'no-store',
@@ -38,12 +35,6 @@ export async function fetchSharedProfiles(): Promise<SharedProfile[]> {
   return res.json();
 }
 
-/**
- * Invitations addressed to the signed-in user.
- *
- * Fetched unfiltered: the Profiles page shows the pending ones as a prompt and
- * needs the answered ones only to know not to prompt again.
- */
 export async function fetchMyInvitations(): Promise<ReceivedInvitation[]> {
   const res = await fetch(`${API_URL}/api/invitations`, {
     cache: 'no-store',

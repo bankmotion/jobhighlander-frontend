@@ -4,19 +4,6 @@ import { useState } from 'react';
 import type { PromptView } from '@/lib/prompts';
 import { Toast, useToast } from './toast';
 
-/**
- * Editor for the model instructions, one tab per prompt.
- *
- * Prompts are DATA: a row replaces the system block for one generator and
- * nothing else — it cannot introduce a new model call or a new output schema.
- * That boundary is what makes a textarea a super admin can type into safe to
- * send.
- *
- * THE TEXT HERE IS THE ONLY COPY. It lives in the database, not in the
- * codebase, so there is no "Reset to default" — there is nothing to reset to.
- * Saving an empty prompt is refused by the API for the same reason: it would
- * delete the only copy and break every generation until someone retyped it.
- */
 export function PromptManager({ initial }: { initial: PromptView[] }) {
   const [prompts, setPrompts] = useState<PromptView[]>(initial);
   const [activeKey, setActiveKey] = useState(initial[0]?.key ?? '');
@@ -66,7 +53,6 @@ export function PromptManager({ initial }: { initial: PromptView[] }) {
 
   return (
     <div>
-      {/* Tabs */}
       <div
         role="tablist"
         aria-label="Prompts"
@@ -93,8 +79,6 @@ export function PromptManager({ initial }: { initial: PromptView[] }) {
                   missing
                 </span>
               )}
-              {/* An unsaved edit on a tab you are not looking at is otherwise
-                  invisible until you navigate away and lose it. */}
               {unsaved && (
                 <span className="ml-1.5 text-amber-400" aria-label="unsaved changes">
                   •

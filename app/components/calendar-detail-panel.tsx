@@ -13,7 +13,6 @@ import type { CoverLetter } from '@/lib/cover-letters';
 import type { JobQuery } from '@/lib/job-queries';
 import type { Job } from '@/lib/types';
 
-/** The one stored resume for a pairing, as `/api/resumes/saved` returns it. */
 interface SavedResume {
   id: number;
   data: TailoredResume;
@@ -23,7 +22,6 @@ interface SavedResume {
 }
 
 interface Loaded {
-  /** Which panel this data belongs to, so a stale response cannot be shown. */
   panelId: number;
   job: Job | null;
   interview: InterviewDetail | null;
@@ -37,23 +35,6 @@ const json = <T,>(url: string): Promise<T | null> =>
     .then((r) => (r.ok ? r.json() : null))
     .catch(() => null);
 
-/**
- * The calendar's slide-over: everything the app holds about one pairing.
- *
- * Clicking an entry used to navigate to the job page, which threw away the
- * month you were reading. This answers the question in place — and answers more
- * of it than that page does in any one tab, because here the posting, the
- * interview, the resume, the letter and the AI log sit in one column.
- *
- * EVERYTHING BELOW THE SITTING IS A `<details>`, closed by default. Five full
- * documents in a 40%-wide column is a scroll with no landmarks; collapsed, the
- * headers ARE the summary — each says whether that thing exists before you open
- * it. Native disclosure rather than state, so it costs no JavaScript and keeps
- * its keyboard behaviour for free.
- *
- * FETCHED ON OPEN, not prefetched: a month grid holds dozens of panels and this
- * is five requests each.
- */
 export function CalendarDetailPanel({
   panel,
   onClose,
@@ -141,7 +122,6 @@ export function CalendarDetailPanel({
     >
       {panel && (
         <div className="space-y-3 px-5 py-4">
-          {/* ── this sitting: never collapsed, it is why the drawer opened ── */}
           <section
             style={{ borderLeftColor: eventColor(panel) }}
             className="rounded-lg border border-l-[3px] border-[var(--border)] bg-[var(--surface-2)] p-3"
@@ -316,13 +296,6 @@ export function CalendarDetailPanel({
   );
 }
 
-/**
- * The tailored resume, readable in a narrow column.
- *
- * REVIEW NOTES AND GAPS COME FIRST, not last as they do in the document itself.
- * They are the only part that asks the candidate to DO something before this
- * goes anywhere, and burying them under the prose is how they get skipped.
- */
 function ResumeSummary({ resume }: { resume: SavedResume }) {
   const r = resume.data;
   // Grouped under the category the model assigned, falling back to one
@@ -445,7 +418,6 @@ function LetterView({ letter }: { letter: CoverLetter }) {
   );
 }
 
-/** A collapsed section. Native `<details>`, so it needs no state at all. */
 function Fold({
   title,
   status,
@@ -453,7 +425,6 @@ function Fold({
   children,
 }: {
   title: string;
-  /** Shown in the header, so the section says what it holds before opening. */
   status: string;
   defaultOpen?: boolean;
   children: ReactNode;
@@ -489,11 +460,4 @@ function Placeholder({ loading, empty }: { loading: boolean; empty: string }) {
   );
 }
 
-/**
- * Drop the `<b>` markers the resume prompt asks for.
- *
- * The document stores them so the PDF can render emphasis. Here the choice is
- * between plain text and `dangerouslySetInnerHTML` over stored model output —
- * bold is not worth that.
- */
 const stripTags = (s: string): string => s.replace(/<[^>]*>/g, '');

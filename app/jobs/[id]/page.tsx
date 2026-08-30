@@ -34,7 +34,6 @@ export default async function JobDetail({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  /** `profile` mirrors the list: which profile's applied state this shows. */
   searchParams: Promise<{ tab?: string; profile?: string }>;
 }) {
   const [{ id }, { tab, profile: profileParam }] = await Promise.all([params, searchParams]);
@@ -164,8 +163,6 @@ export default async function JobDetail({
               >
                 Apply Now <span aria-hidden>↗</span>
               </a>
-              {/* Directly under Apply Now: you come back here after applying on
-                the employer's site, and this is where you were last looking. */}
               <AppliedAction jobId={job.id} size="lg" />
             </div>
           </div>

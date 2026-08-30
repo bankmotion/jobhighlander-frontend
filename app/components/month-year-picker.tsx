@@ -8,7 +8,6 @@ const MONTHS_FULL = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-/** 'YYYY-MM' (or a full ISO date) → 'May 2024'. Empty string for null. */
 export function formatMonthYear(v: string | null | undefined): string {
   if (!v) return '';
   const [y, m] = v.slice(0, 7).split('-');
@@ -17,7 +16,6 @@ export function formatMonthYear(v: string | null | undefined): string {
   return `${MONTHS_FULL[mi]} ${y}`;
 }
 
-/** A dark-themed month + year picker. Value is 'YYYY-MM' (or null). */
 export function MonthYearPicker({
   value,
   onChange,
@@ -144,23 +142,10 @@ export function MonthYearPicker({
   );
 }
 
-/** 'YYYY' (or any longer ISO date) → '2024'. Empty string for null. */
 export function formatYear(v: string | null | undefined): string {
   return v ? v.slice(0, 4) : '';
 }
 
-/**
- * A year-only picker, for education.
- *
- * Separate from `MonthYearPicker` rather than a `granularity` prop on it: the
- * two disagree about almost everything — what a click means, what the popup
- * contains, what the trigger reads — so one component doing both would be two
- * components sharing a name.
- *
- * Emits a bare 'YYYY'. Tolerates a stored 'YYYY-MM-DD' on the way in, because
- * education rows written before the switch to year granularity still carry a
- * month and a day.
- */
 export function YearPicker({
   value,
   onChange,

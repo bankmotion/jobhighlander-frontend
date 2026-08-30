@@ -1,6 +1,5 @@
 import type { InvitationStatus, ReceivedInvitation } from './types';
 
-/** Display name for the profile an invitation is about. */
 export function invitationProfileName(inv: ReceivedInvitation): string {
   const p = inv.profile;
   return [p.firstName, p.lastName].filter(Boolean).join(' ') || p.email || `Profile #${p.id}`;
@@ -8,13 +7,6 @@ export function invitationProfileName(inv: ReceivedInvitation): string {
 
 export type RespondResult = { ok: true } | { ok: false; error: string };
 
-/**
- * Accept or decline an invitation from the browser.
- *
- * Shared by the Profiles page and the Inbox because both offer the same two
- * buttons; only what they do with the result differs. Errors come back as a
- * value rather than a throw so each caller can surface them in its own toast.
- */
 export async function respondToInvitation(
   id: number,
   status: Exclude<InvitationStatus, 'pending'>,

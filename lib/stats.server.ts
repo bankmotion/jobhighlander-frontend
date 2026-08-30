@@ -1,23 +1,10 @@
 import { getToken } from './auth';
 import type { BidPerformance } from './stats';
 
-/**
- * Server-only stats fetcher.
- *
- * Split from `stats.ts` for the same reason `ai-usage.server.ts` is split from
- * `ai-usage.ts`: `getToken` reads `next/headers`, and the dashboard imports the
- * formatters from `stats.ts` as values, so anything reachable from that file is
- * bundled for the browser. Do not merge these two.
- */
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
-/** Either a rolling day count or an explicit `YYYY-MM-DD` window. */
 export type StatsWindow = { days: number } | { from: string; to: string };
 
-/**
- * Team-wide bids: every bidder's applications on the profiles the caller may
- * use. Admin and super admin only — the backend enforces that, this just asks.
- */
 export async function fetchTeamBidPerformance(
   window: StatsWindow = { days: 90 },
   profileId?: number,

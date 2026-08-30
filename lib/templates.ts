@@ -13,7 +13,6 @@ export interface Preset {
   atsSafe: boolean;
 }
 
-/** Presets available to the picker. Empty on failure — the page still renders. */
 export async function fetchPresets(): Promise<Preset[]> {
   const token = await getToken();
   const res = await fetch(`${API_URL}/api/resumes/templates`, {

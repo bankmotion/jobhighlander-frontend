@@ -7,17 +7,6 @@ import { shortZone } from './meeting-time';
 import { EventButton, bucketByDay, eventColor, isPast } from './calendar-event';
 import { STEP_RESULT_LABELS, type CalendarPanel } from '@/lib/interviews';
 
-/**
- * A chronological list of the week's sittings.
- *
- * The view that survives a narrow screen. A seven-column time grid at phone
- * width gives each day about forty pixels, which is not enough for a company
- * name — and the calendar is most likely to be opened on a phone precisely when
- * someone is about to walk into one of these.
- *
- * It also has room the grids do not: full titles, the quoted zone spelled out,
- * and the meeting link as something you can actually hit with a thumb.
- */
 export function CalendarAgenda({
   days,
   panels,
@@ -44,9 +33,6 @@ export function CalendarAgenda({
 
   return (
     <div className="space-y-5">
-      {/* Empty days are SKIPPED here, unlike the grids which must keep their
-          shape. A list of blank headings is scrolling with nothing at the end
-          of it. */}
       {withEvents.map((day) => (
         <section key={day}>
           <h3 className="mb-2 flex items-baseline gap-2 border-b border-[var(--border)] pb-1.5">
@@ -128,8 +114,6 @@ function AgendaRow({
             <span>· {STEP_RESULT_LABELS[panel.stepResult]}</span>
           )}
         </div>
-        {/* The quoted reading, spelled out. This is the line that is checked
-            against the email, so the agenda gives it room the chips cannot. */}
         {panel.timezone && (
           <div className="mt-0.5 text-[11px] text-[var(--muted)]">
             Invitation said {timeInZone(at, panel.timezone)} {zoneAbbrev(at, panel.timezone)}

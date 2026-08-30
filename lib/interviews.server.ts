@@ -9,14 +9,6 @@ import type {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
-/**
- * Server-only interview fetchers.
- *
- * Split from `interviews.ts` because `getToken` reads `next/headers`, which
- * cannot exist in a browser bundle — and the timeline is a client component
- * that imports the label maps from there as values. Keeping the two apart is
- * what stops one `import` from failing the production build.
- */
 async function authed<T>(path: string, fallback: T): Promise<T> {
   const token = await getToken();
   if (!token) return fallback;
@@ -32,13 +24,6 @@ async function authed<T>(path: string, fallback: T): Promise<T> {
   }
 }
 
-/**
- * The timeline for one (job, profile), fetched on the server so the first paint
- * already has it.
- *
- * Failure is not fatal: the tab still renders and offers to start a timeline.
- * That beats a page that will not load.
- */
 export async function fetchInterviewForJob(
   jobId: number,
   profileId: number,
@@ -50,21 +35,15 @@ export async function fetchInterviewForJob(
   );
 }
 
-/** Every timeline the caller can reach, newest activity first. */
 export async function fetchInterviews(profileId?: number): Promise<InterviewSummary[]> {
   const qs = profileId ? `?profileId=${profileId}` : '';
   return authed<InterviewSummary[]>(`/api/interviews${qs}`, []);
 }
 
-/** Everything scheduled in the next `days`, across every process. */
 export async function fetchUpcoming(days = 7): Promise<UpcomingPanel[]> {
   return authed<UpcomingPanel[]>(`/api/interviews/upcoming?days=${days}`, []);
 }
 
-/**
- * Which of `jobIds` have a timeline. One request for a whole page, mirroring
- * `fetchAppliedStatus`.
- */
 export async function fetchInterviewStatus(
   profileId: number,
   jobIds: number[],
@@ -74,14 +53,6 @@ export async function fetchInterviewStatus(
   return authed(`/api/interviews/status?${qs}`, {});
 }
 
-/**
- * Every sitting between two instants. Backs the calendar.
- *
- * The window is passed as ISO instants rather than a month, because which
- * calendar days those instants fall on depends on the reader's time zone —
- * which only the browser knows. The page therefore asks for a padded range and
- * the grid buckets it client-side.
- */
 export async function fetchCalendarPanels(
   from: Date,
   to: Date,

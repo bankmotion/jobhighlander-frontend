@@ -8,12 +8,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 export interface JobQuery {
   q?: string;
   sites?: string[];
-  /** When true, request only remote jobs. */
   remote?: boolean;
-  /**
-   * Applied is per profile, so this needs `profileId` to mean anything; the
-   * backend ignores it without one rather than guessing.
-   */
   applied?: AppliedFilter;
   discarded?: DiscardedFilter;
   profileId?: number | null;
@@ -21,7 +16,6 @@ export interface JobQuery {
   pageSize?: number;
 }
 
-/** Auth header carrying the session JWT to the backend (server-side only). */
 async function authHeaders(): Promise<HeadersInit> {
   const token = await getToken();
   return token ? { Authorization: `Bearer ${token}` } : {};

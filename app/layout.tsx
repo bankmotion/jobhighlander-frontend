@@ -11,16 +11,6 @@ export const metadata: Metadata = {
   description: 'Aggregated job postings scraped from across the web.',
 };
 
-/**
- * The shell. Only the session is awaited here — it comes from a cookie, so it
- * costs nothing and decides whether there is a shell at all.
- *
- * The nav and the inbox each fetch from the backend, and both do it INSIDE
- * their own Suspense boundary rather than in this function. Awaiting either
- * here would hold back the entire page, including the route's own `loading.tsx`
- * skeleton, behind a round trip — the one thing a loading state exists to
- * prevent.
- */
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
 
@@ -29,8 +19,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className="min-h-screen">
         {session ? (
           <div className="flex min-h-screen">
-            {/* Also the boundary `useSearchParams` needs: the sidebar reads
-                `?profile=` to highlight the active job list. */}
             <Suspense fallback={<SidebarSkeleton />}>
               <SidebarData role={session.role} />
             </Suspense>
@@ -51,13 +39,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   );
 }
 
-/** Holds the sidebar's column so its arrival cannot shift the page sideways. */
 function SidebarSkeleton() {
   return (
     <aside className="hidden w-60 shrink-0 border-r border-[var(--border)] bg-[var(--surface)] md:flex md:flex-col md:sticky md:top-0 md:h-screen">
-      {/* Full logo, uncropped. It is illustration rather than a lettermark,
-          so it needs real width to read — hence a stacked block here instead
-          of a chip beside the wordmark. */}
       <div className="flex flex-col items-center gap-2 px-5 pb-4 pt-5">
         <Image
           src="/logo.png"
@@ -78,7 +62,6 @@ function SidebarSkeleton() {
   );
 }
 
-/** Same height as the real header, so the page below it never jumps. */
 function TopbarSkeleton() {
   return (
     <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur">

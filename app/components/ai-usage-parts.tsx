@@ -2,15 +2,6 @@
 
 import { RANGES, tokens, usd, type UsageBucket, type UsageSummary } from '@/lib/ai-usage';
 
-/**
- * The pieces both AI-usage dashboards are built from.
- *
- * Shared rather than duplicated because the personal page and the super-admin
- * page show the same figures at different scopes: if the two ever formatted a
- * total differently, the obvious reading is that they disagree about the money,
- * not about a decimal place.
- */
-
 export function Stat({
   label,
   value,
@@ -35,7 +26,6 @@ export function Stat({
   );
 }
 
-/** The 7/30/90/365-day picker. */
 export function RangeTabs({
   days,
   pending,
@@ -65,7 +55,6 @@ export function RangeTabs({
   );
 }
 
-/** A yellow note. Used for both load failures and unpriced-model gaps. */
 export function Notice({ children }: { children: React.ReactNode }) {
   return (
     <p className="mb-4 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-sm text-amber-200">
@@ -74,7 +63,6 @@ export function Notice({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** The count of calls that ran on a model with no rate, when there are any. */
 export function UnpricedNotice({ count }: { count: number }) {
   if (count === 0) return null;
   return (
@@ -85,14 +73,6 @@ export function UnpricedNotice({ count }: { count: number }) {
   );
 }
 
-/**
- * Daily spend as bars.
- *
- * Every day in the range gets a bar, including the empty ones — dropping them
- * would compress a quiet fortnight into nothing and make the remaining days
- * look adjacent. Bars are scaled against the busiest day rather than the total,
- * so the shape of a cheap week is still readable.
- */
 export function CostChart({ daily, title = 'Daily spend' }: { daily: UsageBucket[]; title?: string }) {
   const peak = Math.max(...daily.map((d) => d.costUsd), 0);
 
@@ -134,13 +114,6 @@ export function CostChart({ daily, title = 'Daily spend' }: { daily: UsageBucket
   );
 }
 
-/**
- * Shared table shell for every breakdown.
- *
- * `onSelect` turns the rows into filter controls — the admin page uses it so a
- * name in the table and the way to drill into that name are the same thing,
- * rather than a table you read and a dropdown you then hunt through.
- */
 export function BreakdownTable({
   title,
   rows,
@@ -154,7 +127,6 @@ export function BreakdownTable({
   firstHeader: string;
   onSelect?: (row: UsageBucket) => void;
   selectedKey?: string | null;
-  /** Show each row's percentage of the visible total. */
   share?: boolean;
 }) {
   const total = share ? rows.reduce((sum, r) => sum + r.costUsd, 0) : 0;
@@ -222,13 +194,6 @@ export function BreakdownTable({
   );
 }
 
-/**
- * Day-by-day detail, newest first.
- *
- * Only days that actually cost something are listed. The chart above already
- * carries the empty ones, and a 12-month range would otherwise open with three
- * hundred rows of zeroes before the first real number.
- */
 export function DailyTable({ rows }: { rows: UsageBucket[] }) {
   const active = rows.filter((r) => r.calls > 0).reverse();
 
@@ -284,8 +249,6 @@ export function DailyTable({ rows }: { rows: UsageBucket[] }) {
   );
 }
 
-/** The rates the figures were derived from, served by the API so the UI never
- *  hardcodes a price that can drift from the one actually charged. */
 export function RateCard({ rates }: { rates: UsageSummary['rates'] }) {
   return (
     <details className="mt-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">

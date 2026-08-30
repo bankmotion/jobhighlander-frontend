@@ -10,7 +10,6 @@ export interface AdminUser {
   createdAt: string;
 }
 
-/** List all users (server-side, forwards the session JWT). */
 export async function fetchUsers(): Promise<AdminUser[]> {
   const token = await getToken();
   const res = await fetch(`${API_URL}/api/auth/users`, {

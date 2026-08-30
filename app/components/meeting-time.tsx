@@ -3,22 +3,6 @@
 import { useDisplayZone } from '@/lib/display-zone';
 import { formatInZone, timeInZone, zoneAbbrev } from '@/lib/tz';
 
-/**
- * A meeting time in BOTH the zone the invitation quoted and the reader's own.
- *
- * The two-line shape is the whole point of the component. A recruiter writes
- * "2:00 PM EST"; the candidate lives somewhere else; and a dashboard that
- * renders only one of those readings is either unverifiable against the email
- * or unusable for actually showing up. Showing both makes the conversion the
- * app's job instead of a thing done in someone's head at 6 a.m.
- *
- * THE FIRST LINE IS SERVER-RENDERABLE, THE SECOND IS NOT. The quoted zone is
- * stored on the row, so the primary line formats identically on both sides of
- * hydration. The reader's zone is knowable only in the browser, so that line
- * stays absent until after mount — rendering it during SSR would either print
- * the SERVER's zone as the user's (silently wrong, in a component whose entire
- * job is to be right about this) or tear the node down as a mismatch.
- */
 export function MeetingTime({
   iso,
   timezone,
@@ -57,10 +41,6 @@ export function MeetingTime({
 
       {showViewer && (
         <div className="mt-0.5 text-[var(--muted)]">
-          {/* Named, never "your time": the reader can override the display
-              zone, and a colleague on a shared profile is somewhere else
-              anyway — so the label states WHICH clock rather than claiming
-              whose it is. */}
           {timeInZone(date, viewerZone)} in {shortZone(viewerZone)}
         </div>
       )}
@@ -68,7 +48,6 @@ export function MeetingTime({
   );
 }
 
-/** "45 min" / "1h 30m" — compact enough to sit inline beside the stamp. */
 function formatDuration(min: number): string {
   if (min < 60) return `${min} min`;
   const h = Math.floor(min / 60);
@@ -76,7 +55,6 @@ function formatDuration(min: number): string {
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
 }
 
-/** "America/New_York" → "New York": the city is the identifying half. */
 export function shortZone(zone: string): string {
   const tail = zone.split('/').pop() ?? zone;
   return tail.replace(/_/g, ' ');

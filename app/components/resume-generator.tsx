@@ -13,9 +13,6 @@ interface Flagged {
 export interface TailoredResume {
   headline: string;
   summary: string;
-  /** `category` groups adjacent skills; the API always sends it, but this
-   *  file renders skills flat, so it stays optional rather than forcing a
-   *  change here. */
   skills: { name: string; category?: string; inferred: boolean }[];
   experience: {
     title: string;
@@ -30,7 +27,6 @@ export interface TailoredResume {
   reviewNotes: string[];
 }
 
-/** The single stored resume for a (profile, job), as the API returns it. */
 interface SavedResume {
   id: number;
   data: TailoredResume;
@@ -41,7 +37,6 @@ interface SavedResume {
 
 const NOTES_KEY = 'jh:resume-notes';
 
-/** Dotted underline marks text the model drafted rather than read from notes. */
 function Inferred({ on, children }: { on: boolean; children: React.ReactNode }) {
   if (!on) return <>{children}</>;
   return (
@@ -63,15 +58,6 @@ export function ResumeGenerator({
   jobId: number;
   profiles: ProfileSummary[];
   presets: Preset[];
-  /**
-   * Which profile to open on — resolved by the page from `?profile=`.
-   *
-   * Without it this picker seeded itself from profiles[0] and ignored the URL,
-   * so a card opened from a list showing profile B landed on profile A and
-   * reported no resume for a job that plainly had one. The page and this
-   * control have to resolve the profile the same way or they disagree on
-   * screen.
-   */
   initialProfileId?: number | null;
 }) {
   const [profileId, setProfileId] = useState<number | ''>(
@@ -143,9 +129,7 @@ export function ResumeGenerator({
           setSavedTemplateKey('');
           replacePdfUrl(null);
         }
-      } catch {
-        /* having nothing saved is not an error worth showing */
-      }
+      } catch {}
     })();
     return () => {
       cancelled = true;
@@ -199,16 +183,6 @@ export function ResumeGenerator({
     }
   }
 
-  /**
-   * Render the PDF and keep the blob around as an object URL — the same URL
-   * feeds the preview iframe and the download link, so the file the user reads
-   * is byte-for-byte the file they save.
-   */
-  /**
-   * Read back what the server stored after a generation. The first generation
-   * for a job creates the row with the profile's default template, so without
-   * this the Apply button would offer to re-apply a template already in place.
-   */
   async function syncSavedTemplate() {
     if (!profileId) return;
     try {
@@ -220,18 +194,14 @@ export function ResumeGenerator({
       // Only adopt it as the selection when the user has not picked one, so a
       // pending choice survives a regenerate.
       setTemplateKey((prev) => prev || row.templateKey);
-    } catch {
-      /* ignore */
-    }
+    } catch {}
   }
 
-  /** Preview a template. Nothing is written until Apply. */
   function selectTemplate(key: string) {
     setTemplateKey(key);
     if (resume) void renderPdf(resume, Number(profileId), key);
   }
 
-  /** Write the selected template onto the saved resume for this job. */
   async function applyTemplate() {
     if (!profileId || !templateKey) return;
     setApplying(true);
@@ -282,13 +252,6 @@ export function ResumeGenerator({
     }
   }
 
-  /**
-   * Fetch the Word version on demand and hand it to the browser.
-   *
-   * Not rendered alongside the preview: there is nothing to preview a DOCX in,
-   * and building one for every generation would burn work most users never ask
-   * for. The blob URL is revoked straight after the click so it cannot leak.
-   */
   async function downloadDocx(forResume: TailoredResume, forProfileId: number, forTemplate?: string) {
     setDocxLoading(true);
     try {
@@ -436,8 +399,6 @@ export function ResumeGenerator({
                 </select>
               </label>
 
-              {/* Picking re-renders the preview only. This is the commit, so it
-                  appears exactly when the selection differs from what is saved. */}
               {templateKey !== savedTemplateKey ? (
                 <button
                   type="button"
@@ -467,9 +428,6 @@ export function ResumeGenerator({
             </p>
           )}
 
-          {/* The PDF is the thing being sent to an employer, so it leads. The
-              structured review below it carries what the PDF cannot show —
-              which parts the model invented. */}
           <div className="mb-6">
             {pdfLoading && !pdfUrl && (
               <div className="flex h-64 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-sm text-[var(--muted)]">
@@ -481,9 +439,6 @@ export function ResumeGenerator({
               <div className="group relative overflow-hidden rounded-lg border border-[var(--border-strong)] bg-white">
                 <iframe src={pdfUrl} title="Resume preview" className="block h-[560px] w-full" />
 
-                {/* Hover/focus reveal. `pointer-events-none` on the backdrop
-                    keeps the PDF viewer's own scrolling usable; only the link
-                    itself is clickable. */}
                 <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-end p-3 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
                   <a
                     href={pdfUrl}

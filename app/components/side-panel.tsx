@@ -2,25 +2,6 @@
 
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 
-/**
- * A slide-over drawer: full height, anchored right, sliding in from the edge.
- *
- * ALWAYS MOUNTED, moved with `translate-x`. That is what makes it animate in
- * BOTH directions. The obvious alternative — render on open, unmount on close —
- * cannot play an exit transition, because the node is gone before the
- * transition would run, and the enter transition needs a paint between mount
- * and the class change to have anything to interpolate from.
- *
- * Kept out of the tab order while closed with `inert`, so an off-screen panel
- * cannot swallow a Tab press from the page behind it. `pointer-events-none`
- * alone would not do that — an element translated off-screen is still focusable.
- *
- * Distinct from `Modal` on purpose. A modal interrupts to ask one question; this
- * shows a record ALONGSIDE what you were reading, which is the difference
- * between "answer me" and "here it is". The calendar is the case that needs the
- * second: you are scanning a month and want to look at one entry without losing
- * your place in the grid.
- */
 export function SidePanel({
   open,
   onClose,
@@ -79,8 +60,6 @@ export function SidePanel({
 
   return (
     <>
-      {/* Backdrop. Fades rather than appearing, so the page dimming reads as
-          part of the same motion as the panel. */}
       <div
         aria-hidden
         onMouseDown={onClose}

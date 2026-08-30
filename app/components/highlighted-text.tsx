@@ -4,10 +4,6 @@ function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/**
- * Render `text`, wrapping any occurrence of `words` (case-insensitive, whole
- * word) in an emphasized <mark>. Used for job descriptions.
- */
 export function HighlightedText({ text, words }: { text: string; words: string[] }) {
   const clean = words.map((w) => w.trim()).filter(Boolean);
   if (!text || clean.length === 0) return <>{text}</>;

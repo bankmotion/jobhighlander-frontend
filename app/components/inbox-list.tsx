@@ -15,13 +15,6 @@ const STATUS_META: Record<InvitationStatus, { label: string; cls: string }> = {
 
 const when = (iso: string) => new Date(iso).toLocaleString();
 
-/**
- * The invitation inbox.
- *
- * Answered invitations stay on the list rather than disappearing: an accepted
- * one is the only place that says WHERE a shared profile came from, and a
- * declined one that vanished would look like it was never sent.
- */
 export function InboxList({ initial }: { initial: ReceivedInvitation[] }) {
   const router = useRouter();
   const [invitations, setInvitations] = useState(initial);

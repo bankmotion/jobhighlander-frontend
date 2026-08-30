@@ -40,24 +40,11 @@ function IconRestore({ className = 'h-4 w-4' }: { className?: string }) {
 const when = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 
-/** Local part of an email — enough to identify a colleague, short enough to fit. */
 const shortName = (email: string) => email.split('@')[0];
 
 const byLine = (discardedBy: string, viewerEmail: string | null): string =>
   discardedBy === viewerEmail ? 'you' : shortName(discardedBy);
 
-/**
- * The discard control: top-right corner of a job card.
- *
- * An icon rather than a labelled button because it repeats on every row and
- * competes with Apply Now, which is the action the card is actually for. It
- * toggles, for the same reason Mark as Applied does: this records a judgement
- * the app cannot observe, and a mis-click that could not be undone would bury a
- * posting with no way back to it.
- *
- * Per profile, not per user — the same job can be wrong for one candidate and
- * right for the next, so the tooltip names the profile scope explicitly.
- */
 export function DiscardAction({ jobId }: { jobId: number }) {
   const { profileId, viewerEmail, discardedOn, isBusy, toggle } = useDiscard();
   const status = discardedOn(jobId);
@@ -117,16 +104,6 @@ export function DiscardAction({ jobId }: { jobId: number }) {
   );
 }
 
-/**
- * The "Discarded" chip.
- *
- * Deliberately flat and quiet, the opposite of the Applied badge: that one is a
- * solid glowing pill because catching it while scanning is its whole job, while
- * this one sits on a card the panel has already greyed out. Two loud badges
- * competing on one row would leave neither of them loud.
- *
- * Renders nothing when the job is not discarded.
- */
 export function DiscardedBadge({ jobId }: { jobId: number }) {
   const { viewerEmail, discardedOn } = useDiscard();
   const status = discardedOn(jobId);

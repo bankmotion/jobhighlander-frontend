@@ -15,23 +15,13 @@ const nameOf = (p: {
   email: string | null;
 }): string => [p.firstName, p.lastName].filter(Boolean).join(' ') || p.email || 'Untitled profile';
 
-/**
- * The Profiles page for every signed-in role.
- *
- * A user sees two kinds of profile: the ones they own (admins only — creating
- * is an admin action) and the ones they accepted an invitation to, which are
- * strictly read-only. `canEdit` comes from the API per profile rather than being
- * inferred from the role here, so the two can never disagree.
- */
 export function ProfilesManager({
   initial,
   invitations,
   canCreate,
 }: {
   initial: ProfileSummary[];
-  /** Invitations addressed to this user; the pending ones need an answer. */
   invitations: ReceivedInvitation[];
-  /** Whether this role may create profiles at all (admins and super admins). */
   canCreate: boolean;
 }) {
   const router = useRouter();
@@ -97,12 +87,6 @@ export function ProfilesManager({
     return false;
   }
 
-  /**
-   * Returns whether the delete actually succeeded, so the editor can reopen
-   * itself instead of navigating away. Previously this ignored the response and
-   * always went back to the list — a rejected delete looked identical to a
-   * successful one until the refetched list showed the profile still there.
-   */
   async function remove(): Promise<boolean> {
     if (view.mode !== 'edit') return false;
     const target = profiles.find((p) => p.id === view.id);
@@ -123,11 +107,6 @@ export function ProfilesManager({
     }
   }
 
-  /**
-   * Accept or decline an invitation. Accepting is what actually grants access,
-   * so the list is refetched rather than patched locally — the new profile has
-   * to arrive carrying the `canEdit` the server decided, not one assumed here.
-   */
   async function respond(invitation: ReceivedInvitation, status: 'accepted' | 'declined') {
     setAnsweringId(invitation.id);
     const result = await respondToInvitation(invitation.id, status);
@@ -258,15 +237,11 @@ export function ProfilesManager({
         </div>
       )}
 
-      {/* Also mounted here, not only in the editor branch: a successful delete
-          navigates back to the list before the toast is shown, so a toast that
-          only existed on the editor screen would never be seen. */}
       <Toast toast={toast} onDismiss={dismiss} />
     </div>
   );
 }
 
-/** One titled band of profile cards — "Your profiles" or "Shared with you". */
 function ProfileGroup({
   title,
   hint,
