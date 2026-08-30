@@ -31,12 +31,15 @@ export function BidPerformanceDashboard({
   data,
   profiles,
   profileId,
+  userId = null,
   custom,
 }: {
   data: BidPerformance;
   profiles: ProfileSummary[];
   /** null = every profile the viewer may use, aggregated. */
   profileId: number | null;
+  /** null = every bidder in scope. Only offered when `data.bidders` has rows. */
+  userId?: number | null;
   /** The custom window currently in the URL, if the user picked dates. */
   custom: { from: string; to: string } | null;
 }) {
@@ -52,40 +55,41 @@ export function BidPerformanceDashboard({
   const weekly = data.daily.length > 31;
 
   /**
-   * Push the window into the URL rather than holding it in state.
+   * Push the whole question into the URL.
    *
-   * The server does the aggregation, so the URL has to carry the question — and
-   * it also makes a particular view shareable. `days` and `from`/`to` are
-   * mutually exclusive: sending both would leave the backend to guess, and it
-   * resolves in favour of the explicit dates.
+   * Window, profile and bidder are independent dimensions, so every change goes
+   * through here with the others carried forward — changing the bidder must not
+   * silently reset the date range. `days` and `from`/`to` stay mutually
+   * exclusive; the backend resolves in favour of explicit dates.
    */
-  function navigate(next: { days?: number; from?: string; to?: string }) {
+  function navigate(
+    next: {
+      days?: number;
+      from?: string;
+      to?: string;
+      profile?: string | null;
+      bidder?: string | null;
+    } = {},
+  ) {
     const q = new URLSearchParams();
-    if (next.from && next.to) {
-      q.set('from', next.from);
-      q.set('to', next.to);
+    const useCustom = next.from && next.to ? true : next.days ? false : Boolean(custom);
+    if (useCustom) {
+      q.set('from', next.from ?? custom!.from);
+      q.set('to', next.to ?? custom!.to);
     } else {
       q.set('days', String(next.days ?? days));
     }
-    if (profileId) q.set('profile', String(profileId));
+    const p = next.profile !== undefined ? next.profile : profileId ? String(profileId) : null;
+    if (p) q.set('profile', p);
+    const b = next.bidder !== undefined ? next.bidder : userId ? String(userId) : null;
+    if (b) q.set('user', b);
     startTransition(() => router.push(`?${q}`, { scroll: false }));
   }
 
   function setRange(next: number) {
     setDays(next);
-    navigate({ days: next });
-  }
-
-  function setProfile(next: string) {
-    const q = new URLSearchParams();
-    if (custom) {
-      q.set('from', custom.from);
-      q.set('to', custom.to);
-    } else {
-      q.set('days', String(days));
-    }
-    if (next) q.set('profile', next);
-    startTransition(() => router.push(`?${q}`, { scroll: false }));
+    // Clearing from/to is what makes a preset click override a custom range.
+    navigate({ days: next, from: undefined, to: undefined });
   }
 
   const empty = data.totals.applications === 0;
@@ -154,19 +158,41 @@ export function BidPerformanceDashboard({
 
           {/* Only worth the space when there is a choice to make. */}
           {profiles.length > 1 && (
-            <label className="ml-auto flex flex-col gap-1">
+            <label className="flex flex-col gap-1">
               <span className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
                 Profile
               </span>
               <select
                 value={profileId ?? ''}
-                onChange={(e) => setProfile(e.target.value)}
+                onChange={(e) => navigate({ profile: e.target.value || null, bidder: null })}
                 className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-sm text-[var(--text)] outline-none transition focus:border-[var(--primary)]"
               >
                 <option value="">All profiles</option>
                 {profiles.map((p) => (
                   <option key={p.id} value={p.id}>
                     {[p.firstName, p.lastName].filter(Boolean).join(' ') || p.email || `Profile #${p.id}`}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+
+          {/* Only on the team view: `bidders` is empty in the personal scope,
+              where the caller is the only bidder in the data anyway. */}
+          {data.bidders.length > 1 && (
+            <label className="flex flex-col gap-1">
+              <span className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
+                Bidder
+              </span>
+              <select
+                value={userId ?? ''}
+                onChange={(e) => navigate({ bidder: e.target.value || null })}
+                className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-sm text-[var(--text)] outline-none transition focus:border-[var(--primary)]"
+              >
+                <option value="">All bidders</option>
+                {data.bidders.map((b) => (
+                  <option key={b.userId} value={b.userId}>
+                    {b.email}
                   </option>
                 ))}
               </select>

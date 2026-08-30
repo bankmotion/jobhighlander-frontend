@@ -21,8 +21,9 @@ export type StatsWindow = { days: number } | { from: string; to: string };
 export async function fetchTeamBidPerformance(
   window: StatsWindow = { days: 90 },
   profileId?: number,
+  userId?: number,
 ): Promise<BidPerformance | null> {
-  return get('/api/stats/bid-performance/all', window, profileId);
+  return get('/api/stats/bid-performance/all', window, profileId, userId);
 }
 
 export async function fetchBidPerformance(
@@ -36,6 +37,7 @@ async function get(
   path: string,
   window: StatsWindow,
   profileId?: number,
+  userId?: number,
 ): Promise<BidPerformance | null> {
   const token = await getToken();
   if (!token) return null;
@@ -46,6 +48,7 @@ async function get(
     qs.set('to', window.to);
   }
   if (profileId) qs.set('profileId', String(profileId));
+  if (userId) qs.set('userId', String(userId));
   try {
     const res = await fetch(`${API_URL}${path}?${qs}`, {
       cache: 'no-store',

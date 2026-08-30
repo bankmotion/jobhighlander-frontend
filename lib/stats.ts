@@ -30,6 +30,8 @@ export interface BidPerformance {
   outcomes: { status: string; label: string; count: number }[];
   /** Populated only in the team (admin) scope; empty in the personal view. */
   byUser: { userId: number; email: string; applications: number; interviews: number; offers: number }[];
+  /** Option list for the bidder filter — unaffected by the current filters. */
+  bidders: { userId: number; email: string }[];
 }
 
 /** Ranges the page offers. Bounded by what the API accepts. */

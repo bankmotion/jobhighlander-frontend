@@ -28,7 +28,7 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 export default async function AdminBidPerformancePage({
   searchParams,
 }: {
-  searchParams: Promise<{ days?: string; from?: string; to?: string; profile?: string }>;
+  searchParams: Promise<{ days?: string; from?: string; to?: string; profile?: string; user?: string }>;
 }) {
   const sp = await searchParams;
 
@@ -43,11 +43,15 @@ export default async function AdminBidPerformancePage({
   const parsedProfile = Number(sp.profile);
   const wantedProfile = Number.isInteger(parsedProfile) && parsedProfile > 0 ? parsedProfile : null;
 
+  const parsedUser = Number(sp.user);
+  const userId = Number.isInteger(parsedUser) && parsedUser > 0 ? parsedUser : null;
+
   const [profiles, data] = await Promise.all([
     fetchProfiles().catch(() => []),
     fetchTeamBidPerformance(
       custom ? { from: custom.from, to: custom.to } : { days },
       wantedProfile ?? undefined,
+      userId ?? undefined,
     ),
   ]);
 
@@ -66,6 +70,7 @@ export default async function AdminBidPerformancePage({
           data={data}
           profiles={profiles}
           profileId={profileId}
+          userId={userId}
           custom={custom}
         />
       ) : (
