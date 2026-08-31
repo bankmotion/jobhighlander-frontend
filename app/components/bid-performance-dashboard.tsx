@@ -18,13 +18,17 @@ export function BidPerformanceDashboard({
   data,
   profiles,
   profileId,
-  userId = null,
+  bidder = null,
+  viewerId = null,
   custom,
 }: {
   data: BidPerformance;
   profiles: ProfileSummary[];
   profileId: number | null;
-  userId?: number | null;
+  // null = the viewer's own bids, 'all' = everyone, a number = that teammate.
+  bidder?: number | 'all' | null;
+  // Needed so the viewer's own row can be labelled rather than shown twice.
+  viewerId?: number | null;
   custom: { from: string; to: string } | null;
 }) {
   const router = useRouter();
@@ -57,7 +61,7 @@ export function BidPerformanceDashboard({
     }
     const p = next.profile !== undefined ? next.profile : profileId ? String(profileId) : null;
     if (p) q.set('profile', p);
-    const b = next.bidder !== undefined ? next.bidder : userId ? String(userId) : null;
+    const b = next.bidder !== undefined ? next.bidder : bidder != null ? String(bidder) : null;
     if (b) q.set('user', b);
     startTransition(() => router.push(`?${q}`, { scroll: false }));
   }
@@ -156,12 +160,15 @@ export function BidPerformanceDashboard({
                 Bidder
               </span>
               <select
-                value={userId ?? ''}
+                value={bidder ?? ''}
                 onChange={(e) => navigate({ bidder: e.target.value || null })}
                 className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-sm text-[var(--text)] outline-none transition focus:border-[var(--primary)]"
               >
-                <option value="">All bidders</option>
-                {data.bidders.map((b) => (
+                <option value="">Just me</option>
+                <option value="all">All team members</option>
+                {data.bidders
+                  .filter((b) => b.userId !== viewerId)
+                  .map((b) => (
                   <option key={b.userId} value={b.userId}>
                     {b.email}
                   </option>

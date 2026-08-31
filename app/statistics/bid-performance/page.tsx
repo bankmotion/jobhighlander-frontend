@@ -1,5 +1,6 @@
 import { fetchBidPerformance } from '@/lib/stats.server';
 import { fetchProfiles } from '@/lib/profiles';
+import { getSession } from '@/lib/auth';
 import { BidPerformanceDashboard } from '@/app/components/bid-performance-dashboard';
 
 export const dynamic = 'force-dynamic';
@@ -9,7 +10,7 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 export default async function BidPerformancePage({
   searchParams,
 }: {
-  searchParams: Promise<{ days?: string; from?: string; to?: string; profile?: string }>;
+  searchParams: Promise<{ days?: string; from?: string; to?: string; profile?: string; user?: string }>;
 }) {
   const sp = await searchParams;
 
@@ -39,7 +40,7 @@ export default async function BidPerformancePage({
 
   return (
     <div>
-      <h1 className="mb-1 text-2xl font-bold tracking-tight text-white">My bid performance</h1>
+      <h1 className="mb-1 text-2xl font-bold tracking-tight text-white">Bid performance</h1>
       <p className="mb-5 text-sm text-[var(--muted)]">
         What happened to the jobs <strong className="font-medium text-[var(--text)]">you</strong>{' '}
         applied to — volume, conversion to interviews, and which sources and employers are worth

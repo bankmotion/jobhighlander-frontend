@@ -67,10 +67,7 @@ export async function middleware(req: NextRequest) {
       return res;
     }
     const role = 'role' in check ? check.role : session.role; // offline → trust token
-    // Bid stats is admin-level, unlike /admin/ai-usage: an admin runs a team
-    // of bidders, so the team's numbers are theirs to see. It stays bounded by
-    // profile access server-side.
-    const ADMIN_LEVEL = ['/admin/bidders', '/admin/templates', '/admin/bid-performance'];
+    const ADMIN_LEVEL = ['/admin/bidders', '/admin/templates'];
     const allowed = ADMIN_LEVEL.some((p) => pathname.startsWith(p))
       ? isAdminRole(role)
       : isSuperAdmin(role);

@@ -5,29 +5,20 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 export type StatsWindow = { days: number } | { from: string; to: string };
 
-export async function fetchTeamBidPerformance(
-  window: StatsWindow = { days: 90 },
-  profileId?: number,
-  userId?: number,
-): Promise<BidPerformance | null> {
-  return get('/api/stats/bid-performance/all', window, profileId, userId);
-}
-
+// Server-only fetcher. Split from `stats.ts` because `getToken` reads
+// `next/headers`, and the dashboard imports the formatters from that file as
+// values, so anything reachable from it is bundled for the browser.
+//
+// `bidder` decides whose bids are counted: undefined = the caller's own,
+// 'all' = every member of the in-scope profiles, a number = that teammate.
 export async function fetchBidPerformance(
   window: StatsWindow = { days: 90 },
   profileId?: number,
-): Promise<BidPerformance | null> {
-  return get('/api/stats/bid-performance', window, profileId);
-}
-
-async function get(
-  path: string,
-  window: StatsWindow,
-  profileId?: number,
-  userId?: number,
+  bidder?: number | 'all',
 ): Promise<BidPerformance | null> {
   const token = await getToken();
   if (!token) return null;
+
   const qs = new URLSearchParams();
   if ('days' in window) qs.set('days', String(window.days));
   else {
@@ -35,9 +26,10 @@ async function get(
     qs.set('to', window.to);
   }
   if (profileId) qs.set('profileId', String(profileId));
-  if (userId) qs.set('userId', String(userId));
+  if (bidder) qs.set('bidder', String(bidder));
+
   try {
-    const res = await fetch(`${API_URL}${path}?${qs}`, {
+    const res = await fetch(`${API_URL}/api/stats/bid-performance?${qs}`, {
       cache: 'no-store',
       headers: { Authorization: `Bearer ${token}` },
     });
