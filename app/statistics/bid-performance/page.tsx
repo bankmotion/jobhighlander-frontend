@@ -25,11 +25,18 @@ export default async function BidPerformancePage({
   const parsedProfile = Number(sp.profile);
   const wantedProfile = Number.isInteger(parsedProfile) && parsedProfile > 0 ? parsedProfile : null;
 
-  const [profiles, data] = await Promise.all([
+  // 'all' or a teammate id; anything else falls back to the viewer's own bids.
+  const parsedUser = Number(sp.user);
+  const bidder: number | 'all' | null =
+    sp.user === 'all' ? 'all' : Number.isInteger(parsedUser) && parsedUser > 0 ? parsedUser : null;
+
+  const [profiles, session, data] = await Promise.all([
     fetchProfiles().catch(() => []),
+    getSession().catch(() => null),
     fetchBidPerformance(
       custom ? { from: custom.from, to: custom.to } : { days },
       wantedProfile ?? undefined,
+      bidder ?? undefined,
     ),
   ]);
 
@@ -42,9 +49,9 @@ export default async function BidPerformancePage({
     <div>
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-white">Bid performance</h1>
       <p className="mb-5 text-sm text-[var(--muted)]">
-        What happened to the jobs <strong className="font-medium text-[var(--text)]">you</strong>{' '}
-        applied to — volume, conversion to interviews, and which sources and employers are worth
-        the effort. On a shared profile these are your own bids, not the whole team&apos;s.
+        What happened to the jobs applied to — volume, conversion to interviews, and which sources
+        and employers are worth the effort. Defaults to your own bids; use the bidder filter to see
+        a teammate or the whole team.
       </p>
 
       {data ? (
@@ -52,6 +59,8 @@ export default async function BidPerformancePage({
           data={data}
           profiles={profiles}
           profileId={profileId}
+          bidder={bidder}
+          viewerId={session?.sub ?? null}
           custom={custom}
         />
       ) : (
