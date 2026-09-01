@@ -54,10 +54,16 @@ export function AppliedAction({ jobId, size = 'sm' }: { jobId: number; size?: 's
   // button with more air around it. Marking a job applied is the action this
   // card exists for, so at this size it steps up in type and weight too and is
   // deliberately the heaviest control in the row.
-  const base = `inline-flex shrink-0 items-center justify-center rounded-lg border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/60 ${
-    lg ? 'gap-2 px-5 py-2.5 text-base font-semibold' : 'gap-1.5 px-3 py-1.5 text-sm font-medium'
+  // `lg` is deliberately out of scale with the rest of the footer row. Marking a
+  // job applied is the action the card exists for, and the neighbouring
+  // controls are all `text-sm` links to somewhere else — the size difference IS
+  // the hierarchy, not an accident of styling.
+  const base = `inline-flex shrink-0 items-center justify-center rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/60 ${
+    lg
+      ? 'gap-2.5 px-7 py-3.5 text-lg font-bold'
+      : 'gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium'
   }`;
-  const icon = lg ? 'h-[18px] w-[18px]' : 'h-4 w-4';
+  const icon = lg ? 'h-5 w-5' : 'h-4 w-4';
 
   // Without a profile there is nothing to be applied AS, so the control is
   // shown disabled rather than removed — same reasoning as the resume button.
