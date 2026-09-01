@@ -173,6 +173,7 @@ export function Sidebar({ role, profiles }: { role: Role; profiles: ProfileSumma
             label="Super Admin"
             active={
               pathname === '/admin' ||
+              pathname.startsWith('/admin/bid-performance') ||
               pathname.startsWith('/admin/ai-usage') ||
               pathname.startsWith('/admin/prompts') ||
               pathname.startsWith('/admin/keywords') ||
@@ -180,14 +181,20 @@ export function Sidebar({ role, profiles }: { role: Role; profiles: ProfileSumma
               pathname.startsWith('/admin/scrape-runs') ||
               pathname.startsWith('/admin/scraper-settings')
             }
-            // Seven entries at ~40px each. The group is `overflow-hidden` with
+            // Eight entries at ~40px each. The group is `overflow-hidden` with
             // no scrollbar, so anything past this height is not merely cut off
             // — it is unreachable and gives no hint that it exists. Raise this
             // whenever a link is added.
-            maxHeight={340}
+            maxHeight={390}
           >
             <Link href="/admin" className={linkCls(pathname === '/admin')}>
               <span className="text-base">👥</span> Users
+            </Link>
+            <Link
+              href="/admin/bid-performance"
+              className={linkCls(pathname.startsWith('/admin/bid-performance'))}
+            >
+              <span className="text-base">📈</span> Bid Performance (all)
             </Link>
             <Link
               href="/admin/ai-usage"
