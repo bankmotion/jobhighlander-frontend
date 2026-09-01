@@ -23,21 +23,31 @@
   --sticky-bar: rgba(22, 22, 32, 0.94);
   --hover-tint: rgba(255, 255, 255, 0.05);
   --hover-tint-strong: rgba(255, 255, 255, 0.1);
+  /* Depth on a dark canvas comes from a lighter surface, so cards carry no
+     shadow here. The light theme has no such trick and needs real ones. */
+  --shadow-card: none;
+  --shadow-card-hover: none;
+  --sticky-shadow:
+    0 -14px 34px -12px rgba(0, 0, 0, 0.95),
+    0 -1px 0 0 rgba(108, 92, 255, 0.22) inset;
 }
 
 :root[data-theme="light"] {
   color-scheme: light;
-  /* Not pure white: the dark theme carries a violet cast, and #fff under the
-     same purple accent reads colder than the rest of the product. */
-  --bg: #f6f6fa;
+  /* The page is deliberately a cool grey, NOT white. White cards need
+     something to sit ON — with a white page the card borders were doing all
+     the work and every panel read as flat. */
+  --bg: #eceef4;
   --surface: #ffffff;
-  --surface-2: #eeeef4;
-  --border: rgba(16, 16, 32, 0.1);
-  --border-strong: rgba(16, 16, 32, 0.18);
-  --text: #15151f;
-  /* 6.0:1 on --bg. The dark theme's --muted (#8b8b9c) would be only 3.1:1
-     here, failing AA for the timestamps and counts that use it. */
-  --muted: #5c5c72;
+  --surface-2: #f1f3f8;
+  /* Heavier than the dark theme's 0.07/0.12. A light UI needs more border
+     contrast to read as an edge, not less. */
+  --border: rgba(15, 23, 42, 0.13);
+  --border-strong: rgba(15, 23, 42, 0.24);
+  --text: #111827;
+  /* 6.4:1 on --surface, 5.9:1 on --bg. The dark theme's #8b8b9c would be
+     about 3:1 here, failing AA for timestamps, counts and helper text. */
+  --muted: #55607a;
   /* Darkened for headroom, not to fix a failure: white on #6c5cff is 4.55:1,
      which only just clears AA. #5a48e8 gives 6.0:1 and reads less electric
      against a white surface. */
@@ -46,9 +56,22 @@
   --green: #15803d;
   --blue: #1d4ed8;
   --red: #dc2626;
-  --sticky-bar: rgba(255, 255, 255, 0.94);
-  --hover-tint: rgba(16, 16, 32, 0.05);
-  --hover-tint-strong: rgba(16, 16, 32, 0.08);
+  --sticky-bar: rgba(255, 255, 255, 0.95);
+  --hover-tint: rgba(15, 23, 42, 0.05);
+  --hover-tint-strong: rgba(15, 23, 42, 0.08);
+  /* Two layers: a hairline that tightens the edge, and a soft ambient drop.
+     This is what actually separates a card from the page in light mode. */
+  --shadow-card:
+    0 1px 2px rgba(16, 24, 40, 0.05),
+    0 4px 12px -3px rgba(16, 24, 40, 0.1);
+  --shadow-card-hover:
+    0 1px 2px rgba(16, 24, 40, 0.06),
+    0 10px 22px -6px rgba(16, 24, 40, 0.14);
+  /* The dark theme lifts this bar with a near-black glow, which on a light
+     page rendered as a dirty smudge around the bar. */
+  --sticky-shadow:
+    0 -6px 20px -10px rgba(16, 24, 40, 0.22),
+    0 -1px 0 0 rgba(90, 72, 232, 0.18) inset;
 }
 
 html,
@@ -80,9 +103,7 @@ body {
 .jh-sticky-bar {
   background: var(--sticky-bar);
   border-top: 1px solid rgba(108, 92, 255, 0.55);
-  box-shadow:
-    0 -14px 34px -12px rgba(0, 0, 0, 0.95),
-    0 -1px 0 0 rgba(108, 92, 255, 0.22) inset;
+  box-shadow: var(--sticky-shadow);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
@@ -380,7 +401,7 @@ body {
 /* `text-white` means "the emphasis colour" almost everywhere, and must invert.
    The exceptions are elements whose OWN background is a filled accent or a
    dark image scrim, where white is correct in both themes. */
-:root[data-theme="light"] [class~="text-white"]:not([class~="bg-[var(--primary)]"]):not([class~="bg-gradient-to-r"]):not([class~="bg-red-600"]):not([class~="bg-amber-600"]):not([class~="bg-black/45"]) {
+:root[data-theme="light"] [class~="text-white"]:not([class~="bg-[var(--primary)]"]):not([class~="jh-cta"]):not([class~="bg-gradient-to-r"]):not([class~="bg-red-600"]):not([class~="bg-amber-600"]):not([class~="bg-black/45"]) {
   color: var(--text);
 }
 
@@ -446,3 +467,48 @@ body {
 :root[data-theme="light"] [class~="text-cyan-300"] {
   color: #0e7490;
 }
+
+/* ── Light-theme depth ───────────────────────────────────────────────────
+   The dark theme separates a card from the page by making the card LIGHTER
+   than its background. Light mode has no equivalent move — a white card on a
+   near-white page is just flat — so the separation has to come from a border
+   and a shadow instead. */
+
+/* Cards, panels and popovers. Matched on the surface fill plus a rounded
+   corner, which is what distinguishes a card from the full-height sidebar
+   (also --surface, but square, and lifted by its own right border). */
+:root[data-theme="light"] [class~="bg-[var(--surface)]"][class~="rounded-xl"],
+:root[data-theme="light"] [class~="bg-[var(--surface)]"][class~="rounded-2xl"],
+:root[data-theme="light"] [class~="bg-[var(--surface)]"][class~="rounded-lg"] {
+  box-shadow: var(--shadow-card);
+}
+
+/* The dark theme's shadow utilities are tuned for a near-black page; at full
+   strength on a light one they read as grime rather than lift. */
+:root[data-theme="light"] [class~="shadow-2xl"],
+:root[data-theme="light"] [class~="shadow-xl"] {
+  box-shadow: 0 12px 32px -10px rgba(16, 24, 40, 0.22), 0 2px 6px rgba(16, 24, 40, 0.06);
+}
+:root[data-theme="light"] [class~="shadow-lg"] {
+  box-shadow: 0 6px 18px -6px rgba(16, 24, 40, 0.18), 0 1px 3px rgba(16, 24, 40, 0.06);
+}
+
+/* A 15% tint of a saturated hue reads as a clear wash on near-black but as
+   dishwater on white. These carry the same chips at a strength that stays
+   legible under the darkened accent text set above. */
+:root[data-theme="light"] [class~="bg-emerald-500/15"] { background-color: rgb(5 150 105 / 0.13); }
+:root[data-theme="light"] [class~="bg-emerald-500/10"] { background-color: rgb(5 150 105 / 0.1); }
+:root[data-theme="light"] [class~="bg-green-500/15"]   { background-color: rgb(21 128 61 / 0.13); }
+:root[data-theme="light"] [class~="bg-amber-500/15"]   { background-color: rgb(180 83 9 / 0.14); }
+:root[data-theme="light"] [class~="bg-amber-500/10"]   { background-color: rgb(180 83 9 / 0.1); }
+:root[data-theme="light"] [class~="bg-red-500/15"]     { background-color: rgb(220 38 38 / 0.12); }
+:root[data-theme="light"] [class~="bg-red-500/10"]     { background-color: rgb(220 38 38 / 0.09); }
+:root[data-theme="light"] [class~="bg-blue-500/15"]    { background-color: rgb(29 78 216 / 0.12); }
+:root[data-theme="light"] [class~="bg-purple-500/15"]  { background-color: rgb(109 40 217 / 0.12); }
+:root[data-theme="light"] [class~="bg-[var(--blue)]/15"] { background-color: rgb(29 78 216 / 0.12); }
+
+/* Active nav item and selected tab. */
+:root[data-theme="light"] [class~="bg-[var(--primary)]/15"],
+:root[data-theme="light"] [class~="bg-[var(--primary)]/20"] { background-color: rgb(90 72 232 / 0.14); }
+:root[data-theme="light"] [class~="bg-[var(--primary)]/10"],
+:root[data-theme="light"] [class~="bg-[var(--primary)]/12"] { background-color: rgb(90 72 232 / 0.1); }

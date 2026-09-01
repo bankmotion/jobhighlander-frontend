@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Script from 'next/script';
 import { ThemeToggle } from '@/app/components/theme-toggle';
+import { themeStore } from '@/lib/theme';
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? '';
 
@@ -64,19 +65,27 @@ export default function LoginPage() {
     [router],
   );
 
+  const theme = themeStore.useValue();
+
   useEffect(() => {
     if (!scriptReady || !CLIENT_ID || !buttonRef.current) return;
     const gis = window.google?.accounts?.id;
     if (!gis) return;
     gis.initialize({ client_id: CLIENT_ID, callback: onCredential });
+    // renderButton APPENDS, so a re-render on theme change would stack a second
+    // button under the first.
+    buttonRef.current.replaceChildren();
     gis.renderButton(buttonRef.current, {
-      theme: 'filled_black',
+      // Google's own guidance: the black pill is for dark backgrounds, the
+      // outlined one for light. `theme` is null until the store hydrates, and
+      // dark is the app's default, so that window falls to filled_black.
+      theme: theme === 'light' ? 'outline' : 'filled_black',
       size: 'large',
       shape: 'pill',
       text: 'signin_with',
       width: 320,
     });
-  }, [scriptReady, onCredential]);
+  }, [scriptReady, onCredential, theme]);
 
   if (pending) {
     return (
