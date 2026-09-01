@@ -236,32 +236,32 @@ body {
 }
 
 .jh-cascade > * {
-  animation: jh-slide-in-right 420ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  animation: jh-slide-in-right 600ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
-.jh-cascade > *:nth-child(1) { animation-delay: 20ms; }
-.jh-cascade > *:nth-child(2) { animation-delay: 65ms; }
-.jh-cascade > *:nth-child(3) { animation-delay: 110ms; }
-.jh-cascade > *:nth-child(4) { animation-delay: 155ms; }
-.jh-cascade > *:nth-child(5) { animation-delay: 200ms; }
-.jh-cascade > *:nth-child(6) { animation-delay: 245ms; }
-.jh-cascade > *:nth-child(7) { animation-delay: 290ms; }
-.jh-cascade > *:nth-child(8) { animation-delay: 335ms; }
-.jh-cascade > *:nth-child(9) { animation-delay: 380ms; }
-.jh-cascade > *:nth-child(10) { animation-delay: 425ms; }
-.jh-cascade > *:nth-child(11) { animation-delay: 470ms; }
-.jh-cascade > *:nth-child(12) { animation-delay: 515ms; }
-.jh-cascade > *:nth-child(13) { animation-delay: 560ms; }
-.jh-cascade > *:nth-child(14) { animation-delay: 605ms; }
-.jh-cascade > *:nth-child(15) { animation-delay: 650ms; }
-.jh-cascade > *:nth-child(16) { animation-delay: 695ms; }
-.jh-cascade > *:nth-child(17) { animation-delay: 740ms; }
-.jh-cascade > *:nth-child(18) { animation-delay: 785ms; }
-.jh-cascade > *:nth-child(19) { animation-delay: 830ms; }
-.jh-cascade > *:nth-child(20) { animation-delay: 875ms; }
+.jh-cascade > *:nth-child(1) { animation-delay: 30ms; }
+.jh-cascade > *:nth-child(2) { animation-delay: 95ms; }
+.jh-cascade > *:nth-child(3) { animation-delay: 160ms; }
+.jh-cascade > *:nth-child(4) { animation-delay: 225ms; }
+.jh-cascade > *:nth-child(5) { animation-delay: 290ms; }
+.jh-cascade > *:nth-child(6) { animation-delay: 355ms; }
+.jh-cascade > *:nth-child(7) { animation-delay: 420ms; }
+.jh-cascade > *:nth-child(8) { animation-delay: 485ms; }
+.jh-cascade > *:nth-child(9) { animation-delay: 550ms; }
+.jh-cascade > *:nth-child(10) { animation-delay: 615ms; }
+.jh-cascade > *:nth-child(11) { animation-delay: 680ms; }
+.jh-cascade > *:nth-child(12) { animation-delay: 745ms; }
+.jh-cascade > *:nth-child(13) { animation-delay: 810ms; }
+.jh-cascade > *:nth-child(14) { animation-delay: 875ms; }
+.jh-cascade > *:nth-child(15) { animation-delay: 940ms; }
+.jh-cascade > *:nth-child(16) { animation-delay: 1005ms; }
+.jh-cascade > *:nth-child(17) { animation-delay: 1070ms; }
+.jh-cascade > *:nth-child(18) { animation-delay: 1135ms; }
+.jh-cascade > *:nth-child(19) { animation-delay: 1200ms; }
+.jh-cascade > *:nth-child(20) { animation-delay: 1265ms; }
 /* One page is 20 jobs; anything beyond shares the last step rather than
    arriving a second and a half late. */
 .jh-cascade > *:nth-child(n + 21) {
-  animation-delay: 875ms;
+  animation-delay: 1265ms;
 }
 
 @media (prefers-reduced-motion: reduce) {
