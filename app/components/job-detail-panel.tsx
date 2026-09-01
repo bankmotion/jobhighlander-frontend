@@ -222,7 +222,7 @@ export function JobDetailPanelProvider({
             </div>
 
             <div className="mt-4">
-              <AppliedAction jobId={job.id} />
+              <AppliedAction jobId={job.id} size="lg" />
             </div>
 
             {!profileId ? (

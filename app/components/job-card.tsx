@@ -142,7 +142,7 @@ export function JobCard({
           company={job.company}
           count={queryCount}
         />
-        <AppliedAction jobId={job.id} />
+        <AppliedAction jobId={job.id} size="lg" />
         <a
           href={job.jobUrl}
           target="_blank"

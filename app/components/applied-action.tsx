@@ -50,9 +50,14 @@ export function AppliedAction({ jobId, size = 'sm' }: { jobId: number; size?: 's
   const busy = isBusy(jobId);
   const lg = size === 'lg';
 
-  const base = `inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/60 ${
-    lg ? 'px-4 py-2 text-sm' : 'px-3 py-1.5 text-sm'
+  // `lg` used to differ from `sm` by padding alone, which read as the same
+  // button with more air around it. Marking a job applied is the action this
+  // card exists for, so at this size it steps up in type and weight too and is
+  // deliberately the heaviest control in the row.
+  const base = `inline-flex shrink-0 items-center justify-center rounded-lg border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/60 ${
+    lg ? 'gap-2 px-5 py-2.5 text-base font-semibold' : 'gap-1.5 px-3 py-1.5 text-sm font-medium'
   }`;
+  const icon = lg ? 'h-[18px] w-[18px]' : 'h-4 w-4';
 
   // Without a profile there is nothing to be applied AS, so the control is
   // shown disabled rather than removed — same reasoning as the resume button.
@@ -66,7 +71,7 @@ export function AppliedAction({ jobId, size = 'sm' }: { jobId: number; size?: 's
         aria-label={`Cannot mark posting ${jobId} as applied: no profile yet`}
         className={`${base} cursor-not-allowed border-dashed border-[var(--border)] text-[var(--muted)]`}
       >
-        <IconCheck />
+        <IconCheck className={icon} />
         Mark as Applied
       </span>
     );
@@ -87,7 +92,7 @@ export function AppliedAction({ jobId, size = 'sm' }: { jobId: number; size?: 's
         title={`Applied ${when(status.appliedAt)} by ${status.markedBy} — click to undo`}
         className={`${base} border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-60`}
       >
-        <IconCheck />
+        <IconCheck className={icon} />
         {busy ? 'Saving…' : `Applied ${when(status.appliedAt)}`}
       </button>
     );
@@ -101,7 +106,7 @@ export function AppliedAction({ jobId, size = 'sm' }: { jobId: number; size?: 's
       aria-label={`Mark posting ${jobId} as applied`}
       className={`${base} border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] hover:border-emerald-500/50 hover:text-white disabled:opacity-60`}
     >
-      <IconCheck />
+      <IconCheck className={icon} />
       {busy ? 'Saving…' : 'Mark as Applied'}
     </button>
   );
