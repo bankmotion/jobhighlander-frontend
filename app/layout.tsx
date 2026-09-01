@@ -6,6 +6,7 @@ import { getSession } from '@/lib/auth';
 import { SidebarData } from '@/app/components/sidebar-data';
 import { Topbar } from '@/app/components/topbar';
 import { PageTransition } from '@/app/components/page-transition';
+import { ScrollToTop } from '@/app/components/scroll-to-top';
 
 export const metadata: Metadata = {
   title: 'JobHighLander',
@@ -39,6 +40,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <PageTransition>{children}</PageTransition>
           </main>
         )}
+        <ScrollToTop />
       </body>
     </html>
   );

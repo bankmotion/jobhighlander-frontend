@@ -213,3 +213,97 @@ body {
     animation-iteration-count: 1;
   }
 }
+
+
+/* Job list cascade — cards arrive one by one, sliding in from the right.
+
+   `backwards` rather than `both` on purpose: it applies the first keyframe
+   during the delay (so nothing flashes before its turn) but leaves NO transform
+   once the animation ends. A finished transform computes to an identity matrix,
+   not `none`, and that would make every card a containing block for any
+   `position: fixed` descendant — the bug that trapped the loading overlay.
+   Cards hold no fixed children today; this keeps it from mattering if one is
+   added later. */
+@keyframes jh-slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.jh-cascade > * {
+  animation: jh-slide-in-right 420ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.jh-cascade > *:nth-child(1) { animation-delay: 20ms; }
+.jh-cascade > *:nth-child(2) { animation-delay: 65ms; }
+.jh-cascade > *:nth-child(3) { animation-delay: 110ms; }
+.jh-cascade > *:nth-child(4) { animation-delay: 155ms; }
+.jh-cascade > *:nth-child(5) { animation-delay: 200ms; }
+.jh-cascade > *:nth-child(6) { animation-delay: 245ms; }
+.jh-cascade > *:nth-child(7) { animation-delay: 290ms; }
+.jh-cascade > *:nth-child(8) { animation-delay: 335ms; }
+.jh-cascade > *:nth-child(9) { animation-delay: 380ms; }
+.jh-cascade > *:nth-child(10) { animation-delay: 425ms; }
+.jh-cascade > *:nth-child(11) { animation-delay: 470ms; }
+.jh-cascade > *:nth-child(12) { animation-delay: 515ms; }
+.jh-cascade > *:nth-child(13) { animation-delay: 560ms; }
+.jh-cascade > *:nth-child(14) { animation-delay: 605ms; }
+.jh-cascade > *:nth-child(15) { animation-delay: 650ms; }
+.jh-cascade > *:nth-child(16) { animation-delay: 695ms; }
+.jh-cascade > *:nth-child(17) { animation-delay: 740ms; }
+.jh-cascade > *:nth-child(18) { animation-delay: 785ms; }
+.jh-cascade > *:nth-child(19) { animation-delay: 830ms; }
+.jh-cascade > *:nth-child(20) { animation-delay: 875ms; }
+/* One page is 20 jobs; anything beyond shares the last step rather than
+   arriving a second and a half late. */
+.jh-cascade > *:nth-child(n + 21) {
+  animation-delay: 875ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jh-cascade > * {
+    animation: none;
+  }
+}
+
+/* Back-to-top button: fades in rather than popping. */
+.jh-to-top {
+  animation: jh-fade-in 180ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .jh-to-top {
+    animation: none;
+  }
+}
+
+/* "Show more" — the description slides open.
+
+   max-height rather than height because the text has no known size; 24rem is
+   the same cap the panel already carries (max-h-96), so the animation ends
+   exactly where the static style would have put it. Collapsing is instant:
+   the expanded node unmounts, and animating an exit needs state this component
+   does not keep. */
+@keyframes jh-expand {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    max-height: 24rem;
+    transform: translateY(0);
+  }
+}
+.jh-expand {
+  animation: jh-expand 300ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .jh-expand {
+    animation: none;
+  }
+}

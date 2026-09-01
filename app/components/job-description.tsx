@@ -39,7 +39,7 @@ export function JobDescription({ text, keywords }: { text: string; keywords: str
   return (
     <div className="mt-3">
       {expanded ? (
-        <p className="max-h-96 overflow-y-auto whitespace-pre-wrap rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/40 p-3 text-sm leading-relaxed text-[var(--muted)]">
+        <p className="jh-expand max-h-96 overflow-y-auto whitespace-pre-wrap rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/40 p-3 text-sm leading-relaxed text-[var(--muted)]">
           <HighlightedText text={text} words={keywords} />
         </p>
       ) : (
