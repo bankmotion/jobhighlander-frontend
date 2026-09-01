@@ -1,20 +1,40 @@
 'use client';
 
-import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from 'react';
 import Link from 'next/link';
-import type { Job } from '@/lib/types';
+import type { Job, ProfileSummary } from '@/lib/types';
+import type { Preset } from '@/lib/templates';
+import type { CoverLetter } from '@/lib/cover-letters';
+import type { JobQuery } from '@/lib/job-queries';
+import type { InterviewDetail } from '@/lib/interviews';
+import type { StageType } from '@/lib/stage-types';
 import { formatPostedRelative } from '@/lib/format';
 import { SidePanel } from './side-panel';
+import { JobTabs } from './job-tabs';
 import { AppliedAction, AppliedBadge, PreviouslyAppliedBadge } from './applied-action';
 import { HighlightedText } from './highlighted-text';
+import { ResumeGenerator } from './resume-generator';
+import { CoverLetterGenerator } from './cover-letter-generator';
+import { JobQueryPanel } from './job-query-panel';
+import { InterviewTimeline } from './interview-timeline';
+import { useApplied } from './applied-provider';
 
-// Opens the job detail in the same right-to-left drawer the calendar uses.
+// The job detail, in the same right-to-left drawer the calendar uses, carrying
+// the same five tabs as the full page.
 //
-// The job object is handed over from the card rather than refetched: the list
-// already carries the full row, description included, so the panel opens with
-// no request and no spinner. Anything needing more than the posting itself —
-// resume generation, the interview timeline — stays on the full page, which the
-// footer links to.
+// The posting itself comes from the card, so the Description tab is readable
+// the instant the drawer opens. Everything else — saved resume, cover letter,
+// AI log, interview timeline — belongs to a (job, profile) pairing and is
+// fetched on open, exactly as CalendarDetailPanel does for a meeting. Loading
+// them with the list instead would mean five requests per card for panels most
+// cards never open.
 interface Ctx {
   open: (job: Job) => void;
 }
@@ -23,25 +43,89 @@ const JobPanelCtx = createContext<Ctx | null>(null);
 
 export function useJobPanel(): Ctx {
   const ctx = useContext(JobPanelCtx);
-  // A card can render outside the provider (the detail page reuses it), so this
-  // degrades to a no-op instead of throwing.
+  // Cards also render on the detail page, outside this provider, so a missing
+  // context degrades to a no-op rather than throwing.
   return ctx ?? { open: () => {} };
+}
+
+interface Loaded {
+  jobId: number;
+  hasResume: boolean;
+  letter: CoverLetter | null;
+  queries: JobQuery[];
+  interview: InterviewDetail | null;
+}
+
+async function json<T>(url: string): Promise<T | null> {
+  try {
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return null;
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
 }
 
 export function JobDetailPanelProvider({
   keywords,
   profileId,
+  profiles,
+  presets,
+  stageTypes,
   children,
 }: {
   keywords: string[];
   profileId: number | null;
+  profiles: ProfileSummary[];
+  presets: Preset[];
+  stageTypes: StageType[];
   children: ReactNode;
 }) {
+  const { appliedOn } = useApplied();
   const [job, setJob] = useState<Job | null>(null);
+  const [data, setData] = useState<Loaded | null>(null);
+
   const open = useCallback((next: Job) => setJob(next), []);
   const close = useCallback(() => setJob(null), []);
 
-  const detailHref = job ? (profileId ? `/jobs/${job.id}?profile=${profileId}` : `/jobs/${job.id}`) : '#';
+  useEffect(() => {
+    if (!job || !profileId) return;
+    let live = true;
+    const jobId = job.id;
+
+    Promise.all([
+      json<{ [id: number]: unknown }>(`/api/resumes/status?profileId=${profileId}&jobIds=${jobId}`),
+      json<CoverLetter>(`/api/cover-letters?jobId=${jobId}&profileId=${profileId}`),
+      json<JobQuery[]>(`/api/job-queries?jobId=${jobId}&profileId=${profileId}`),
+      json<InterviewDetail>(`/api/interviews/for-job?jobId=${jobId}&profileId=${profileId}`),
+    ]).then(([status, letter, queries, interview]) => {
+      // Guarded on the job id: opening a second card before the first lands
+      // must not paint the first one's documents under the second one's title.
+      if (live) {
+        setData({
+          jobId,
+          hasResume: Boolean(status && (status as Record<number, unknown>)[jobId]),
+          letter,
+          queries: queries ?? [],
+          interview,
+        });
+      }
+    });
+
+    return () => {
+      live = false;
+    };
+  }, [job, profileId]);
+
+  const shown = data?.jobId === job?.id ? data : null;
+  const activeProfile = profiles.find((p) => p.id === profileId) ?? null;
+
+  const detailHref = job
+    ? profileId
+      ? `/jobs/${job.id}?profile=${profileId}`
+      : `/jobs/${job.id}`
+    : '#';
+
   const posted = job ? formatPostedRelative(job.postedAt) : null;
   const scraped = job ? formatPostedRelative(job.createdAt) : null;
   const meta = job
@@ -49,6 +133,7 @@ export function JobDetailPanelProvider({
         Boolean,
       ) as string[])
     : [];
+  const words = job?.description ? job.description.trim().split(/\s+/).length : 0;
 
   return (
     <JobPanelCtx.Provider value={{ open }}>
@@ -140,14 +225,91 @@ export function JobDetailPanelProvider({
               <AppliedAction jobId={job.id} />
             </div>
 
-            <div className="mt-5 border-t border-[var(--border)] pt-4">
-              <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-                Description
-              </h4>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--muted)]">
-                <HighlightedText text={job.description} words={keywords} />
+            {!profileId ? (
+              <p className="mt-5 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-4 text-sm text-[var(--muted)]">
+                Choose a profile to generate a resume, cover letter or interview timeline for this
+                job.
               </p>
-            </div>
+            ) : (
+              <JobTabs
+                key={job.id}
+                tabs={[
+                  {
+                    key: 'description',
+                    label: 'Description',
+                    badge: words > 0 ? `${words.toLocaleString()} words` : undefined,
+                    content: (
+                      <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--text)]/90">
+                        {job.description ? (
+                          <HighlightedText text={job.description} words={keywords} />
+                        ) : (
+                          'No description captured.'
+                        )}
+                      </p>
+                    ),
+                  },
+                  {
+                    key: 'resume',
+                    label: 'Tailored Resume',
+                    content: (
+                      <ResumeGenerator
+                        jobId={job.id}
+                        profiles={profiles}
+                        presets={presets}
+                        initialProfileId={profileId}
+                      />
+                    ),
+                  },
+                  {
+                    key: 'cover-letter',
+                    label: 'Cover Letter',
+                    badge: shown?.hasResume ? undefined : 'Resume first',
+                    content: (
+                      <CoverLetterGenerator
+                        key={shown ? `letter-${job.id}` : 'letter-loading'}
+                        jobId={job.id}
+                        profileId={profileId}
+                        profile={activeProfile}
+                        hasResume={Boolean(shown?.hasResume)}
+                        initial={shown?.letter ?? null}
+                      />
+                    ),
+                  },
+                  {
+                    key: 'ask-ai',
+                    label: 'Ask AI',
+                    badge: shown && shown.queries.length > 0 ? String(shown.queries.length) : undefined,
+                    content: (
+                      <JobQueryPanel
+                        key={shown ? `ai-${job.id}-${profileId}` : 'ai-loading'}
+                        jobId={job.id}
+                        profileId={profileId}
+                        initial={shown?.queries ?? []}
+                      />
+                    ),
+                  },
+                  {
+                    key: 'interview',
+                    label: 'Interview',
+                    badge: shown?.interview
+                      ? `${shown.interview.steps.length} ${
+                          shown.interview.steps.length === 1 ? 'step' : 'steps'
+                        }`
+                      : undefined,
+                    content: (
+                      <InterviewTimeline
+                        key={shown ? `iv-${job.id}-${profileId}` : 'iv-loading'}
+                        jobId={job.id}
+                        profileId={profileId}
+                        applied={Boolean(appliedOn(job.id))}
+                        initial={shown?.interview ?? null}
+                        stageTypes={stageTypes}
+                      />
+                    ),
+                  },
+                ]}
+              />
+            )}
           </div>
         )}
       </SidePanel>

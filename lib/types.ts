@@ -29,6 +29,10 @@ export interface Pagination {
 export interface Paginated<T> {
   items: T[];
   pagination: Pagination;
+  // Highest id matching the current filters, identical on every page. The job
+  // list polls against it for new arrivals; the highest id on the page being
+  // read is lower on anything past page 1 and would report the wrong count.
+  latestId?: number;
 }
 
 export interface JobFilters {

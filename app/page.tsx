@@ -1,5 +1,6 @@
 import { fetchJobs, fetchFilters } from '@/lib/api';
 import { fetchKeywords } from '@/lib/keywords';
+import { fetchStageTypes } from '@/lib/stage-types.server';
 import { fetchProfiles } from '@/lib/profiles';
 import { fetchPresets } from '@/lib/templates';
 import { fetchResumeStatus } from '@/lib/resumes';
@@ -13,6 +14,7 @@ import { FiltersBar } from '@/app/components/filters-bar';
 import { JobFiltersRestore } from '@/app/components/job-filters-restore';
 import { JobCard } from '@/app/components/job-card';
 import { JobDetailPanelProvider } from '@/app/components/job-detail-panel';
+import { NewJobsBanner } from '@/app/components/new-jobs-banner';
 import { Pagination } from '@/app/components/pagination';
 import { AppliedProvider } from '@/app/components/applied-provider';
 import { CoverLetterProvider } from '@/app/components/cover-letter-provider';
@@ -53,7 +55,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   const interviewParam = str(sp.interview);
   const interview: InterviewFilter = isInterviewFilter(interviewParam) ? interviewParam : 'all';
 
-  const [filters, profiles, presets, session, keywords] = await Promise.all([
+  const [filters, profiles, presets, session, keywords, stageTypes] = await Promise.all([
     fetchFilters().catch(() => ({ sites: [], locations: [] })),
     fetchProfiles().catch(() => []),
     fetchPresets().catch(() => []),
@@ -64,6 +66,9 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
     fetchKeywords()
       .then((ks) => ks.map((k) => k.word))
       .catch(() => []),
+    // Page-level and identical for every card, so the drawer takes them as a
+    // prop rather than refetching them each time one opens.
+    fetchStageTypes().catch(() => []),
   ]);
 
   // `?profile=` wins so the choice is shareable and the server render is already
@@ -193,7 +198,13 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                 initial={discardStatus}
                 viewerEmail={session?.email ?? null}
               >
-                <JobDetailPanelProvider keywords={keywords} profileId={profileId}>
+                <JobDetailPanelProvider
+                  keywords={keywords}
+                  profileId={profileId}
+                  profiles={profiles}
+                  presets={presets}
+                  stageTypes={stageTypes}
+                >
                 <ul className="jh-cascade grid gap-4">
                   {data.items.map((job) => (
                     <JobCard
@@ -207,6 +218,18 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                   ))}
                 </ul>
                 </JobDetailPanelProvider>
+
+                <NewJobsBanner
+                  latestId={data.latestId ?? 0}
+                  query={new URLSearchParams({
+                    ...(query.q ? { q: query.q } : {}),
+                    ...(remote ? { remote: '1' } : {}),
+                    ...(applied !== 'all' ? { applied } : {}),
+                    ...(discarded !== 'all' ? { discarded } : {}),
+                    ...(interview !== 'all' ? { interview } : {}),
+                    ...(profileId ? { profileId: String(profileId) } : {}),
+                  }).toString()}
+                />
                 <Pagination pagination={data.pagination} query={query} />
               </DiscardProvider>
             </CoverLetterProvider>
