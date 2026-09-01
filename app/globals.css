@@ -400,8 +400,13 @@ body {
 
 /* `text-white` means "the emphasis colour" almost everywhere, and must invert.
    The exceptions are elements whose OWN background is a filled accent or a
-   dark image scrim, where white is correct in both themes. */
-:root[data-theme="light"] [class~="text-white"]:not([class~="bg-[var(--primary)]"]):not([class~="jh-cta"]):not([class~="bg-gradient-to-r"]):not([class~="bg-red-600"]):not([class~="bg-amber-600"]):not([class~="bg-black/45"]) {
+   dark image scrim, where white is correct in both themes.
+
+   The gradient exception matches on a substring rather than an exact token:
+   `to-r`, `to-br` and the rest are all filled backgrounds, and pinning it to
+   one direction meant changing a gradient's angle silently turned its label
+   dark. */
+:root[data-theme="light"] [class~="text-white"]:not([class~="bg-[var(--primary)]"]):not([class~="jh-cta"]):not([class*="bg-gradient-to-"]):not([class~="bg-red-600"]):not([class~="bg-amber-600"]):not([class~="bg-black/45"]) {
   color: var(--text);
 }
 

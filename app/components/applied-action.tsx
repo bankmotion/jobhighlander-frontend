@@ -19,15 +19,18 @@ function IconCheck({ className = 'h-4 w-4' }: { className?: string }) {
   );
 }
 
+// The tick sits on a darker disc rather than directly on the gradient: a white
+// check on mid-emerald is legible but weak, and the disc gives it an edge to
+// read against at 16px.
 function CheckDisc({ lg }: { lg: boolean }) {
   return (
     <span
       aria-hidden
-      className={`flex shrink-0 items-center justify-center rounded-full bg-emerald-950/45 ${
-        lg ? 'h-5 w-5' : 'h-4 w-4'
+      className={`flex shrink-0 items-center justify-center rounded-full bg-emerald-950/45 shadow-[0_1px_0_0_rgba(255,255,255,0.22)_inset] ${
+        lg ? 'h-6 w-6' : 'h-5 w-5'
       }`}
     >
-      <IconCheck className={lg ? 'h-3 w-3' : 'h-2.5 w-2.5'} />
+      <IconCheck className={lg ? 'h-3.5 w-3.5' : 'h-3 w-3'} />
     </span>
   );
 }
@@ -50,19 +53,9 @@ export function AppliedAction({ jobId, size = 'sm' }: { jobId: number; size?: 's
   const busy = isBusy(jobId);
   const lg = size === 'lg';
 
-  // `lg` is deliberately out of scale with the rest of the footer row. Marking a
-  // job applied is the action the card exists for, and the neighbouring
-  // controls are all `text-sm` links to somewhere else — the size difference IS
-  // the hierarchy, not an accident of styling.
-  // `whitespace-nowrap` because "Applied Sep 1, 2026" breaks onto three lines
-  // in a narrow card, which turns a button into a tall block. The footer row
-  // wraps, so it moves to its own line instead.
-  const base = `inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/60 ${
-    lg
-      ? 'gap-2.5 px-7 py-3.5 text-lg font-bold'
-      : 'gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium'
+  const base = `inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/60 ${
+    lg ? 'px-4 py-2 text-sm' : 'px-3 py-1.5 text-sm'
   }`;
-  const icon = lg ? 'h-5 w-5' : 'h-4 w-4';
 
   // Without a profile there is nothing to be applied AS, so the control is
   // shown disabled rather than removed — same reasoning as the resume button.
@@ -76,7 +69,7 @@ export function AppliedAction({ jobId, size = 'sm' }: { jobId: number; size?: 's
         aria-label={`Cannot mark posting ${jobId} as applied: no profile yet`}
         className={`${base} cursor-not-allowed border-dashed border-[var(--border)] text-[var(--muted)]`}
       >
-        <IconCheck className={icon} />
+        <IconCheck />
         Mark as Applied
       </span>
     );
@@ -97,7 +90,7 @@ export function AppliedAction({ jobId, size = 'sm' }: { jobId: number; size?: 's
         title={`Applied ${when(status.appliedAt)} by ${status.markedBy} — click to undo`}
         className={`${base} border-emerald-500/40 bg-emerald-500/10 text-emerald-300 hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-60`}
       >
-        <IconCheck className={icon} />
+        <IconCheck />
         {busy ? 'Saving…' : `Applied ${when(status.appliedAt)}`}
       </button>
     );
@@ -111,7 +104,7 @@ export function AppliedAction({ jobId, size = 'sm' }: { jobId: number; size?: 's
       aria-label={`Mark posting ${jobId} as applied`}
       className={`${base} border-[var(--border)] bg-[var(--surface-2)] text-[var(--text)] hover:border-emerald-500/50 hover:text-white disabled:opacity-60`}
     >
-      <IconCheck className={icon} />
+      <IconCheck />
       {busy ? 'Saving…' : 'Mark as Applied'}
     </button>
   );
@@ -165,26 +158,31 @@ export function AppliedBadge({ jobId, size = 'sm' }: { jobId: number; size?: 'sm
       // Full address in the tooltip, short name on screen: two colleagues can
       // share a first name and the pill has no room to settle that.
       title={`Applied ${when(status.appliedAt)} by ${status.markedBy}`}
-      className={`inline-flex items-center rounded-full bg-gradient-to-r from-emerald-500 via-emerald-500 to-green-600 font-extrabold uppercase text-white shadow-[0_2px_12px_-2px_rgba(16,185,129,0.7)] ring-1 ring-inset ring-white/25 ${
-        lg
-          ? 'gap-2 px-3 py-1.5 text-sm tracking-wider'
-          : 'gap-1.5 px-2.5 py-1 text-xs tracking-wide'
+      // Three light effects doing three different jobs, which is what stops it
+      // reading as a flat coloured rectangle:
+      //   - a diagonal gradient, so the fill has a direction
+      //   - an inset top highlight, which is what makes it look raised
+      //   - a soft emerald glow, so it lifts off the card instead of sitting on it
+      // The white ring keeps a crisp edge on both themes; on the light theme the
+      // glow alone would leave the pill floating with no boundary.
+      className={`inline-flex items-center whitespace-nowrap rounded-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-green-600 text-white ring-1 ring-inset ring-white/30 shadow-[0_1px_0_0_rgba(255,255,255,0.3)_inset,0_3px_14px_-3px_rgba(16,185,129,0.75)] ${
+        lg ? 'gap-2 px-3.5 py-2 text-sm' : 'gap-2 px-3 py-1.5 text-[13px]'
       }`}
     >
       <CheckDisc lg={lg} />
-      Applied
-      <span
-        className={`rounded-full bg-emerald-950/35 font-bold normal-case text-white/95 ring-1 ring-inset ring-white/20 ${
-          lg ? 'px-2 py-0.5 text-xs' : 'px-1.5 py-px text-[10px]'
-        }`}
-      >
-        {who}
+      <span className="font-extrabold uppercase tracking-wider">Applied</span>
+
+      {/* A hairline rather than a bullet: it separates the label from the
+          metadata without adding a glyph that competes with the tick. */}
+      <span aria-hidden className={`w-px self-stretch bg-white/30 ${lg ? 'my-0.5' : 'my-px'}`} />
+
+      <span className="font-semibold text-white/95">{who}</span>
+      {/* The date earns its place at both sizes now the pill is large enough:
+          "who applied" and "how long ago" are the two questions this badge is
+          scanned for, and only one of them used to be answered. */}
+      <span className={`font-medium text-white/75 ${lg ? 'text-xs' : 'text-[11px]'}`}>
+        {when(status.appliedAt)}
       </span>
-      {lg && (
-        <span className="font-medium normal-case tracking-normal text-white/80">
-          {when(status.appliedAt)}
-        </span>
-      )}
     </span>
   );
 }

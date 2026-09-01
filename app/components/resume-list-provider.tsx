@@ -71,6 +71,23 @@ export type ResumeFormat = 'pdf' | 'docx';
 
 const MIME_EXT: Record<ResumeFormat, string> = { pdf: 'pdf', docx: 'docx' };
 
+// Shared by the resume and the letter so the two files are saved the same way.
+function saveBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  // Appended before clicking: a detached anchor is ignored by Firefox.
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  // Revoking on the next line cancels the save in Firefox and Safari, which
+  // read the blob asynchronously after the click. A plain timer, not an effect
+  // cleanup — a filter toggle unmounts this provider, and tearing the URL down
+  // there would kill a download in flight.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
 function fileNameFor(t: ResumeTarget): string {
   return (
     [t.company, t.title, t.jobId]
@@ -459,19 +476,34 @@ export function ResumeListProvider({
           return;
         }
 
-        const url = URL.createObjectURL(await res.blob());
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${fileNameFor(t)}.${MIME_EXT[format]}`;
-        // Appended before clicking: a detached anchor is ignored by Firefox.
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        // Revoking on the next line cancels the save in Firefox and Safari,
-        // which read the blob asynchronously after the click. A plain timer,
-        // not an effect cleanup — a filter toggle unmounts this provider, and
-        // tearing the URL down there would kill a download in flight.
-        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+        saveBlob(await res.blob(), `resume_${fileNameFor(t)}.${MIME_EXT[format]}`);
+
+        // The cover letter follows in the same format, so one click yields the
+        // pair that gets sent together.
+        //
+        // Asked for unconditionally rather than after checking whether one
+        // exists: the check would be a second round trip to save a request that
+        // is cheap when it 404s. A missing letter is the ordinary case for a job
+        // nobody has written one for, so it passes silently — the resume, which
+        // is what the click was for, has already been saved by this point.
+        try {
+          const qs = new URLSearchParams({
+            jobId: String(t.jobId),
+            profileId: String(profileId),
+            pageSize: 'letter',
+            ...(templateKey ? { templateKey } : {}),
+          });
+          const letterRes = await fetch(`/api/cover-letters/${format}?${qs}`);
+          if (letterRes.ok) {
+            saveBlob(await letterRes.blob(), `cover_${fileNameFor(t)}.${MIME_EXT[format]}`);
+          } else if (letterRes.status !== 404) {
+            // A real failure is worth saying, since the user asked for both and
+            // is about to get one.
+            show('The resume downloaded, but the cover letter could not be rendered.', 'error');
+          }
+        } catch {
+          show('The resume downloaded, but the cover letter could not be fetched.', 'error');
+        }
       } catch {
         show(`Could not download the ${format.toUpperCase()}.`, 'error');
       } finally {
