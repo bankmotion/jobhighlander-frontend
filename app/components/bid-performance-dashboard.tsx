@@ -165,12 +165,16 @@ export function BidPerformanceDashboard({
                 Bidder
               </span>
               <select
-                value={bidder ?? ''}
+                value={bidder === 'all' ? '' : (bidder ?? '')}
                 onChange={(e) => navigate({ bidder: e.target.value || null })}
                 className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-sm text-[var(--text)] outline-none transition focus:border-[var(--primary)]"
               >
-                <option value="">Just me</option>
-                <option value="all">All team members</option>
+                {/* Empty is the default, and the default is everyone. "Just
+                    me" carries the viewer's own id rather than a sentinel,
+                    because the backend already treats a named bidder and the
+                    caller identically. */}
+                <option value="">All team members</option>
+                {viewerId !== null && <option value={viewerId}>Just me</option>}
                 {data.bidders
                   .filter((b) => b.userId !== viewerId)
                   .map((b) => (

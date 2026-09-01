@@ -27,10 +27,13 @@ export default async function BidPerformancePage({
   const parsedProfile = Number(sp.profile);
   const wantedProfile = Number.isInteger(parsedProfile) && parsedProfile > 0 ? parsedProfile : null;
 
-  // 'all' or a teammate id; anything else falls back to the viewer's own bids.
+  // Absent means EVERYONE. A specific person is named by id — including the
+  // viewer themselves, which is what "Just me" now selects — so the default
+  // needs no sentinel of its own. `user=all` is still accepted so links saved
+  // before this change keep working.
   const parsedUser = Number(sp.user);
-  const bidder: number | 'all' | null =
-    sp.user === 'all' ? 'all' : Number.isInteger(parsedUser) && parsedUser > 0 ? parsedUser : null;
+  const bidder: number | 'all' =
+    Number.isInteger(parsedUser) && parsedUser > 0 ? parsedUser : 'all';
 
   const [profiles, session, data] = await Promise.all([
     fetchProfiles().catch(() => []),
@@ -53,8 +56,8 @@ export default async function BidPerformancePage({
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-white">Bid performance</h1>
       <p className="mb-5 text-sm text-[var(--muted)]">
         What happened to the jobs applied to — volume, conversion to interviews, and which sources
-        and employers are worth the effort. Defaults to your own bids; use the bidder filter to see
-        a teammate or the whole team.
+        and employers are worth the effort. Shows the whole team by default; use the bidder filter
+        to narrow to yourself or one teammate.
       </p>
 
       {data ? (

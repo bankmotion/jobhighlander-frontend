@@ -82,6 +82,10 @@ export interface TeamBidPerformance {
   allProfiles: { id: number; name: string }[];
   /// Which profile the figures are narrowed to, or null for all of them.
   profileId: number | null;
+  /// Which bidder the figures are narrowed to, or null for everyone.
+  bidder: number | null;
+  /// Everyone with access, for the bidder picker. Unaffected by the filter.
+  bidders: { userId: number; email: string }[];
   applied: AppliedRow[];
 }
 

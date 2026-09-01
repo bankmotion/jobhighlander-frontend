@@ -57,7 +57,7 @@ export const bidPrefs = createQueryPrefs('jh.prefs.bid-performance', [
 ]);
 
 export const teamBidPrefs = createQueryPrefs('jh.prefs.team-bid-performance', [
-  'days', 'from', 'to', 'profile',
+  'days', 'from', 'to', 'profile', 'user',
 ]);
 
 // ── AI usage (client state) ──

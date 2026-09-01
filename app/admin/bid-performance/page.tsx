@@ -13,7 +13,7 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 export default async function TeamBidPerformancePage({
   searchParams,
 }: {
-  searchParams: Promise<{ days?: string; from?: string; to?: string; profile?: string }>;
+  searchParams: Promise<{ days?: string; from?: string; to?: string; profile?: string; user?: string }>;
 }) {
   const sp = await searchParams;
 
@@ -29,7 +29,11 @@ export default async function TeamBidPerformancePage({
   const parsedProfile = Number(sp.profile);
   const profileId = Number.isInteger(parsedProfile) && parsedProfile > 0 ? parsedProfile : undefined;
 
-  const data = await fetchTeamBidPerformance(custom ? custom : { days }, profileId);
+  // Absent means everyone, matching the personal page.
+  const parsedUser = Number(sp.user);
+  const bidder = Number.isInteger(parsedUser) && parsedUser > 0 ? parsedUser : undefined;
+
+  const data = await fetchTeamBidPerformance(custom ? custom : { days }, profileId, bidder);
 
   return (
     <div>

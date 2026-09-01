@@ -48,7 +48,9 @@ export function TeamBidPerformanceDashboard({
 
   const series = useMemo(() => bucketDaily(data.daily), [data.daily]);
 
-  function navigate(next: { days?: number; from?: string; to?: string; profile?: string | null } = {}) {
+  function navigate(
+    next: { days?: number; from?: string; to?: string; profile?: string | null; bidder?: string | null } = {},
+  ) {
     const q = new URLSearchParams();
     const useCustom = next.from && next.to ? true : next.days ? false : Boolean(custom);
     if (useCustom) {
@@ -62,6 +64,8 @@ export function TeamBidPerformanceDashboard({
     // while the picker still showed the chosen one.
     const p = next.profile !== undefined ? next.profile : data.profileId ? String(data.profileId) : null;
     if (p) q.set('profile', p);
+    const b = next.bidder !== undefined ? next.bidder : data.bidder ? String(data.bidder) : null;
+    if (b) q.set('user', b);
     teamBidPrefs.save(q.toString());
     startTransition(() => router.push(`?${q}`, { scroll: false }));
   }
@@ -174,6 +178,24 @@ export function TeamBidPerformanceDashboard({
               {data.allProfiles.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
+              Bidder
+            </span>
+            <select
+              value={data.bidder ?? ''}
+              onChange={(e) => navigate({ bidder: e.target.value || null })}
+              className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-sm text-[var(--text)] outline-none transition focus:border-[var(--primary)]"
+            >
+              <option value="">All team members</option>
+              {data.bidders.map((b) => (
+                <option key={b.userId} value={b.userId}>
+                  {b.email}
                 </option>
               ))}
             </select>
