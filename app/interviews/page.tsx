@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { fetchProfiles } from '@/lib/profiles';
 import { fetchInterviews, fetchUpcoming } from '@/lib/interviews.server';
-import type { InterviewSummary } from '@/lib/interviews';
+import type { CalendarPanel, InterviewSummary, UpcomingPanel } from '@/lib/interviews';
 import { StageChip } from '@/app/components/stage-badge';
 import { MeetingTime } from '@/app/components/meeting-time';
+import { InterviewAgendaList } from '@/app/components/interview-agenda-list';
 import { StatusChip } from '@/app/components/interview-timeline';
 
 export const dynamic = 'force-dynamic';
@@ -53,49 +54,15 @@ export default async function InterviewsPage({
             Nothing scheduled in the next week.
           </p>
         ) : (
-          <ul className="grid gap-3 sm:grid-cols-2">
-            {agenda.map((p) => (
-              <li
-                key={p.panelId}
-                className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
-              >
-                <div className="mb-2 flex flex-wrap gap-1.5">
-                  {p.stages.map((s) => (
-                    <StageChip key={s.id} stage={s} />
-                  ))}
-                </div>
-                <p className="truncate text-sm font-semibold text-white">
-                  {p.jobCompany ?? 'Unknown company'}
-                </p>
-                <p className="mb-2 truncate text-xs text-[var(--muted)]">{p.jobTitle}</p>
-                <MeetingTime
-                  iso={p.scheduledAt}
-                  timezone={p.timezone}
-                  durationMin={p.durationMin}
-                />
-                <div className="mt-2 flex flex-wrap items-center gap-3">
-                  {p.meetingUrl && (
-                    <a
-                      href={p.meetingUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs font-medium text-[var(--primary)] transition hover:underline"
-                    >
-                      Join ↗
-                    </a>
-                  )}
-                  {p.jobId && (
-                    <Link
-                      href={timelineHref(p.jobId, interviewProfile(interviews, p.interviewId))}
-                      className="text-xs text-[var(--muted)] transition hover:text-white"
-                    >
-                      Open timeline →
-                    </Link>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
+          <InterviewAgendaList
+            agenda={toCalendarPanels(agenda, interviews)}
+            timelineHrefFor={Object.fromEntries(
+              agenda.map((p) => [
+                p.panelId,
+                p.jobId ? timelineHref(p.jobId, interviewProfile(interviews, p.interviewId)) : null,
+              ]),
+            )}
+          />
         )}
       </section>
 
@@ -175,6 +142,27 @@ function Row({ row }: { row: InterviewSummary }) {
 
 const timelineHref = (jobId: number, profileId: number | null) =>
   `/jobs/${jobId}?tab=interview${profileId ? `&profile=${profileId}` : ''}`;
+
+// Upcoming meetings carry no profile or status of their own, so they are
+// joined onto the interview they belong to. `stepResult` is 'pending' by
+// definition here — these are meetings that have not happened yet, and the
+// panel only renders a result label when it is something else.
+function toCalendarPanels(
+  panels: UpcomingPanel[],
+  rows: InterviewSummary[],
+): CalendarPanel[] {
+  return panels.flatMap((p) => {
+    const row = rows.find((r) => r.id === p.interviewId);
+    if (!row) return [];
+    return [{
+      ...p,
+      profileId: row.profileId,
+      profileName: row.profileName,
+      interviewStatus: row.status,
+      stepResult: 'pending' as const,
+    }];
+  });
+}
 
 function interviewProfile(rows: InterviewSummary[], interviewId: number): number | null {
   return rows.find((r) => r.id === interviewId)?.profileId ?? null;

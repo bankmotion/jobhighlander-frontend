@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import type { Job } from '@/lib/types';
 import { formatPostedRelative } from '@/lib/format';
@@ -8,6 +10,7 @@ import { DiscardAction, DiscardedBadge } from './discard-action';
 import { InterviewAction, InterviewBadge, type InterviewCardStatus } from './interview-action';
 import { JobQueryAction } from './job-query-action';
 import { JobPanel } from './job-panel';
+import { useJobPanel } from './job-detail-panel';
 
 export function JobCard({
   job,
@@ -23,6 +26,7 @@ export function JobCard({
   queryCount: number;
 }) {
   const detailHref = profileId ? `/jobs/${job.id}?profile=${profileId}` : `/jobs/${job.id}`;
+  const panel = useJobPanel();
 
   const posted = formatPostedRelative(job.postedAt);
   const scraped = formatPostedRelative(job.createdAt);
@@ -45,19 +49,19 @@ export function JobCard({
             <DiscardedBadge jobId={job.id} />
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <Link
+            <button
+              type="button"
+              onClick={() => panel.open(job)}
+              title="Open the details beside the list"
+              className="text-left text-[17px] font-semibold text-white transition hover:text-[var(--primary)]"
+            >
+              {job.title}
+            </button>
+            <a
               href={detailHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[17px] font-semibold text-white transition hover:text-[var(--primary)]"
-            >
-              {job.title}
-            </Link>
-            <a
-              href={job.jobUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Open the posting on the source site"
+              title="Open the full detail page in a new tab"
               className="rounded bg-[var(--surface-2)] px-1.5 py-0.5 text-xs text-[var(--muted)] transition hover:text-white"
             >
               #{job.id} ↗

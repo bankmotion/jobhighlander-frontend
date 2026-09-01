@@ -12,6 +12,7 @@ import { fetchJobQueryCounts } from '@/lib/job-queries.server';
 import { FiltersBar } from '@/app/components/filters-bar';
 import { JobFiltersRestore } from '@/app/components/job-filters-restore';
 import { JobCard } from '@/app/components/job-card';
+import { JobDetailPanelProvider } from '@/app/components/job-detail-panel';
 import { Pagination } from '@/app/components/pagination';
 import { AppliedProvider } from '@/app/components/applied-provider';
 import { CoverLetterProvider } from '@/app/components/cover-letter-provider';
@@ -192,6 +193,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                 initial={discardStatus}
                 viewerEmail={session?.email ?? null}
               >
+                <JobDetailPanelProvider keywords={keywords} profileId={profileId}>
                 <ul className="jh-cascade grid gap-4">
                   {data.items.map((job) => (
                     <JobCard
@@ -204,6 +206,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                     />
                   ))}
                 </ul>
+                </JobDetailPanelProvider>
                 <Pagination pagination={data.pagination} query={query} />
               </DiscardProvider>
             </CoverLetterProvider>
