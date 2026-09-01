@@ -28,7 +28,9 @@ const byLine = (discardedBy: string, viewerEmail: string | null): string =>
   discardedBy === viewerEmail ? 'you' : shortName(discardedBy);
 
 export function DiscardAction({ jobId }: { jobId: number }) {
-  const { profileId, viewerEmail, discardedOn, isBusy, toggle } = useDiscard();
+  // `viewerEmail` is not read here: the discarded state renders nothing, and
+  // the badge that does render it pulls its own.
+  const { profileId, discardedOn, isBusy, toggle } = useDiscard();
   const status = discardedOn(jobId);
   const busy = isBusy(jobId);
 
@@ -52,31 +54,16 @@ export function DiscardAction({ jobId }: { jobId: number }) {
     );
   }
 
-  // Discarding is one-way by choice. Once a posting is out, the control stops
-  // offering to bring it back: a restore button on every discarded card is a
-  // second decision nobody wanted to make again, and it sat exactly where the
-  // discard button had just been — one click past the one that was intended.
+  // Discarding is one-way, and once done the control has nothing left to offer:
+  // no undo, and no state to report that the card is not already reporting.
+  // So it removes itself entirely rather than leaving a dead icon sitting where
+  // a live button was a moment ago.
   //
-  // The state still has to be VISIBLE, or the row looks untouched and gets
-  // discarded again. So it stays as a non-interactive marker carrying who and
-  // when, which is what the button's tooltip used to be for.
-  //
-  // Nothing is deleted: the discard row is intact, `toggle` still exists, and
-  // the discarded filter still lists these. Only the one-click undo is gone.
-  if (status) {
-    return (
-      <span
-        aria-label={`Discarded ${when(status.discardedAt)} by ${byLine(
-          status.discardedBy,
-          viewerEmail,
-        )}`}
-        title={`Discarded ${when(status.discardedAt)} by ${status.discardedBy}`}
-        className={`${base} cursor-default border-red-500/30 bg-red-500/10 text-red-300/80`}
-      >
-        <IconX />
-      </span>
-    );
-  }
+  // The state stays perfectly visible without it — `DiscardedBadge` labels the
+  // row with who and when, and `JobPanel` dims and desaturates the whole card.
+  // Nothing is deleted either: the discard row is intact and the discarded
+  // filter still lists these.
+  if (status) return null;
 
   return (
     <button
