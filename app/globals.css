@@ -92,3 +92,124 @@ body {
   background: var(--primary);
   animation: jh-loading-bar 1.2s ease-in-out infinite;
 }
+
+/* ── Motion ──────────────────────────────────────────────────────────────
+   One place for every animation the app uses, so timings stay consistent
+   and a single `prefers-reduced-motion` block can switch them all off. */
+
+@keyframes jh-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes jh-rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Sweep for the full-screen bar: a light band crossing a dim track. */
+@keyframes jh-sweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+
+@keyframes jh-bars {
+  0%, 100% { transform: scaleY(0.35); opacity: 0.55; }
+  50%      { transform: scaleY(1);    opacity: 1; }
+}
+
+/* Page content. Applied per route so a navigation replays it.
+
+   Fade only, deliberately NOT a transform. An animated transform computes to a
+   matrix rather than the keyword `none`, and any transform other than `none`
+   makes the element the containing block for its `position: fixed`
+   descendants — which trapped the full-screen loading overlay inside the
+   content column instead of covering the viewport. The rise is kept for list
+   items below, which contain no fixed children. */
+.jh-page {
+  animation: jh-fade-in 240ms ease-out both;
+}
+
+/* Staggered children, for lists and card grids. Capped at 8 so a long list
+   does not end with items arriving a second late. */
+.jh-stagger > * {
+  animation: jh-rise 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.jh-stagger > *:nth-child(1) { animation-delay: 20ms; }
+.jh-stagger > *:nth-child(2) { animation-delay: 45ms; }
+.jh-stagger > *:nth-child(3) { animation-delay: 70ms; }
+.jh-stagger > *:nth-child(4) { animation-delay: 95ms; }
+.jh-stagger > *:nth-child(5) { animation-delay: 120ms; }
+.jh-stagger > *:nth-child(6) { animation-delay: 145ms; }
+.jh-stagger > *:nth-child(7) { animation-delay: 170ms; }
+.jh-stagger > *:nth-child(n + 8) { animation-delay: 190ms; }
+
+/* Full-screen loading overlay. The page stays visible but dimmed behind it,
+   so context is not lost while a route resolves. */
+.jh-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  backdrop-filter: blur(3px);
+  animation: jh-fade-in 160ms ease-out both;
+}
+
+.jh-overlay-track {
+  position: relative;
+  width: min(360px, 70vw);
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+.jh-overlay-track::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 33%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  animation: jh-sweep 1.15s ease-in-out infinite;
+}
+
+/* The equaliser bars beside the label. */
+.jh-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 18px;
+}
+.jh-bars > i {
+  display: block;
+  width: 3px;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--primary);
+  transform-origin: bottom;
+  animation: jh-bars 900ms ease-in-out infinite;
+}
+.jh-bars > i:nth-child(2) { animation-delay: 120ms; }
+.jh-bars > i:nth-child(3) { animation-delay: 240ms; }
+.jh-bars > i:nth-child(4) { animation-delay: 360ms; }
+.jh-bars > i:nth-child(5) { animation-delay: 480ms; }
+
+/* Motion is decoration here — every animation above is a fade or a small
+   offset, so switching them off costs nothing but the movement. */
+@media (prefers-reduced-motion: reduce) {
+  .jh-page,
+  .jh-stagger > *,
+  .jh-overlay {
+    animation: none;
+  }
+  .jh-overlay-track::before,
+  .jh-bars > i {
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+  }
+}

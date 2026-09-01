@@ -192,7 +192,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                 initial={discardStatus}
                 viewerEmail={session?.email ?? null}
               >
-                <ul className="grid gap-4">
+                <ul className="jh-stagger grid gap-4">
                   {data.items.map((job) => (
                     <JobCard
                       key={job.id}

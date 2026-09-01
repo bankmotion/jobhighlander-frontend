@@ -5,6 +5,7 @@ import './globals.css';
 import { getSession } from '@/lib/auth';
 import { SidebarData } from '@/app/components/sidebar-data';
 import { Topbar } from '@/app/components/topbar';
+import { PageTransition } from '@/app/components/page-transition';
 
 export const metadata: Metadata = {
   title: 'JobHighLander',
@@ -27,12 +28,16 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <Topbar session={session} />
               </Suspense>
               <main className="flex-1 px-4 pb-16 pt-6 sm:px-6 lg:px-8">
-                <div className="mx-auto max-w-5xl">{children}</div>
+                <div className="mx-auto max-w-5xl">
+                  <PageTransition>{children}</PageTransition>
+                </div>
               </main>
             </div>
           </div>
         ) : (
-          <main className="min-h-screen">{children}</main>
+          <main className="min-h-screen">
+            <PageTransition>{children}</PageTransition>
+          </main>
         )}
       </body>
     </html>

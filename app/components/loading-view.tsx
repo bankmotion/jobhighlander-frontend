@@ -1,22 +1,47 @@
 export type LoadingVariant = 'list' | 'grid' | 'table' | 'article';
 
+// Full-screen loading state.
+//
+// The overlay covers the viewport and dims what is behind it rather than
+// replacing it, so the page you came from stays readable while the next one
+// resolves — a skeleton that swaps the whole screen loses that context and
+// reads as a navigation you did not ask for.
+//
+// The skeleton is still rendered underneath. It is what the overlay dims, and
+// it is what remains if a very slow route keeps the overlay up: shape first,
+// then content, rather than a blank field.
 export function LoadingView({
   rows = 6,
   variant = 'list',
+  label = 'Loading',
 }: {
   rows?: number;
   variant?: LoadingVariant;
+  label?: string;
 }) {
   return (
     <div aria-busy="true" aria-live="polite">
-      <span className="sr-only">Loading…</span>
+      <span className="sr-only">{label}…</span>
 
-      <div className="jh-loading-track mb-6" />
+      <div className="jh-overlay" role="status" aria-label={label}>
+        <div className="flex items-center gap-3">
+          <span className="jh-bars" aria-hidden>
+            <i />
+            <i />
+            <i />
+            <i />
+            <i />
+          </span>
+          <span className="text-sm font-medium text-[var(--text)]">{label}…</span>
+        </div>
+        <div className="jh-overlay-track" />
+      </div>
 
-      <div className="mb-2 h-7 w-52 animate-pulse rounded-md bg-[var(--surface-2)]" />
-      <div className="mb-6 h-4 w-72 animate-pulse rounded bg-[var(--surface-2)]" />
-
-      <SkeletonBody rows={rows} variant={variant} />
+      <div aria-hidden className="jh-page">
+        <div className="mb-2 h-7 w-52 animate-pulse rounded-md bg-[var(--surface-2)]" />
+        <div className="mb-6 h-4 w-72 animate-pulse rounded bg-[var(--surface-2)]" />
+        <SkeletonBody rows={rows} variant={variant} />
+      </div>
     </div>
   );
 }
@@ -24,7 +49,7 @@ export function LoadingView({
 function SkeletonBody({ rows, variant }: { rows: number; variant: LoadingVariant }) {
   if (variant === 'grid') {
     return (
-      <ul className="grid gap-3 sm:grid-cols-2">
+      <ul className="jh-stagger grid gap-3 sm:grid-cols-2">
         {Array.from({ length: rows }).map((_, i) => (
           <li
             key={i}
@@ -41,7 +66,7 @@ function SkeletonBody({ rows, variant }: { rows: number; variant: LoadingVariant
     return (
       <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
         <div className="mb-4 h-3 w-full animate-pulse rounded bg-[var(--surface-2)]" />
-        <div className="space-y-3">
+        <div className="jh-stagger space-y-3">
           {Array.from({ length: rows }).map((_, i) => (
             <div key={i} className="h-8 animate-pulse rounded bg-[var(--surface-2)]" />
           ))}
@@ -74,7 +99,7 @@ function SkeletonBody({ rows, variant }: { rows: number; variant: LoadingVariant
   }
 
   return (
-    <div className="space-y-3">
+    <div className="jh-stagger space-y-3">
       {Array.from({ length: rows }).map((_, i) => (
         <div
           key={i}
