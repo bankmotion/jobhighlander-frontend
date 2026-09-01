@@ -50,15 +50,14 @@ export function AppliedAction({ jobId, size = 'sm' }: { jobId: number; size?: 's
   const busy = isBusy(jobId);
   const lg = size === 'lg';
 
-  // `lg` used to differ from `sm` by padding alone, which read as the same
-  // button with more air around it. Marking a job applied is the action this
-  // card exists for, so at this size it steps up in type and weight too and is
-  // deliberately the heaviest control in the row.
   // `lg` is deliberately out of scale with the rest of the footer row. Marking a
   // job applied is the action the card exists for, and the neighbouring
   // controls are all `text-sm` links to somewhere else — the size difference IS
   // the hierarchy, not an accident of styling.
-  const base = `inline-flex shrink-0 items-center justify-center rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/60 ${
+  // `whitespace-nowrap` because "Applied Sep 1, 2026" breaks onto three lines
+  // in a narrow card, which turns a button into a tall block. The footer row
+  // wraps, so it moves to its own line instead.
+  const base = `inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-xl border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/60 ${
     lg
       ? 'gap-2.5 px-7 py-3.5 text-lg font-bold'
       : 'gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium'
