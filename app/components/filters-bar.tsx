@@ -94,6 +94,8 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
     if (nextApplied !== 'all') qs.set('applied', nextApplied); // all is the default
     const nextDiscarded = next.discarded ?? discarded;
     if (nextDiscarded !== 'all') qs.set('discarded', nextDiscarded); // all is the default
+    const nextInterview = next.interview ?? interview;
+    if (nextInterview !== 'all') qs.set('interview', nextInterview); // all is the default
     // Filters change WHAT is listed; they must never change WHOSE resumes are
     // reported alongside it.
     if (current.profile) qs.set('profile', String(current.profile));
