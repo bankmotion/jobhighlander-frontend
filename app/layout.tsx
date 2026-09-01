@@ -7,6 +7,7 @@ import { SidebarData } from '@/app/components/sidebar-data';
 import { Topbar } from '@/app/components/topbar';
 import { PageTransition } from '@/app/components/page-transition';
 import { ScrollToTop } from '@/app/components/scroll-to-top';
+import { THEME_INIT_SCRIPT } from '@/lib/theme-init';
 
 export const metadata: Metadata = {
   title: 'JobHighLander',
@@ -17,7 +18,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const session = await getSession();
 
   return (
-    <html lang="en">
+    <html lang="en" data-theme="dark" suppressHydrationWarning>
+      <head>
+        {/* Runs during HTML parsing, before the first paint, so a stored light
+            theme never shows a frame of the dark one. React would only get to
+            this after hydration, which on a slow connection is well after the
+            browser has painted. `suppressHydrationWarning` above tells React to
+            keep the attribute this script wrote instead of the SSR default. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="min-h-screen">
         {session ? (
           <div className="flex min-h-screen">

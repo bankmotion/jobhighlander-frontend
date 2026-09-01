@@ -1,6 +1,10 @@
 @import "tailwindcss";
 
+/* Dark is the default: it is what the app shipped as, and what an unknown
+   preference falls back to. Light is an override on the same token names, so
+   every rule below and every `var(--x)` in the components is theme-agnostic. */
 :root {
+  color-scheme: dark;
   --bg: #08080d;
   --surface: #12121b;
   --surface-2: #1a1a25;
@@ -13,6 +17,38 @@
   --green: #22c55e;
   --blue: #3b82f6;
   --red: #ef4444;
+  /* Elevated bar behind sticky footers, and the tint for a translucent hover.
+     Both are literal colours rather than a var() of --bg, because they invert
+     between themes instead of tracking the background. */
+  --sticky-bar: rgba(22, 22, 32, 0.94);
+  --hover-tint: rgba(255, 255, 255, 0.05);
+  --hover-tint-strong: rgba(255, 255, 255, 0.1);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  /* Not pure white: the dark theme carries a violet cast, and #fff under the
+     same purple accent reads colder than the rest of the product. */
+  --bg: #f6f6fa;
+  --surface: #ffffff;
+  --surface-2: #eeeef4;
+  --border: rgba(16, 16, 32, 0.1);
+  --border-strong: rgba(16, 16, 32, 0.18);
+  --text: #15151f;
+  /* 6.0:1 on --bg. The dark theme's --muted (#8b8b9c) would be only 3.1:1
+     here, failing AA for the timestamps and counts that use it. */
+  --muted: #5c5c72;
+  /* Darkened for headroom, not to fix a failure: white on #6c5cff is 4.55:1,
+     which only just clears AA. #5a48e8 gives 6.0:1 and reads less electric
+     against a white surface. */
+  --primary: #5a48e8;
+  --primary-hover: #4936d4;
+  --green: #15803d;
+  --blue: #1d4ed8;
+  --red: #dc2626;
+  --sticky-bar: rgba(255, 255, 255, 0.94);
+  --hover-tint: rgba(16, 16, 32, 0.05);
+  --hover-tint-strong: rgba(16, 16, 32, 0.08);
 }
 
 html,
@@ -42,7 +78,7 @@ body {
    them. Read as an ELEVATED surface instead: lighter panel, an accent top edge,
    and a shadow that lifts it off the list. */
 .jh-sticky-bar {
-  background: rgba(22, 22, 32, 0.94);
+  background: var(--sticky-bar);
   border-top: 1px solid rgba(108, 92, 255, 0.55);
   box-shadow:
     0 -14px 34px -12px rgba(0, 0, 0, 0.95),
@@ -325,4 +361,88 @@ body {
   .jh-bob {
     animation: none;
   }
+}
+
+/* ── Light-theme compatibility ───────────────────────────────────────────
+   Most of the UI reads var() tokens and flips on its own. These rules cover
+   the literal Tailwind colours that were written assuming a dark canvas.
+
+   They are deliberately unlayered: Tailwind v4 emits utilities inside
+   `@layer utilities`, and any unlayered rule beats a layered one regardless
+   of specificity, so these win without !important.
+
+   Each selector matches with `~=`, which tests one whitespace-separated class
+   token rather than a substring. That is what separates the filled
+   `bg-[var(--primary)]` from the translucent `bg-[var(--primary)]/10` — a
+   `*=` substring match would catch both and leave white text on a 10%-opacity
+   tint, which is invisible over a light background. */
+
+/* `text-white` means "the emphasis colour" almost everywhere, and must invert.
+   The exceptions are elements whose OWN background is a filled accent or a
+   dark image scrim, where white is correct in both themes. */
+:root[data-theme="light"] [class~="text-white"]:not([class~="bg-[var(--primary)]"]):not([class~="bg-gradient-to-r"]):not([class~="bg-red-600"]):not([class~="bg-amber-600"]):not([class~="bg-black/45"]) {
+  color: var(--text);
+}
+
+/* Muted links that brighten on hover. The one exception turns its background
+   purple on the same hover, so its white has to survive. */
+:root[data-theme="light"] [class~="hover:text-white"]:not([class~="hover:bg-[var(--primary)]"]):hover {
+  color: var(--text);
+}
+
+/* Translucent white lifts a dark surface but is invisible on a light one. */
+:root[data-theme="light"] [class~="bg-white/5"],
+:root[data-theme="light"] [class~="hover:bg-white/5"]:hover {
+  background-color: var(--hover-tint);
+}
+:root[data-theme="light"] [class~="bg-white/10"],
+:root[data-theme="light"] [class~="hover:bg-white/10"]:hover {
+  background-color: var(--hover-tint-strong);
+}
+:root[data-theme="light"] [class~="border-white/20"] {
+  border-color: rgba(16, 16, 32, 0.15);
+}
+
+/* Pale accent text sits on a 15%-opacity tint of the same hue. Over a light
+   background those 200–400 shades fall to roughly 2:1, so each maps to its
+   700-level counterpart — 5.0:1 to 7.1:1 on --surface, all clearing AA. */
+:root[data-theme="light"] [class~="text-red-200"],
+:root[data-theme="light"] [class~="text-red-300"],
+:root[data-theme="light"] [class~="text-red-400"] {
+  color: #b91c1c;
+}
+:root[data-theme="light"] [class~="hover:text-red-300"]:hover,
+:root[data-theme="light"] [class~="hover:text-red-400"]:hover {
+  color: #991b1b;
+}
+:root[data-theme="light"] [class~="text-amber-100"],
+:root[data-theme="light"] [class~="text-amber-200"],
+:root[data-theme="light"] [class~="text-amber-300"],
+:root[data-theme="light"] [class~="text-amber-400"] {
+  color: #b45309;
+}
+:root[data-theme="light"] [class~="text-green-200"],
+:root[data-theme="light"] [class~="text-green-300"],
+:root[data-theme="light"] [class~="text-green-400"] {
+  color: #15803d;
+}
+:root[data-theme="light"] [class~="hover:text-green-300"]:hover {
+  color: #166534;
+}
+:root[data-theme="light"] [class~="text-emerald-200"],
+:root[data-theme="light"] [class~="text-emerald-300"] {
+  color: #047857;
+}
+:root[data-theme="light"] [class~="hover:text-emerald-300"]:hover {
+  color: #065f46;
+}
+:root[data-theme="light"] [class~="text-blue-300"] {
+  color: #1d4ed8;
+}
+:root[data-theme="light"] [class~="text-purple-200"],
+:root[data-theme="light"] [class~="text-purple-300"] {
+  color: #6d28d9;
+}
+:root[data-theme="light"] [class~="text-cyan-300"] {
+  color: #0e7490;
 }
