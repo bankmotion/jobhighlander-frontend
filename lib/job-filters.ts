@@ -2,7 +2,10 @@
 
 import { createLocalStore } from './local-store';
 
-const FILTER_KEYS = ['q', 'site', 'remote', 'applied', 'discarded', 'interview'] as const;
+const FILTER_KEYS = [
+  'q', 'title', 'company', 'location', 'description',
+  'site', 'remote', 'applied', 'discarded', 'interview',
+] as const;
 
 function keepFilterKeys(raw: string): string {
   const src = new URLSearchParams(raw);

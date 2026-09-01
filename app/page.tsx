@@ -82,6 +82,10 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   // one, so the common single-profile case keeps a clean URL.
   const query = {
     q: str(sp.q),
+    company: str(sp.company),
+    title: str(sp.title),
+    description: str(sp.description),
+    location: str(sp.location),
     sites: arr(sp.site),
     remote,
     applied,
@@ -99,6 +103,10 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   try {
     data = await fetchJobs({
       q: query.q,
+      company: query.company,
+      title: query.title,
+      description: query.description,
+      location: query.location,
       sites: query.sites,
       remote,
       // Applied is recorded per profile, so the filter travels with one. The
@@ -223,6 +231,10 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                   latestId={data.latestId ?? 0}
                   query={new URLSearchParams({
                     ...(query.q ? { q: query.q } : {}),
+                    ...(query.company ? { company: query.company } : {}),
+                    ...(query.title ? { title: query.title } : {}),
+                    ...(query.description ? { description: query.description } : {}),
+                    ...(query.location ? { location: query.location } : {}),
                     ...(remote ? { remote: '1' } : {}),
                     ...(applied !== 'all' ? { applied } : {}),
                     ...(discarded !== 'all' ? { discarded } : {}),

@@ -9,10 +9,34 @@ import type { InterviewFilter } from '@/lib/interviews';
 import { MultiSelect } from './multi-select';
 import { saveJobFilters } from '@/lib/job-filters';
 
+const TEXT_KEYS = ['q', 'title', 'company', 'location', 'description'] as const;
+type TextKey = (typeof TEXT_KEYS)[number];
+type TextFilters = Record<TextKey, string>;
+
+const EMPTY_TEXT: TextFilters = { q: '', title: '', company: '', location: '', description: '' };
+
+const pickText = (src: Record<TextKey, string>): TextFilters =>
+  Object.fromEntries(TEXT_KEYS.map((k) => [k, src[k] ?? ''])) as TextFilters;
+
+const sameText = (a: TextFilters, b: TextFilters): boolean =>
+  TEXT_KEYS.every((k) => a[k] === b[k]);
+
+// The catch-all search keeps its own place in the layout, so it is not here.
+const FIELD_INPUTS: { key: TextKey; placeholder: string; label: string; width: string }[] = [
+  { key: 'title', placeholder: 'Title', label: 'Filter by job title', width: 'w-36' },
+  { key: 'company', placeholder: 'Company', label: 'Filter by company', width: 'w-36' },
+  { key: 'location', placeholder: 'Location', label: 'Filter by location', width: 'w-36' },
+  { key: 'description', placeholder: 'In description', label: 'Filter by description text', width: 'w-40' },
+];
+
 interface Props {
   filters: JobFilters;
   current: {
     q: string;
+    company: string;
+    title: string;
+    description: string;
+    location: string;
     sites: string[];
     remote: boolean;
     profile?: number;
@@ -68,15 +92,25 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
 
   const { sites, remote, applied, discarded, interview } = current;
 
-  const [qDraft, setQDraft] = useState(current.q);
-  const [committedQ, setCommittedQ] = useState(current.q);
-  if (committedQ !== current.q) {
-    setCommittedQ(current.q);
-    setQDraft(current.q);
+  // All five text fields share one draft record rather than a useState pair
+  // each. A draft is text typed but not yet submitted; it rides along when any
+  // other control is used, so typing a company and then clicking a source
+  // applies both instead of discarding what was typed.
+  //
+  // The committed snapshot is what detects a URL change from outside (Clear
+  // All, the back button, a restored filter set) and resyncs the drafts.
+  const [drafts, setDrafts] = useState<TextFilters>(() => pickText(current));
+  const [committed, setCommitted] = useState<TextFilters>(() => pickText(current));
+  const fromUrl = pickText(current);
+  if (!sameText(committed, fromUrl)) {
+    setCommitted(fromUrl);
+    setDrafts(fromUrl);
   }
+  const setDraft = (key: TextKey, value: string) =>
+    setDrafts((prev) => ({ ...prev, [key]: value }));
 
   function navigate(next: {
-    q?: string;
+    text?: Partial<TextFilters>;
     sites?: string[];
     remote?: boolean;
     applied?: AppliedFilter;
@@ -86,8 +120,10 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
     const qs = new URLSearchParams();
     // The in-progress draft rides along, so toggling a source also applies
     // whatever has been typed but not yet submitted.
-    const nextQ = (next.q ?? qDraft).trim();
-    if (nextQ) qs.set('q', nextQ);
+    for (const key of TEXT_KEYS) {
+      const value = (next.text?.[key] ?? drafts[key]).trim();
+      if (value) qs.set(key, value);
+    }
     (next.sites ?? sites).forEach((s) => qs.append('site', s));
     if (!(next.remote ?? remote)) qs.set('remote', '0'); // remote-only is the default
     const nextApplied = next.applied ?? applied;
@@ -118,8 +154,8 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
 
   function clearAll() {
     // The derived filters reset themselves once the URL below lands; only the
-    // draft, which the URL does not own, has to be cleared by hand.
-    setQDraft('');
+    // drafts, which the URL does not own, have to be cleared by hand.
+    setDrafts(EMPTY_TEXT);
     // Writing the EMPTY string is what makes clearing stick: without it the
     // restore on the next visit would put the filters straight back.
     saveJobFilters('');
@@ -129,7 +165,7 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
 
   // "Filtered" = anything other than the default (remote-only, everything else off).
   const hasFilters = Boolean(
-    qDraft.trim() ||
+    TEXT_KEYS.some((k) => drafts[k].trim()) ||
       sites.length ||
       !remote ||
       applied !== 'all' ||
@@ -155,12 +191,29 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
         </svg>
         <input
           type="text"
-          value={qDraft}
-          onChange={(e) => setQDraft(e.target.value)}
-          placeholder="Search jobs…"
+          value={drafts.q}
+          onChange={(e) => setDraft('q', e.target.value)}
+          placeholder="Search all fields…"
+          aria-label="Search title, description and location together"
           className={`w-full pl-9 ${inputCls}`}
         />
       </div>
+
+      {/* One box per column, AND-ed together, alongside the catch-all above.
+          The catch-all ORs across three columns, so a short word like "ai"
+          matches "details" and "training" in 95% of descriptions; these narrow
+          to the field you actually meant. */}
+      {FIELD_INPUTS.map((f) => (
+        <input
+          key={f.key}
+          type="text"
+          value={drafts[f.key]}
+          onChange={(e) => setDraft(f.key, e.target.value)}
+          placeholder={f.placeholder}
+          aria-label={f.label}
+          className={`${f.width} ${inputCls}`}
+        />
+      ))}
 
       <MultiSelect
         placeholder="All sources"

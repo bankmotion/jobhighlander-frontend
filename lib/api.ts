@@ -8,6 +8,10 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 export interface JobQuery {
   q?: string;
+  company?: string;
+  title?: string;
+  description?: string;
+  location?: string;
   sites?: string[];
   remote?: boolean;
   applied?: AppliedFilter;
@@ -26,6 +30,10 @@ async function authHeaders(): Promise<HeadersInit> {
 export async function fetchJobs(query: JobQuery = {}): Promise<Paginated<Job>> {
   const qs = new URLSearchParams();
   if (query.q) qs.set('q', query.q);
+  if (query.company) qs.set('company', query.company);
+  if (query.title) qs.set('title', query.title);
+  if (query.description) qs.set('description', query.description);
+  if (query.location) qs.set('location', query.location);
   (query.sites ?? []).forEach((s) => qs.append('site', s));
   if (query.remote) qs.set('remote', '1');
   // Filtering has to happen in the query, not on the returned page: trimming
