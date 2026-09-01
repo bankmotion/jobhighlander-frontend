@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { JobFilters } from '@/lib/types';
 import type { AppliedFilter } from '@/lib/applications';
 import type { DiscardedFilter } from '@/lib/discards';
+import type { InterviewFilter } from '@/lib/interviews';
 import { MultiSelect } from './multi-select';
 import { saveJobFilters } from '@/lib/job-filters';
 
@@ -17,6 +18,7 @@ interface Props {
     profile?: number;
     applied: AppliedFilter;
     discarded: DiscardedFilter;
+    interview: InterviewFilter;
   };
   canFilterApplied: boolean;
 }
@@ -25,6 +27,12 @@ const DISCARDED_TABS: { value: DiscardedFilter; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'undiscarded', label: 'Kept' },
   { value: 'discarded', label: 'Discarded' },
+];
+
+const INTERVIEW_TABS: { value: InterviewFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'started', label: 'Interviewing' },
+  { value: 'notstarted', label: 'No interview' },
 ];
 
 const APPLIED_TABS: { value: AppliedFilter; label: string }[] = [
@@ -58,7 +66,7 @@ export function siteMeta(s: string) {
 export function FiltersBar({ filters, current, canFilterApplied }: Props) {
   const router = useRouter();
 
-  const { sites, remote, applied, discarded } = current;
+  const { sites, remote, applied, discarded, interview } = current;
 
   const [qDraft, setQDraft] = useState(current.q);
   const [committedQ, setCommittedQ] = useState(current.q);
@@ -73,6 +81,7 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
     remote?: boolean;
     applied?: AppliedFilter;
     discarded?: DiscardedFilter;
+    interview?: InterviewFilter;
   }) {
     const qs = new URLSearchParams();
     // The in-progress draft rides along, so toggling a source also applies
@@ -97,6 +106,7 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
 
   const selectApplied = (next: AppliedFilter) => navigate({ applied: next });
   const selectDiscarded = (next: DiscardedFilter) => navigate({ discarded: next });
+  const selectInterview = (next: InterviewFilter) => navigate({ interview: next });
   const toggleRemote = () => navigate({ remote: !remote });
 
   function submit(e: React.FormEvent) {
@@ -117,7 +127,12 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
 
   // "Filtered" = anything other than the default (remote-only, everything else off).
   const hasFilters = Boolean(
-    qDraft.trim() || sites.length || !remote || applied !== 'all' || discarded !== 'all',
+    qDraft.trim() ||
+      sites.length ||
+      !remote ||
+      applied !== 'all' ||
+      discarded !== 'all' ||
+      interview !== 'all',
   );
 
   return (
@@ -226,6 +241,34 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
                 role="radio"
                 aria-checked={on}
                 onClick={() => selectDiscarded(t.value)}
+                className={`rounded-md px-2.5 py-1.5 text-sm transition ${
+                  on
+                    ? 'bg-[var(--primary)] font-medium text-white'
+                    : 'text-[var(--muted)] hover:text-[var(--text)]'
+                }`}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {canFilterApplied && (
+        <div
+          role="radiogroup"
+          aria-label="Interview"
+          className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-0.5"
+        >
+          {INTERVIEW_TABS.map((t) => {
+            const on = interview === t.value;
+            return (
+              <button
+                key={t.value}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                onClick={() => selectInterview(t.value)}
                 className={`rounded-md px-2.5 py-1.5 text-sm transition ${
                   on
                     ? 'bg-[var(--primary)] font-medium text-white'

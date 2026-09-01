@@ -1,6 +1,7 @@
 import type { Job, JobFilters, Paginated } from './types';
 import type { AppliedFilter } from './applications';
 import type { DiscardedFilter } from './discards';
+import type { InterviewFilter } from './interviews';
 import { getToken } from './auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
@@ -11,6 +12,7 @@ export interface JobQuery {
   remote?: boolean;
   applied?: AppliedFilter;
   discarded?: DiscardedFilter;
+  interview?: InterviewFilter;
   profileId?: number | null;
   page?: number;
   pageSize?: number;
@@ -31,6 +33,7 @@ export async function fetchJobs(query: JobQuery = {}): Promise<Paginated<Job>> {
   // the pagination would promise pages that render empty.
   if (query.applied && query.applied !== 'all') qs.set('applied', query.applied);
   if (query.discarded && query.discarded !== 'all') qs.set('discarded', query.discarded);
+  if (query.interview && query.interview !== 'all') qs.set('interview', query.interview);
   if (query.profileId) qs.set('profileId', String(query.profileId));
   if (query.page) qs.set('page', String(query.page));
   if (query.pageSize) qs.set('pageSize', String(query.pageSize));

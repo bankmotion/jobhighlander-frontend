@@ -1,3 +1,10 @@
+// Whether a job's interview timeline has been opened for the selected
+// profile. Per profile, like applied and discarded.
+export type InterviewFilter = 'all' | 'started' | 'notstarted';
+
+export const isInterviewFilter = (v: string): v is InterviewFilter =>
+  v === 'all' || v === 'started' || v === 'notstarted';
+
 export type InterviewStatus =
   | 'active'
   | 'offer'

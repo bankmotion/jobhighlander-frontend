@@ -7,6 +7,7 @@ import { fetchAppliedStatus, fetchCompanyHistory, isAppliedFilter, type AppliedF
 import { fetchCoverLetterStatus } from '@/lib/cover-letters';
 import { fetchDiscardStatus, isDiscardedFilter, type DiscardedFilter } from '@/lib/discards';
 import { fetchInterviewStatus } from '@/lib/interviews.server';
+import { isInterviewFilter, type InterviewFilter } from '@/lib/interviews';
 import { fetchJobQueryCounts } from '@/lib/job-queries.server';
 import { FiltersBar } from '@/app/components/filters-bar';
 import { JobFiltersRestore } from '@/app/components/job-filters-restore';
@@ -46,6 +47,10 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   // rather than making it vanish, so nothing leaves the list without the reader
   // having asked for it.
   const discarded: DiscardedFilter = isDiscardedFilter(discardedParam) ? discardedParam : 'all';
+  // Same default and the same reasoning: an open timeline is a badge on the
+  // card, not a reason to remove it from the list.
+  const interviewParam = str(sp.interview);
+  const interview: InterviewFilter = isInterviewFilter(interviewParam) ? interviewParam : 'all';
 
   const [filters, profiles, presets, session, keywords] = await Promise.all([
     fetchFilters().catch(() => ({ sites: [], locations: [] })),
@@ -75,6 +80,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
     remote,
     applied,
     discarded,
+    interview,
     ...(profiles.length > 1 && profileId ? { profile: profileId } : {}),
   };
 
@@ -93,6 +99,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
       // backend ignores it without a profile the caller may actually use.
       applied,
       discarded,
+      interview,
       profileId,
       page,
       pageSize: 20,
