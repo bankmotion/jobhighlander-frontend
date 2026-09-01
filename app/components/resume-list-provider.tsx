@@ -23,6 +23,7 @@ import {
   finishRun,
   getDoc,
   getRun,
+  runKey,
   runsServerVersion,
   runsVersion,
   startRun,
@@ -272,6 +273,10 @@ export function ResumeListProvider({
   // The open modal is tracked in a ref so a generation that finishes after the
   // user closed the dialog does not yank a PDF back onto the screen.
   const targetRef = useRef<ResumeTarget | null>(null);
+  // In-flight generations, so closing the panel can abort the right one. A ref
+  // rather than state: nothing renders from it, and a re-render per request
+  // would restart the effects below.
+  const cancellersRef = useRef<Map<string, AbortController>>(new Map());
   useEffect(() => {
     targetRef.current = target;
   }, [target]);
@@ -301,14 +306,21 @@ export function ResumeListProvider({
         notes = localStorage.getItem(NOTES_KEY) ?? '';
       } catch {}
 
+      // Two ways this request can end early, and they need telling apart: the
+      // timeout below, and the user closing the panel. `AbortSignal.any`
+      // settles on whichever fires first, and the controller is kept so `close`
+      // can reach it.
+      const canceller = new AbortController();
+      cancellersRef.current.set(runKey(profileId, t.jobId), canceller);
+
       try {
         const res = await fetch('/api/resumes/preview', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ jobId: t.jobId, profileId, notes }),
-          // Without this a hung request never settles, the run stays 'running'
-          // forever, and it holds a concurrency slot for the whole session.
-          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+          // Without the timeout a hung request never settles, the run stays
+          // 'running' forever, and it holds a concurrency slot for the session.
+          signal: AbortSignal.any([canceller.signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS)]),
         });
         const data = await res.json().catch(() => null);
 
@@ -359,12 +371,22 @@ export function ResumeListProvider({
           show(`Resume ready — ${t.title}`);
         }
       } catch (err) {
+        // The user closing the panel is not a failure and must not be reported
+        // as one. `clearRun` rather than `failRun`: an error state would leave a
+        // retry banner on a card they just walked away from.
+        if (canceller.signal.aborted) {
+          clearRun(profileId, t.jobId);
+          show(`Generation cancelled — ${t.title}`);
+          return;
+        }
         const timedOut = err instanceof DOMException && err.name === 'TimeoutError';
         const msg = timedOut
           ? 'Generation timed out after 3 minutes.'
           : 'Could not reach the server.';
         failRun(profileId, t.jobId, msg, true);
         show(msg, 'error');
+      } finally {
+        cancellersRef.current.delete(runKey(profileId, t.jobId));
       }
     },
     [profileId, refreshStatus, renderPdf, show],
@@ -521,6 +543,20 @@ export function ResumeListProvider({
   );
 
   const close = useCallback(() => {
+    // Closing mid-generation cancels it. Waiting on a result nobody is going to
+    // look at holds a concurrency slot and ends by rendering a PDF into a
+    // dialog that is no longer open.
+    //
+    // Worth being precise about what this does and does not do: it stops the
+    // CLIENT waiting, frees the slot and drops the result. It cannot recall the
+    // model call already running on the server, so if that call finishes it
+    // still writes its row — which is the better failure of the two, since the
+    // work is then not paid for twice.
+    const t = targetRef.current;
+    if (t && profileId) {
+      cancellersRef.current.get(runKey(profileId, t.jobId))?.abort();
+    }
+
     setTarget(null);
     targetRef.current = null;
     setConfirmRegen(false);
@@ -528,7 +564,7 @@ export function ResumeListProvider({
     setDocTab('resume');
     setLetterBody(null);
     setLetterError(null);
-  }, [replacePdfUrl]);
+  }, [profileId, replacePdfUrl]);
 
   const showLetter = useCallback(async () => {
     setDocTab('letter');
