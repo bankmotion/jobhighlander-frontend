@@ -529,3 +529,81 @@ body {
 :root[data-nav="hidden"] #jh-sidebar {
   display: none;
 }
+
+/* ── Applied badge ───────────────────────────────────────────────────────
+   Entrance only, deliberately. This badge repeats down a list of twenty
+   cards, and anything that loops turns the page into a slot machine. The
+   sheen is on hover, where the user asked for it by pointing at the thing. */
+
+@keyframes jh-badge-in {
+  from { opacity: 0; transform: scale(0.88); }
+  60%  { transform: scale(1.03); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* The seal turns a little as it lands, so the medal reads as being stamped on
+   rather than fading up. */
+@keyframes jh-seal-in {
+  from { opacity: 0; transform: rotate(-35deg) scale(0.6); }
+  to   { opacity: 1; transform: rotate(0deg) scale(1); }
+}
+
+/* The tick draws itself. `pathLength="1"` on the path normalises the geometry,
+   so the dash values are a fraction of the stroke rather than user units that
+   would need recomputing at every icon size. */
+@keyframes jh-check-draw {
+  from { stroke-dashoffset: 1; }
+  to   { stroke-dashoffset: 0; }
+}
+
+@keyframes jh-sheen {
+  from { transform: translateX(-120%) skewX(-18deg); }
+  to   { transform: translateX(260%) skewX(-18deg); }
+}
+
+.jh-badge {
+  animation: jh-badge-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.jh-badge-seal {
+  animation: jh-seal-in 520ms cubic-bezier(0.34, 1.56, 0.64, 1) 80ms both;
+}
+.jh-badge-check {
+  stroke-dasharray: 1;
+  animation: jh-check-draw 420ms ease-out 420ms both;
+}
+
+/* Sits inside an overflow-hidden pill; `pointer-events-none` so it never eats
+   the hover it is reacting to. */
+.jh-badge-sheen {
+  animation: jh-sheen 900ms ease-in-out;
+}
+.jh-badge:hover .jh-badge-sheen {
+  animation: jh-sheen 900ms ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jh-badge,
+  .jh-badge-seal,
+  .jh-badge-check,
+  .jh-badge-sheen,
+  .jh-badge:hover .jh-badge-sheen {
+    animation: none;
+  }
+  /* Without the draw animation the dash would leave the tick invisible. */
+  .jh-badge-check {
+    stroke-dasharray: none;
+  }
+}
+
+/* White text INSIDE a filled accent stays white.
+   The `text-white` rule above tests an element's OWN class list, so it flips a
+   child correctly only when that child also carries the background. A tick
+   inside a gradient pill carries neither — the pill has the gradient, the icon
+   has the colour — so the icon was being turned to dark ink on a saturated
+   green badge. Two compound selectors and a later position both beat the
+   single-class rule above, so this reasserts white without !important. */
+:root[data-theme="light"] [class*="bg-gradient-to-"] [class~="text-white"],
+:root[data-theme="light"] [class~="bg-[var(--primary)]"] [class~="text-white"],
+:root[data-theme="light"] [class~="jh-cta"] [class~="text-white"] {
+  color: #fff;
+}

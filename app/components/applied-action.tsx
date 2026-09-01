@@ -19,19 +19,41 @@ function IconCheck({ className = 'h-4 w-4' }: { className?: string }) {
   );
 }
 
-// The tick sits on a darker disc rather than directly on the gradient: a white
-// check on mid-emerald is legible but weak, and the disc gives it an edge to
-// read against at 16px.
-function CheckDisc({ lg }: { lg: boolean }) {
+// A 12-lobe rosette, computed rather than eyeballed: alternating radii of 10.6
+// and 8.7 about a 24-unit box. Rounded joins turn what would be a spiky star
+// into a scalloped medal, which is the shape a person already reads as
+// "certified" — a plain tick says an item is ticked, a seal says it is done.
+const SEAL_PATH =
+  'M12.00 1.40 L14.25 3.60 L17.30 2.82 L18.15 5.85 L21.18 6.70 L20.40 9.75 L22.60 12.00 ' +
+  'L20.40 14.25 L21.18 17.30 L18.15 18.15 L17.30 21.18 L14.25 20.40 L12.00 22.60 L9.75 20.40 ' +
+  'L6.70 21.18 L5.85 18.15 L2.82 17.30 L3.60 14.25 L1.40 12.00 L3.60 9.75 L2.82 6.70 ' +
+  'L5.85 5.85 L6.70 2.82 L9.75 3.60 Z';
+
+function AppliedSeal({ className }: { className?: string }) {
   return (
-    <span
-      aria-hidden
-      className={`flex shrink-0 items-center justify-center rounded-full bg-emerald-950/45 shadow-[0_1px_0_0_rgba(255,255,255,0.22)_inset] ${
-        lg ? 'h-6 w-6' : 'h-5 w-5'
-      }`}
-    >
-      <IconCheck className={lg ? 'h-3.5 w-3.5' : 'h-3 w-3'} />
-    </span>
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      {/* Stroked as well as filled, so the scallops keep their soft edge
+          instead of coming to points at small sizes. */}
+      <path
+        d={SEAL_PATH}
+        fill="currentColor"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      {/* pathLength normalises the tick to 1 unit, so the draw animation's dash
+          values hold at every size this renders at. */}
+      <path
+        className="jh-badge-check"
+        d="M8.2 12.3 L10.9 15 L16 9.6"
+        pathLength={1}
+        fill="none"
+        stroke="#065f46"
+        strokeWidth="2.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
@@ -165,23 +187,36 @@ export function AppliedBadge({ jobId, size = 'sm' }: { jobId: number; size?: 'sm
       //   - a soft emerald glow, so it lifts off the card instead of sitting on it
       // The white ring keeps a crisp edge on both themes; on the light theme the
       // glow alone would leave the pill floating with no boundary.
-      className={`inline-flex items-center whitespace-nowrap rounded-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-green-600 text-white ring-1 ring-inset ring-white/30 shadow-[0_1px_0_0_rgba(255,255,255,0.3)_inset,0_3px_14px_-3px_rgba(16,185,129,0.75)] ${
-        lg ? 'gap-2 px-3.5 py-2 text-sm' : 'gap-2 px-3 py-1.5 text-[13px]'
+      //
+      // `overflow-hidden` clips the sheen to the capsule; `isolate` gives it a
+      // stacking context so the sheen cannot ride over a neighbouring badge.
+      className={`jh-badge relative isolate inline-flex items-center overflow-hidden whitespace-nowrap rounded-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-green-600 text-white ring-1 ring-inset ring-white/30 shadow-[0_1px_0_0_rgba(255,255,255,0.3)_inset,0_4px_16px_-4px_rgba(16,185,129,0.8)] ${
+        lg ? 'gap-2.5 py-2 pl-2 pr-4' : 'gap-2 py-1.5 pl-1.5 pr-3.5'
       }`}
     >
-      <CheckDisc lg={lg} />
-      <span className="font-extrabold uppercase tracking-wider">Applied</span>
+      {/* A gloss band that crosses the pill on hover. Purely decorative and
+          pointer-transparent, so it never intercepts the hover driving it. */}
+      <span
+        aria-hidden
+        className="jh-badge-sheen pointer-events-none absolute inset-y-0 -left-1/3 w-1/3 bg-gradient-to-r from-transparent via-white/45 to-transparent"
+      />
 
-      {/* A hairline rather than a bullet: it separates the label from the
-          metadata without adding a glyph that competes with the tick. */}
-      <span aria-hidden className={`w-px self-stretch bg-white/30 ${lg ? 'my-0.5' : 'my-px'}`} />
+      <AppliedSeal
+        className={`jh-badge-seal relative shrink-0 text-white drop-shadow-[0_1px_1px_rgba(6,78,59,0.45)] ${
+          lg ? 'h-9 w-9' : 'h-8 w-8'
+        }`}
+      />
 
-      <span className="font-semibold text-white/95">{who}</span>
-      {/* The date earns its place at both sizes now the pill is large enough:
-          "who applied" and "how long ago" are the two questions this badge is
-          scanned for, and only one of them used to be answered. */}
-      <span className={`font-medium text-white/75 ${lg ? 'text-xs' : 'text-[11px]'}`}>
-        {when(status.appliedAt)}
+      {/* Stacked rather than inline: the height is what was asked for, and two
+          short lines give it honestly instead of padding an empty pill. It also
+          puts the label above its own metadata, which is the reading order. */}
+      <span className="relative flex flex-col leading-tight">
+        <span className={`font-extrabold uppercase tracking-wider ${lg ? 'text-sm' : 'text-[13px]'}`}>
+          Applied
+        </span>
+        <span className={`font-medium text-white/85 ${lg ? 'text-xs' : 'text-[11px]'}`}>
+          {who} · {when(status.appliedAt)}
+        </span>
       </span>
     </span>
   );
