@@ -47,7 +47,7 @@ export function TeamBidPerformanceDashboard({
 
   const series = useMemo(() => bucketDaily(data.daily), [data.daily]);
 
-  function navigate(next: { days?: number; from?: string; to?: string } = {}) {
+  function navigate(next: { days?: number; from?: string; to?: string; profile?: string | null } = {}) {
     const q = new URLSearchParams();
     const useCustom = next.from && next.to ? true : next.days ? false : Boolean(custom);
     if (useCustom) {
@@ -56,6 +56,11 @@ export function TeamBidPerformanceDashboard({
     } else {
       q.set('days', String(next.days ?? days));
     }
+    // Carried through every range change. Without this, picking a profile and
+    // then switching to "7 days" would quietly widen back to every profile
+    // while the picker still showed the chosen one.
+    const p = next.profile !== undefined ? next.profile : data.profileId ? String(data.profileId) : null;
+    if (p) q.set('profile', p);
     startTransition(() => router.push(`?${q}`, { scroll: false }));
   }
 
@@ -153,6 +158,24 @@ export function TeamBidPerformanceDashboard({
               Clear
             </button>
           )}
+
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
+              Profile
+            </span>
+            <select
+              value={data.profileId ?? ''}
+              onChange={(e) => navigate({ profile: e.target.value || null })}
+              className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-sm text-[var(--text)] outline-none transition focus:border-[var(--primary)]"
+            >
+              <option value="">All profiles</option>
+              {data.allProfiles.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
 
         {rangeInvalid && (

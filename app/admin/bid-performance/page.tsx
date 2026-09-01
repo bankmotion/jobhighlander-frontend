@@ -11,7 +11,7 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 export default async function TeamBidPerformancePage({
   searchParams,
 }: {
-  searchParams: Promise<{ days?: string; from?: string; to?: string }>;
+  searchParams: Promise<{ days?: string; from?: string; to?: string; profile?: string }>;
 }) {
   const sp = await searchParams;
 
@@ -23,7 +23,11 @@ export default async function TeamBidPerformancePage({
   const parsedDays = Number(sp.days);
   const days = Number.isFinite(parsedDays) && parsedDays > 0 ? Math.min(parsedDays, 365) : 90;
 
-  const data = await fetchTeamBidPerformance(custom ? custom : { days });
+  // An unparseable or absent profile means "all", which is the default view.
+  const parsedProfile = Number(sp.profile);
+  const profileId = Number.isInteger(parsedProfile) && parsedProfile > 0 ? parsedProfile : undefined;
+
+  const data = await fetchTeamBidPerformance(custom ? custom : { days }, profileId);
 
   return (
     <div>

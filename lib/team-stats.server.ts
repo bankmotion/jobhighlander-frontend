@@ -13,6 +13,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 // endpoint exists.
 export async function fetchTeamBidPerformance(
   window: StatsWindow = { days: 90 },
+  profileId?: number,
 ): Promise<TeamBidPerformance | null> {
   const token = await getToken();
   if (!token) return null;
@@ -23,6 +24,7 @@ export async function fetchTeamBidPerformance(
     qs.set('from', window.from);
     qs.set('to', window.to);
   }
+  if (profileId) qs.set('profileId', String(profileId));
 
   try {
     const res = await fetch(`${API_URL}/api/stats/bid-performance/all?${qs}`, {

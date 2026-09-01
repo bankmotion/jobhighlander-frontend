@@ -78,6 +78,10 @@ export interface TeamBidPerformance {
   bySite: { site: string; applications: number; interviews: number; rate: number }[];
   byBidder: TeamBidder[];
   profiles: ProfileBidRow[];
+  /// Every profile in the system, for the picker. Unaffected by the filter.
+  allProfiles: { id: number; name: string }[];
+  /// Which profile the figures are narrowed to, or null for all of them.
+  profileId: number | null;
   applied: AppliedRow[];
 }
 
