@@ -19,24 +19,6 @@ function IconX({ className = 'h-4 w-4' }: { className?: string }) {
   );
 }
 
-function IconRestore({ className = 'h-4 w-4' }: { className?: string }) {
-  return (
-    <svg
-      aria-hidden
-      viewBox="0 0 24 24"
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M3 12a9 9 0 1 0 3-6.7" />
-      <path d="M3 4v5h5" />
-    </svg>
-  );
-}
-
 const when = (iso: string) =>
   new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 
@@ -70,23 +52,29 @@ export function DiscardAction({ jobId }: { jobId: number }) {
     );
   }
 
+  // Discarding is one-way by choice. Once a posting is out, the control stops
+  // offering to bring it back: a restore button on every discarded card is a
+  // second decision nobody wanted to make again, and it sat exactly where the
+  // discard button had just been — one click past the one that was intended.
+  //
+  // The state still has to be VISIBLE, or the row looks untouched and gets
+  // discarded again. So it stays as a non-interactive marker carrying who and
+  // when, which is what the button's tooltip used to be for.
+  //
+  // Nothing is deleted: the discard row is intact, `toggle` still exists, and
+  // the discarded filter still lists these. Only the one-click undo is gone.
   if (status) {
     return (
-      <button
-        type="button"
-        onClick={() => toggle(jobId)}
-        disabled={busy}
-        // The label says what the click DOES; the state is already announced by
-        // the badge at the top of the card.
-        aria-label={`Restore posting ${jobId}, discarded ${when(status.discardedAt)} by ${byLine(
+      <span
+        aria-label={`Discarded ${when(status.discardedAt)} by ${byLine(
           status.discardedBy,
           viewerEmail,
         )}`}
-        title={`Discarded ${when(status.discardedAt)} by ${status.discardedBy} — click to restore`}
-        className={`${base} border-red-500/40 bg-red-500/10 text-red-300 hover:border-emerald-500/50 hover:bg-emerald-500/10 hover:text-emerald-300`}
+        title={`Discarded ${when(status.discardedAt)} by ${status.discardedBy}`}
+        className={`${base} cursor-default border-red-500/30 bg-red-500/10 text-red-300/80`}
       >
-        <IconRestore />
-      </button>
+        <IconX />
+      </span>
     );
   }
 

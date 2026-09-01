@@ -483,9 +483,13 @@ export function ResumeListProvider({
         //
         // Asked for unconditionally rather than after checking whether one
         // exists: the check would be a second round trip to save a request that
-        // is cheap when it 404s. A missing letter is the ordinary case for a job
-        // nobody has written one for, so it passes silently — the resume, which
-        // is what the click was for, has already been saved by this point.
+        // is cheap when there is nothing to send back.
+        //
+        // 204 is the only silent outcome, and that is the point. Treating 404
+        // as "no letter" is what hid a missing proxy route: the framework's own
+        // 404 was indistinguishable from an empty result, so the download
+        // quietly produced one file instead of two. Anything that is not 204 or
+        // 200 is now reported.
         try {
           const qs = new URLSearchParams({
             jobId: String(t.jobId),
@@ -494,12 +498,15 @@ export function ResumeListProvider({
             ...(templateKey ? { templateKey } : {}),
           });
           const letterRes = await fetch(`/api/cover-letters/${format}?${qs}`);
-          if (letterRes.ok) {
+          if (letterRes.ok && letterRes.status !== 204) {
             saveBlob(await letterRes.blob(), `cover_${fileNameFor(t)}.${MIME_EXT[format]}`);
-          } else if (letterRes.status !== 404) {
-            // A real failure is worth saying, since the user asked for both and
-            // is about to get one.
-            show('The resume downloaded, but the cover letter could not be rendered.', 'error');
+          } else if (letterRes.status !== 204) {
+            const err = await letterRes.json().catch(() => null);
+            show(
+              err?.error ??
+                `The resume downloaded, but the cover letter could not be rendered (${letterRes.status}).`,
+              'error',
+            );
           }
         } catch {
           show('The resume downloaded, but the cover letter could not be fetched.', 'error');

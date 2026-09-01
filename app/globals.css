@@ -616,3 +616,85 @@ body {
 :root[data-theme="light"] [class~="jh-cta"] [class~="text-white"] {
   color: #fff;
 }
+
+/* ── Last-worked job marker ──────────────────────────────────────────────
+   Marks the card the user last acted on, so returning to the tab after a
+   detour lands them back where they were.
+
+   Two layers, because the job is "findable at a glance" AND "not a nuisance
+   while reading":
+     - a persistent accent border, so the card is identifiable at rest
+     - a slow travelling sheen along that border, which is what the eye
+       actually catches when scanning a page of near-identical cards
+
+   The sheen is on a ::before so it can be masked to the border itself rather
+   than washing over the content. `padding-box`/`border-box` masking is what
+   makes a gradient BORDER possible at all — a background-image alone would
+   paint the whole card. */
+.jh-job-card[data-last-worked] {
+  border-color: transparent;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--primary) 55%, transparent),
+    0 6px 26px -8px color-mix(in srgb, var(--primary) 55%, transparent);
+}
+
+.jh-job-card[data-last-worked]::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    115deg,
+    transparent 20%,
+    color-mix(in srgb, var(--primary) 85%, white) 42%,
+    color-mix(in srgb, var(--primary) 45%, white) 50%,
+    transparent 72%
+  );
+  background-size: 260% 100%;
+  /* Composited so only the 1px ring shows: fill minus content area. */
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  /* Never intercepts a click meant for the card. */
+  pointer-events: none;
+  animation: jh-trace 3.6s linear infinite;
+}
+
+@keyframes jh-trace {
+  from { background-position: 180% 0; }
+  to   { background-position: -80% 0; }
+}
+
+/* A discarded card that happens to be the last one touched keeps its dimmed
+   treatment; the marker would otherwise fight the "this is out" signal. */
+.jh-job-card[data-discarded][data-last-worked]::before {
+  animation: none;
+  opacity: 0.35;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jh-job-card[data-last-worked]::before {
+    animation: none;
+    /* Static, but still a visible accent ring rather than nothing. */
+    background-position: 50% 0;
+  }
+}
+
+/* The light theme gives every card a shadow, and that rule
+   (`[class~="bg-[var(--surface)]"][class~="rounded-xl"]`) is (0,4,0) — the same
+   specificity as the marker's own selector but written earlier, so the marker's
+   glow was being dropped and the card sat there with an ordinary shadow. This
+   restates BOTH: the card's elevation plus the accent, so the marker reads as
+   strongly on white as it does on the dark theme. */
+:root[data-theme="light"] .jh-job-card[data-last-worked] {
+  box-shadow:
+    var(--shadow-card),
+    0 0 0 1px color-mix(in srgb, var(--primary) 60%, transparent),
+    0 8px 26px -10px color-mix(in srgb, var(--primary) 70%, transparent);
+}
