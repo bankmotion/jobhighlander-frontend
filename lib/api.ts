@@ -29,7 +29,6 @@ async function authHeaders(): Promise<HeadersInit> {
 
 export async function fetchJobs(query: JobQuery = {}): Promise<Paginated<Job>> {
   const qs = new URLSearchParams();
-  if (query.q) qs.set('q', query.q);
   if (query.company) qs.set('company', query.company);
   if (query.title) qs.set('title', query.title);
   if (query.description) qs.set('description', query.description);

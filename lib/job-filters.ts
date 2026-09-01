@@ -3,7 +3,7 @@
 import { createLocalStore } from './local-store';
 
 const FILTER_KEYS = [
-  'q', 'title', 'company', 'location', 'description',
+  'title', 'company', 'location', 'description',
   'site', 'remote', 'applied', 'discarded', 'interview',
 ] as const;
 

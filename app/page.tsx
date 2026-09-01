@@ -81,7 +81,6 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   // Carried by every filter and page link. Only pinned once the user has picked
   // one, so the common single-profile case keeps a clean URL.
   const query = {
-    q: str(sp.q),
     company: str(sp.company),
     title: str(sp.title),
     description: str(sp.description),
@@ -102,7 +101,6 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   let error: string | null = null;
   try {
     data = await fetchJobs({
-      q: query.q,
       company: query.company,
       title: query.title,
       description: query.description,
@@ -230,7 +228,6 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                 <NewJobsBanner
                   latestId={data.latestId ?? 0}
                   query={new URLSearchParams({
-                    ...(query.q ? { q: query.q } : {}),
                     ...(query.company ? { company: query.company } : {}),
                     ...(query.title ? { title: query.title } : {}),
                     ...(query.description ? { description: query.description } : {}),

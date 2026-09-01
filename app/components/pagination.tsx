@@ -1,23 +1,31 @@
 import type { AppliedFilter } from '@/lib/applications';
 import type { DiscardedFilter } from '@/lib/discards';
+import type { InterviewFilter } from '@/lib/interviews';
 import Link from 'next/link';
 import type { Pagination as PaginationInfo } from '@/lib/types';
 
 interface Props {
   pagination: PaginationInfo;
   query: {
-    q: string;
+    title: string;
+    company: string;
+    location: string;
+    description: string;
     sites: string[];
     remote: boolean;
     profile?: number;
     applied?: AppliedFilter;
     discarded?: DiscardedFilter;
+    interview?: InterviewFilter;
   };
 }
 
 function href(page: number, query: Props['query']): string {
   const qs = new URLSearchParams();
-  if (query.q) qs.set('q', query.q);
+  // Every text field, from one list — page 2 must be the same query as page 1.
+  for (const key of ['title', 'company', 'location', 'description'] as const) {
+    if (query[key]) qs.set(key, query[key]);
+  }
   query.sites.forEach((s) => qs.append('site', s));
   if (!query.remote) qs.set('remote', '0'); // remote-only is the default
   // Carried through, or paging would silently switch whose resumes the list
@@ -26,6 +34,9 @@ function href(page: number, query: Props['query']): string {
   // Paging must not silently widen the list back to every job.
   if (query.applied && query.applied !== 'all') qs.set('applied', query.applied);
   if (query.discarded && query.discarded !== 'all') qs.set('discarded', query.discarded);
+  // Was missing: paging used to drop the interview filter and quietly widen the
+  // list, which read as page 2 containing jobs page 1 had excluded.
+  if (query.interview && query.interview !== 'all') qs.set('interview', query.interview);
   qs.set('page', String(page));
   return `/?${qs.toString()}`;
 }

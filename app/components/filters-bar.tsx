@@ -9,11 +9,11 @@ import type { InterviewFilter } from '@/lib/interviews';
 import { MultiSelect } from './multi-select';
 import { saveJobFilters } from '@/lib/job-filters';
 
-const TEXT_KEYS = ['q', 'title', 'company', 'location', 'description'] as const;
+const TEXT_KEYS = ['title', 'company', 'location', 'description'] as const;
 type TextKey = (typeof TEXT_KEYS)[number];
 type TextFilters = Record<TextKey, string>;
 
-const EMPTY_TEXT: TextFilters = { q: '', title: '', company: '', location: '', description: '' };
+const EMPTY_TEXT: TextFilters = { title: '', company: '', location: '', description: '' };
 
 const pickText = (src: Record<TextKey, string>): TextFilters =>
   Object.fromEntries(TEXT_KEYS.map((k) => [k, src[k] ?? ''])) as TextFilters;
@@ -21,9 +21,10 @@ const pickText = (src: Record<TextKey, string>): TextFilters =>
 const sameText = (a: TextFilters, b: TextFilters): boolean =>
   TEXT_KEYS.every((k) => a[k] === b[k]);
 
-// The catch-all search keeps its own place in the layout, so it is not here.
+// Title leads and takes the flexible width: it is the field people reach for
+// first, and it inherits the slot the catch-all search used to occupy.
 const FIELD_INPUTS: { key: TextKey; placeholder: string; label: string; width: string }[] = [
-  { key: 'title', placeholder: 'Title', label: 'Filter by job title', width: 'w-36' },
+  { key: 'title', placeholder: 'Job title', label: 'Filter by job title', width: 'min-w-[200px] flex-1' },
   { key: 'company', placeholder: 'Company', label: 'Filter by company', width: 'w-36' },
   { key: 'location', placeholder: 'Location', label: 'Filter by location', width: 'w-36' },
   { key: 'description', placeholder: 'In description', label: 'Filter by description text', width: 'w-40' },
@@ -32,7 +33,6 @@ const FIELD_INPUTS: { key: TextKey; placeholder: string; label: string; width: s
 interface Props {
   filters: JobFilters;
   current: {
-    q: string;
     company: string;
     title: string;
     description: string;
@@ -178,31 +178,10 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
       onSubmit={submit}
       className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3"
     >
-      <div className="relative min-w-[220px] flex-1">
-        <svg
-          viewBox="0 0 24 24"
-          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--muted)]"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <circle cx="11" cy="11" r="7" />
-          <path d="m20 20-3-3" strokeLinecap="round" />
-        </svg>
-        <input
-          type="text"
-          value={drafts.q}
-          onChange={(e) => setDraft('q', e.target.value)}
-          placeholder="Search all fields…"
-          aria-label="Search title, description and location together"
-          className={`w-full pl-9 ${inputCls}`}
-        />
-      </div>
-
-      {/* One box per column, AND-ed together, alongside the catch-all above.
-          The catch-all ORs across three columns, so a short word like "ai"
-          matches "details" and "training" in 95% of descriptions; these narrow
-          to the field you actually meant. */}
+      {/* One box per column, AND-ed together. There is deliberately no
+          search-everything box: it ORed across three columns, so a short word
+          like "ai" matched "details" and "training" and returned 95% of the
+          table. Naming the field is what makes the result mean something. */}
       {FIELD_INPUTS.map((f) => (
         <input
           key={f.key}
