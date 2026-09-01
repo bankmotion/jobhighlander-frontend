@@ -7,6 +7,7 @@ import { ApplicationAction } from './application-action';
 import { AppliedAction, AppliedBadge, PreviouslyAppliedBadge } from './applied-action';
 import { JobDescription } from './job-description';
 import { DiscardAction, DiscardedBadge } from './discard-action';
+import { CopyLinkButton } from './copy-link-button';
 import { InterviewAction, InterviewBadge, type InterviewCardStatus } from './interview-action';
 import { JobQueryAction } from './job-query-action';
 import { JobPanel } from './job-panel';
@@ -114,6 +115,9 @@ export function JobCard({
           >
             Apply Now <span aria-hidden>↗</span>
           </a>
+          {/* The same href the button opens, so what is pasted is what Apply
+              would have gone to. */}
+          <CopyLinkButton url={applyHref} jobId={job.id} />
           <DiscardAction jobId={job.id} />
         </div>
       </div>
