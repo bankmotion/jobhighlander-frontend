@@ -170,12 +170,15 @@ export function ResumeGenerator({
       }
       const generated = data as TailoredResume;
       setResume(generated);
+      // Read the stored template back BEFORE rendering. The row was just
+      // written, and a regenerate now adopts the profile's current default —
+      // rendering with the key held in state would show the template this
+      // component loaded with, which is the one the user just changed away
+      // from.
+      const key = await syncSavedTemplate();
       // Generation already cost 20-60s; the render adds ~1s and is cached
       // server-side, so showing the finished document beats making them ask.
-      void renderPdf(generated, Number(profileId), templateKey || undefined);
-      // The upsert may have just created the row — read back its template so
-      // Apply reflects what is actually stored.
-      void syncSavedTemplate();
+      void renderPdf(generated, Number(profileId), key ?? templateKey ?? undefined);
     } catch {
       setError('Could not reach the server.');
     } finally {
@@ -183,18 +186,29 @@ export function ResumeGenerator({
     }
   }
 
-  async function syncSavedTemplate() {
-    if (!profileId) return;
+  // Returns the key the server now has, so the caller can render with it
+  // instead of the one this component was holding.
+  async function syncSavedTemplate(): Promise<string | null> {
+    if (!profileId) return null;
     try {
       const res = await fetch(`/api/resumes/saved?jobId=${jobId}&profileId=${profileId}`);
-      if (!res.ok) return;
+      if (!res.ok) return null;
       const row = (await res.json()) as SavedResume | null;
-      if (!row) return;
+      if (!row) return null;
+
+      let adopted: string | null = null;
+      setTemplateKey((prev) => {
+        // A pending choice — picked in the dropdown but not yet applied — still
+        // wins, so a regenerate does not throw it away.
+        const pending = prev && prev !== savedTemplateKey;
+        adopted = pending ? prev : row.templateKey;
+        return adopted;
+      });
       setSavedTemplateKey(row.templateKey);
-      // Only adopt it as the selection when the user has not picked one, so a
-      // pending choice survives a regenerate.
-      setTemplateKey((prev) => prev || row.templateKey);
-    } catch {}
+      return adopted;
+    } catch {
+      return null;
+    }
   }
 
   function selectTemplate(key: string) {
