@@ -190,8 +190,12 @@ export function AppliedBadge({ jobId, size = 'sm' }: { jobId: number; size?: 'sm
       //
       // `overflow-hidden` clips the sheen to the capsule; `isolate` gives it a
       // stacking context so the sheen cannot ride over a neighbouring badge.
+      // The min-width matters as much as the padding: "you · Sep 1, 2026" is a
+      // third the length of a full colleague name, so padding alone left the
+      // badge visibly different widths down a list. A floor makes the short
+      // case match the common one instead of shrinking to fit.
       className={`jh-badge relative isolate inline-flex items-center overflow-hidden whitespace-nowrap rounded-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-green-600 text-white ring-1 ring-inset ring-white/30 shadow-[0_1px_0_0_rgba(255,255,255,0.3)_inset,0_4px_16px_-4px_rgba(16,185,129,0.8)] ${
-        lg ? 'gap-2.5 py-2 pl-2 pr-4' : 'gap-2 py-1.5 pl-1.5 pr-3.5'
+        lg ? 'min-w-[13.5rem] gap-3.5 py-2 pl-2.5 pr-6' : 'min-w-[12rem] gap-3 py-1.5 pl-2 pr-5'
       }`}
     >
       {/* A gloss band that crosses the pill on hover. Purely decorative and
