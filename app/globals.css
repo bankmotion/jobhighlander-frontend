@@ -405,14 +405,23 @@ body {
    The gradient exception matches on a substring rather than an exact token:
    `to-r`, `to-br` and the rest are all filled backgrounds, and pinning it to
    one direction meant changing a gradient's angle silently turned its label
-   dark. */
-:root[data-theme="light"] [class~="text-white"]:not([class~="bg-[var(--primary)]"]):not([class~="jh-cta"]):not([class*="bg-gradient-to-"]):not([class~="bg-red-600"]):not([class~="bg-amber-600"]):not([class~="bg-black/45"]) {
+   dark.
+
+   The exclusions sit inside `:not(:where(...))` so they contribute NO
+   specificity. A plain `:not()` chain takes the specificity of its arguments —
+   six of them pushed this rule to (0,9,0), which then outranked the
+   descendant rule further down that keeps a tick white inside a coloured pill.
+   Wrapping them in `:where()` pins this at (0,3,0) and lets the cascade read
+   in the order it is written. */
+:root[data-theme="light"]
+  [class~="text-white"]:not(:where([class~="bg-[var(--primary)]"], [class~="jh-cta"], [class*="bg-gradient-to-"], [class~="bg-red-600"], [class~="bg-amber-600"], [class~="bg-black/45"])) {
   color: var(--text);
 }
 
 /* Muted links that brighten on hover. The one exception turns its background
    purple on the same hover, so its white has to survive. */
-:root[data-theme="light"] [class~="hover:text-white"]:not([class~="hover:bg-[var(--primary)]"]):hover {
+:root[data-theme="light"]
+  [class~="hover:text-white"]:not(:where([class~="hover:bg-[var(--primary)]"])):hover {
   color: var(--text);
 }
 
