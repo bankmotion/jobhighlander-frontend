@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ProfileSummary } from '@/lib/types';
 import { AppliedApplications, WhoBid } from './bid-applied-parts';
+import { bidPrefs } from '@/lib/view-prefs';
 import {
   bucketDaily,
   dateInputValue,
@@ -64,6 +65,9 @@ export function BidPerformanceDashboard({
     if (p) q.set('profile', p);
     const b = next.bidder !== undefined ? next.bidder : bidder != null ? String(bidder) : null;
     if (b) q.set('user', b);
+    // Remembered for the next visit. Written here rather than in an effect so
+    // it records what the user chose, not whatever a restore happened to load.
+    bidPrefs.save(q.toString());
     startTransition(() => router.push(`?${q}`, { scroll: false }));
   }
 
@@ -128,7 +132,7 @@ export function BidPerformanceDashboard({
           {custom && (
             <button
               type="button"
-              onClick={() => setRange(90)}
+              onClick={() => setRange(1)}
               className="rounded-lg px-2 py-1.5 text-sm text-[var(--muted)] underline transition hover:text-white"
             >
               Clear
@@ -251,7 +255,7 @@ export function BidPerformanceDashboard({
 
           <AppliedApplications rows={data.applied} total={data.totals.applications} />
 
-          {data.byUser.length > 0 && (
+          {data.byUser.length > 1 && (
             <Card title="By bidder" note="Who sent the bids on these profiles">
               <BidderTable rows={data.byUser} />
             </Card>

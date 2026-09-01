@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppliedApplications, WhoBid } from './bid-applied-parts';
+import { teamBidPrefs } from '@/lib/view-prefs';
 import { bucketDaily, dateInputValue, pctText, siteLabel, RANGES, SERIES } from '@/lib/stats';
 import {
   lastBidLabel,
@@ -61,6 +62,7 @@ export function TeamBidPerformanceDashboard({
     // while the picker still showed the chosen one.
     const p = next.profile !== undefined ? next.profile : data.profileId ? String(data.profileId) : null;
     if (p) q.set('profile', p);
+    teamBidPrefs.save(q.toString());
     startTransition(() => router.push(`?${q}`, { scroll: false }));
   }
 
@@ -152,7 +154,7 @@ export function TeamBidPerformanceDashboard({
           {custom && (
             <button
               type="button"
-              onClick={() => setRange(90)}
+              onClick={() => setRange(1)}
               className="rounded-lg px-2 py-1.5 text-sm text-[var(--muted)] underline transition hover:text-white"
             >
               Clear

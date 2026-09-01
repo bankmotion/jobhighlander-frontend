@@ -2,6 +2,8 @@ import { fetchBidPerformance } from '@/lib/stats.server';
 import { fetchProfiles } from '@/lib/profiles';
 import { getSession } from '@/lib/auth';
 import { BidPerformanceDashboard } from '@/app/components/bid-performance-dashboard';
+import { QueryPrefsRestore } from '@/app/components/query-prefs-restore';
+import { bidPrefs } from '@/lib/view-prefs';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +22,7 @@ export default async function BidPerformancePage({
       : null;
 
   const parsedDays = Number(sp.days);
-  const days = Number.isFinite(parsedDays) && parsedDays > 0 ? Math.min(parsedDays, 365) : 90;
+  const days = Number.isFinite(parsedDays) && parsedDays > 0 ? Math.min(parsedDays, 365) : 1;
 
   const parsedProfile = Number(sp.profile);
   const wantedProfile = Number.isInteger(parsedProfile) && parsedProfile > 0 ? parsedProfile : null;
@@ -47,6 +49,7 @@ export default async function BidPerformancePage({
 
   return (
     <div>
+      <QueryPrefsRestore prefs={bidPrefs} path="/statistics/bid-performance" />
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-white">Bid performance</h1>
       <p className="mb-5 text-sm text-[var(--muted)]">
         What happened to the jobs applied to — volume, conversion to interviews, and which sources

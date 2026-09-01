@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
+import { allAiUsagePrefs } from '@/lib/view-prefs';
 import {
   CALL_PAGE_SIZE,
   NO_FILTER,
@@ -41,6 +42,19 @@ export function AdminAiUsageDashboard({
   const [failed, setFailed] = useState(false);
   const [callsFailed, setCallsFailed] = useState(initialCalls === null);
 
+  const restored = useRef(false);
+  useEffect(() => {
+    if (restored.current) return;
+    restored.current = true;
+    const saved = allAiUsagePrefs.stored();
+    if (!saved) return;
+    const same =
+      saved.days === initial.days && saved.userId === null && saved.profileId === null;
+    if (same) return;
+    load(saved.days, { userId: saved.userId, profileId: saved.profileId });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial.days]);
+
   function load(nextDays: number, nextFilter: UsageFilter) {
     if (pending) return;
     setFailed(false);
@@ -56,6 +70,11 @@ export function AdminAiUsageDashboard({
         setData(summary);
         setDays(nextDays);
         setFilter(nextFilter);
+        allAiUsagePrefs.set({
+          days: nextDays,
+          userId: nextFilter.userId,
+          profileId: nextFilter.profileId,
+        });
         if (page) setCalls(page);
         setCallsFailed(page === null);
       } catch {

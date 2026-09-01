@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useRef, useState, useTransition } from 'react';
+import { myAiUsagePrefs } from '@/lib/view-prefs';
 import { tokens, usd, type UsageSummary } from '@/lib/ai-usage';
 import {
   BreakdownTable,
@@ -19,6 +20,20 @@ export function AiUsageDashboard({ initial }: { initial: UsageSummary }) {
   const [pending, startTransition] = useTransition();
   const [failed, setFailed] = useState(false);
 
+  // The page is server-rendered at a fixed range, so a remembered one has to be
+  // fetched on arrival. Once per mount, and skipped when it already matches, so
+  // the common case costs nothing.
+  const restored = useRef(false);
+  useEffect(() => {
+    if (restored.current) return;
+    restored.current = true;
+    const saved = myAiUsagePrefs.stored();
+    if (saved && saved.days !== initial.days) changeRange(saved.days);
+    // `changeRange` is stable for this purpose: it closes over `days`, and the
+    // guard above means this runs before anything can change it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initial.days]);
+
   function changeRange(next: number) {
     if (next === days || pending) return;
     setFailed(false);
@@ -28,6 +43,7 @@ export function AiUsageDashboard({ initial }: { initial: UsageSummary }) {
         if (!res.ok) throw new Error(String(res.status));
         setData(await res.json());
         setDays(next);
+        myAiUsagePrefs.set({ days: next, userId: null, profileId: null });
       } catch {
         // Leave the previous range on screen and say so. Blanking the page
         // would replace real numbers with nothing, which reads as "you spent

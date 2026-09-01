@@ -1,5 +1,7 @@
 import { fetchTeamBidPerformance } from '@/lib/team-stats.server';
 import { TeamBidPerformanceDashboard } from '@/app/components/team-bid-performance-dashboard';
+import { QueryPrefsRestore } from '@/app/components/query-prefs-restore';
+import { teamBidPrefs } from '@/lib/view-prefs';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +23,7 @@ export default async function TeamBidPerformancePage({
       : null;
 
   const parsedDays = Number(sp.days);
-  const days = Number.isFinite(parsedDays) && parsedDays > 0 ? Math.min(parsedDays, 365) : 90;
+  const days = Number.isFinite(parsedDays) && parsedDays > 0 ? Math.min(parsedDays, 365) : 1;
 
   // An unparseable or absent profile means "all", which is the default view.
   const parsedProfile = Number(sp.profile);
@@ -31,6 +33,7 @@ export default async function TeamBidPerformancePage({
 
   return (
     <div>
+      <QueryPrefsRestore prefs={teamBidPrefs} path="/admin/bid-performance" />
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-white">Team bid performance</h1>
       <p className="mb-5 text-sm text-[var(--muted)]">
         Every profile in the system, who works on it, and what each of them sent. Unlike My
