@@ -512,3 +512,15 @@ body {
 :root[data-theme="light"] [class~="bg-[var(--primary)]/20"] { background-color: rgb(90 72 232 / 0.14); }
 :root[data-theme="light"] [class~="bg-[var(--primary)]/10"],
 :root[data-theme="light"] [class~="bg-[var(--primary)]/12"] { background-color: rgb(90 72 232 / 0.1); }
+
+/* ── Collapsible navigation ──────────────────────────────────────────────
+   Unlayered, so it beats Tailwind's `md:flex` on the sidebar without
+   !important — same mechanism as the light-theme rules above.
+
+   Only the HIDDEN state has a rule. The sidebar is `hidden md:flex`, so a
+   matching force-show rule would also drag a 240px panel onto a phone, where
+   Tailwind is right to keep it out of the way. No attribute means "leave the
+   responsive behaviour alone". */
+:root[data-nav="hidden"] #jh-sidebar {
+  display: none;
+}

@@ -46,7 +46,7 @@ export function Sidebar({ role, profiles }: { role: Role; profiles: ProfileSumma
     }`;
 
   return (
-    <aside className="hidden w-60 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)] md:flex md:sticky md:top-0 md:h-screen md:self-start md:overflow-y-auto">
+    <aside id="jh-sidebar" className="hidden w-60 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)] md:flex md:sticky md:top-0 md:h-screen md:self-start md:overflow-y-auto">
       <div className="flex flex-col items-center gap-2 px-5 pb-4 pt-5">
         <Image
           src="/logo.png"

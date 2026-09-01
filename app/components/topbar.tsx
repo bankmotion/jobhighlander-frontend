@@ -3,6 +3,7 @@ import { InboxMenu } from './inbox-menu';
 import { RefreshButton } from './refresh-button';
 import { TimezonePicker } from './timezone-picker';
 import { ThemeToggle } from './theme-toggle';
+import { NavToggle } from './nav-toggle';
 import { fetchMyInvitations } from '@/lib/profiles';
 import type { Session } from '@/lib/session';
 
@@ -25,6 +26,7 @@ export async function Topbar({ session }: { session: Session }) {
           Job<span className="text-[var(--primary)]">HighLander</span>
         </span>
         <div className="ml-auto flex items-center gap-3">
+          <NavToggle />
           <TimezonePicker />
           <ThemeToggle />
           <RefreshButton />

@@ -8,6 +8,7 @@ import { Topbar } from '@/app/components/topbar';
 import { PageTransition } from '@/app/components/page-transition';
 import { ScrollToTop } from '@/app/components/scroll-to-top';
 import { THEME_INIT_SCRIPT } from '@/lib/theme-init';
+import { NAV_INIT_SCRIPT } from '@/lib/nav-init';
 
 export const metadata: Metadata = {
   title: 'JobHighLander',
@@ -26,6 +27,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             browser has painted. `suppressHydrationWarning` above tells React to
             keep the attribute this script wrote instead of the SSR default. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: NAV_INIT_SCRIPT }} />
       </head>
       <body className="min-h-screen">
         {session ? (
@@ -57,7 +59,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
 function SidebarSkeleton() {
   return (
-    <aside className="hidden w-60 shrink-0 border-r border-[var(--border)] bg-[var(--surface)] md:flex md:flex-col md:sticky md:top-0 md:h-screen">
+    <aside id="jh-sidebar" className="hidden w-60 shrink-0 border-r border-[var(--border)] bg-[var(--surface)] md:flex md:flex-col md:sticky md:top-0 md:h-screen">
       <div className="flex flex-col items-center gap-2 px-5 pb-4 pt-5">
         <Image
           src="/logo.png"
