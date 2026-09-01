@@ -69,6 +69,7 @@ export function NewJobsBanner({
   // A fresh render resets the baseline, so the banner clears itself.
   useEffect(() => {
     setCount(0);
+    setLoading(false);
   }, [latestId]);
 
   if (count < 1) return null;
@@ -80,6 +81,12 @@ export function NewJobsBanner({
         disabled={loading}
         onClick={() => {
           setLoading(true);
+          // Back to page 1: the list is newest-first, so the arrivals this
+          // button counted are all on the first page. Refreshing in place would
+          // leave someone on page 5 looking at the same rows they already had.
+          const url = new URL(window.location.href);
+          url.searchParams.delete('page');
+          router.push(`${url.pathname}${url.search}`, { scroll: true });
           router.refresh();
         }}
         className="jh-bob pointer-events-auto inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white shadow-2xl transition hover:bg-[var(--primary-hover)] disabled:opacity-70"
