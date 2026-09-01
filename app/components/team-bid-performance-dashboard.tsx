@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { AppliedApplications, WhoBid } from './bid-applied-parts';
 import { bucketDaily, dateInputValue, pctText, siteLabel, RANGES, SERIES } from '@/lib/stats';
 import {
   lastBidLabel,
@@ -197,6 +198,19 @@ export function TeamBidPerformanceDashboard({
           <Card title="Bids over time" note="Whole organisation. Empty days are plotted as zero.">
             <TrendChart series={series} />
           </Card>
+
+          <WhoBid
+            total={data.totals.applications}
+            note="Who submitted these applications across every profile in the system."
+            slices={data.byBidder.map((b) => ({
+              key: String(b.userId),
+              label: b.email,
+              count: b.applications,
+              sublabel: `${b.role} · ${b.profiles} ${b.profiles === 1 ? 'profile' : 'profiles'}`,
+            }))}
+          />
+
+          <AppliedApplications rows={data.applied} total={data.totals.applications} showProfile />
 
           <div className="grid gap-4 lg:grid-cols-2">
             <Card title="By bidder" note="Every member, summed across all profiles they belong to">

@@ -1,3 +1,5 @@
+import type { AppliedRow } from './applied';
+
 // Mirrors the super-admin oversight shape in
 // backend/src/services/stats.service.ts. Kept separate from `stats.ts` because
 // that file describes one person's own performance, and this one describes
@@ -76,6 +78,7 @@ export interface TeamBidPerformance {
   bySite: { site: string; applications: number; interviews: number; rate: number }[];
   byBidder: TeamBidder[];
   profiles: ProfileBidRow[];
+  applied: AppliedRow[];
 }
 
 export const ROLE_TONE: Record<string, string> = {

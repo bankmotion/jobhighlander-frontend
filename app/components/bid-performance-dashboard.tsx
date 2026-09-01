@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ProfileSummary } from '@/lib/types';
+import { AppliedApplications, WhoBid } from './bid-applied-parts';
 import {
   bucketDaily,
   dateInputValue,
@@ -236,6 +237,19 @@ export function BidPerformanceDashboard({
               />
             </Card>
           </div>
+
+          <WhoBid
+            total={data.totals.applications}
+            note="Who submitted these applications — the profile owner and any teammate with access."
+            slices={data.byUser.map((u) => ({
+              key: String(u.userId),
+              label: u.userId === viewerId ? `${u.email} (you)` : u.email,
+              count: u.applications,
+              sublabel: u.interviews > 0 ? `${u.interviews} reached an interview` : undefined,
+            }))}
+          />
+
+          <AppliedApplications rows={data.applied} total={data.totals.applications} />
 
           {data.byUser.length > 0 && (
             <Card title="By bidder" note="Who sent the bids on these profiles">

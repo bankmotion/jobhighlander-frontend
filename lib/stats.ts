@@ -1,4 +1,4 @@
-
+import type { AppliedRow } from './applied';
 export type FunnelStage = 'applied' | 'interviewing' | 'offer' | 'accepted';
 
 export interface BidPerformance {
@@ -22,6 +22,7 @@ export interface BidPerformance {
   outcomes: { status: string; label: string; count: number }[];
   byUser: { userId: number; email: string; applications: number; interviews: number; offers: number }[];
   bidders: { userId: number; email: string }[];
+  applied: AppliedRow[];
 }
 
 export const RANGES = [
