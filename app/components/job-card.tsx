@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import type { Job } from '@/lib/types';
 import { formatPostedRelative } from '@/lib/format';
 import { ApplicationAction } from './application-action';
@@ -125,14 +124,6 @@ export function JobCard({
       {job.description && <JobDescription text={job.description} keywords={keywords} />}
 
       <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-[var(--border)] pt-3 text-sm">
-        <Link
-          href={detailHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-[var(--text)] transition hover:border-[var(--border-strong)]"
-        >
-          JD Details
-        </Link>
         <ApplicationAction jobId={job.id} title={job.title} company={job.company} />
         <InterviewAction jobId={job.id} interview={interview} />
         <JobQueryAction
