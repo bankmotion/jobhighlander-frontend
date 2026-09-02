@@ -1,4 +1,5 @@
 import { getToken } from './auth';
+import type { AiProvider } from './ai-providers';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
@@ -7,6 +8,8 @@ export interface CoverLetter {
   reviewNotes: string[];
   edited: boolean;
   model: string;
+  provider: AiProvider | null;
+  providerLabel: string;
   updatedAt: string;
 }
 

@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ProfileSummary } from '@/lib/types';
 import type { Preset } from '@/lib/templates';
+import { stampLabel, type AiProvider, type ProviderStamp } from '@/lib/ai-providers';
+import { GenerateModal, ProviderBadge } from './generate-modal';
 import { Toast, useToast } from './toast';
 
 interface Flagged {
@@ -27,13 +29,16 @@ export interface TailoredResume {
   reviewNotes: string[];
 }
 
-interface SavedResume {
+interface SavedResume extends ProviderStamp {
   id: number;
   data: TailoredResume;
   templateKey: string;
   model: string;
   updatedAt: string;
 }
+
+/** `/preview` returns the draft with the model that wrote it stamped on. */
+type GeneratedResume = TailoredResume & ProviderStamp;
 
 const NOTES_KEY = 'jh:resume-notes';
 
@@ -76,6 +81,11 @@ export function ResumeGenerator({
   const [templateKey, setTemplateKey] = useState<string>('');
   const [savedTemplateKey, setSavedTemplateKey] = useState<string>('');
   const [applying, setApplying] = useState(false);
+  // Which vendor wrote the resume currently on screen. Read from the saved row
+  // on load and from the generation response afterwards, so the badge is right
+  // without a refetch.
+  const [stamp, setStamp] = useState<ProviderStamp | null>(null);
+  const [picking, setPicking] = useState(false);
   const { toast, show, dismiss } = useToast();
 
   // Object URLs are leaked memory until revoked, and the iframe still needs the
@@ -118,6 +128,7 @@ export function ResumeGenerator({
         if (cancelled) return;
         if (row?.data) {
           setResume(row.data);
+          setStamp(row);
           setTemplateKey(row.templateKey);
           setSavedTemplateKey(row.templateKey);
           void renderPdf(row.data, Number(profileId), row.templateKey);
@@ -125,6 +136,7 @@ export function ResumeGenerator({
           // Switching to a profile with no resume for this job must clear the
           // previous one, or the page shows someone else's document.
           setResume(null);
+          setStamp(null);
           setTemplateKey('');
           setSavedTemplateKey('');
           replacePdfUrl(null);
@@ -150,26 +162,29 @@ export function ResumeGenerator({
     setNotes(localStorage.getItem(NOTES_KEY) ?? '');
   }
 
-  async function generate() {
+  async function generate(provider: AiProvider) {
     if (!profileId) return;
+    setPicking(false);
     scrollOnNext.current = true;
     setLoading(true);
     setError(null);
     setResume(null);
+    setStamp(null);
     try {
       if (notes.trim()) localStorage.setItem(NOTES_KEY, notes);
       const res = await fetch('/api/resumes/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId, profileId, notes }),
+        body: JSON.stringify({ jobId, profileId, notes, provider }),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(data?.error ?? 'Generation failed (' + res.status + ')');
         return;
       }
-      const generated = data as TailoredResume;
+      const generated = data as GeneratedResume;
       setResume(generated);
+      setStamp(generated);
       // Read the stored template back BEFORE rendering. The row was just
       // written, and a regenerate now adopts the profile's current default —
       // rendering with the key held in state would show the template this
@@ -376,14 +391,29 @@ export function ResumeGenerator({
       <div className="mt-4 flex items-center gap-3">
         <button
           type="button"
-          onClick={generate}
+          onClick={() => setPicking(true)}
           disabled={loading || !profileId}
           className="inline-flex items-center gap-2 rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {loading ? 'Generating…' : 'Generate'}
+          {loading ? 'Generating…' : resume ? 'Regenerate' : 'Generate'}
         </button>
         {loading && <span className="text-sm text-[var(--muted)]">This takes 20–60 seconds.</span>}
       </div>
+
+      <GenerateModal
+        open={picking}
+        busy={loading}
+        title={resume ? 'Regenerate this resume?' : 'Generate a tailored resume'}
+        description="This writes the resume and the cover letter together, in one paid call that takes 20–60 seconds."
+        warning={
+          resume
+            ? 'The resume and cover letter already saved for this posting will both be replaced.'
+            : undefined
+        }
+        confirmLabel={resume ? 'Regenerate' : 'Generate'}
+        onCancel={() => setPicking(false)}
+        onConfirm={generate}
+      />
 
       {error && (
         <p className="mt-4 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
@@ -474,7 +504,15 @@ export function ResumeGenerator({
             )}
           </div>
 
-          <h3 className="text-lg font-bold text-white">{resume.headline}</h3>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-lg font-bold text-white">{resume.headline}</h3>
+            {/* Which vendor wrote this. Two documents for the same posting can
+                come from different providers over time, and "who wrote it"
+                changes how closely it is worth re-reading. */}
+            {stampLabel(stamp) && (
+              <ProviderBadge provider={stamp?.provider} label={stampLabel(stamp)!} />
+            )}
+          </div>
           <p className="mt-2 text-sm leading-relaxed text-[var(--text)]/90">{resume.summary}</p>
 
           {resume.skills.length > 0 && (

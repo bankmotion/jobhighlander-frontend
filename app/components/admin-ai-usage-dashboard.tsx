@@ -211,6 +211,12 @@ export function AdminAiUsageDashboard({
 
         <div className="mt-5 grid gap-5 lg:grid-cols-2">
           <BreakdownTable title="By generator" rows={data.byFeature} firstHeader="Generator" />
+          <BreakdownTable
+            title="By provider"
+            rows={data.byProvider}
+            firstHeader="Provider"
+            share
+          />
           <BreakdownTable title="By model" rows={data.byModel} firstHeader="Model" share />
         </div>
 
@@ -379,7 +385,13 @@ function CallLog({
                   >
                     {shortFeature(r.feature, r.featureLabel)}
                   </td>
-                  <td className="whitespace-nowrap py-2.5 pr-4 text-[var(--muted)]">{r.model}</td>
+                  {/* Model and vendor together: the same feature can now be
+                      billed to either account, and the per-call log is where
+                      an unexpected line on one invoice gets traced. */}
+                  <td className="whitespace-nowrap py-2.5 pr-4 text-[var(--muted)]" title={r.model}>
+                    <span className="block text-[var(--text)]">{r.model}</span>
+                    <span className="block text-xs">{r.providerLabel}</span>
+                  </td>
                   <td
                     className="py-2.5 pr-4 text-right text-[var(--muted)]"
                     title={`${r.inputTokens} fresh · ${r.cacheWriteTokens} cache write · ${r.cacheReadTokens} cache read`}

@@ -12,6 +12,18 @@ const SIZES = {
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+/**
+ * Every open dialog, outermost first.
+ *
+ * Modals nest — the provider picker opens over the Ask AI dialog, which is
+ * itself a modal — and each one listens for keys on the DOCUMENT so focus
+ * escaping the panel does not break Escape and Tab. Two listeners on the same
+ * target both fire regardless of `stopPropagation`, so without this every
+ * dialog in the stack would close on a single Escape and the two focus traps
+ * would fight over Tab. Only the top of the stack acts.
+ */
+const openDialogs: symbol[] = [];
+
 export function Modal({
   open,
   onClose,
@@ -91,7 +103,13 @@ export function Modal({
   useEffect(() => {
     if (!open) return;
 
+    const id = Symbol('modal');
+    openDialogs.push(id);
+
     const onKey = (e: KeyboardEvent) => {
+      // Not the topmost dialog: a nested one is on screen and owns the keyboard.
+      if (openDialogs[openDialogs.length - 1] !== id) return;
+
       if (e.key === 'Escape' && !busyRef.current) {
         e.stopPropagation();
         closeRef.current();
@@ -131,7 +149,11 @@ export function Modal({
     };
 
     document.addEventListener('keydown', onKey, true);
-    return () => document.removeEventListener('keydown', onKey, true);
+    return () => {
+      document.removeEventListener('keydown', onKey, true);
+      const i = openDialogs.indexOf(id);
+      if (i >= 0) openDialogs.splice(i, 1);
+    };
   }, [open]);
 
   if (!open) return null;

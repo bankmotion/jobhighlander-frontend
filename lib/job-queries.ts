@@ -1,4 +1,6 @@
 
+import type { AiProvider } from './ai-providers';
+
 export interface QueryContext {
   profile: boolean;
   resume: boolean;
@@ -13,6 +15,8 @@ export interface JobQuery {
   question: string;
   answer: string;
   model: string;
+  provider: AiProvider | null;
+  providerLabel: string;
   context: QueryContext;
   askedBy: string;
   createdAt: string;

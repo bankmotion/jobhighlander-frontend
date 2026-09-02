@@ -30,6 +30,8 @@ import {
   subscribeRuns,
   type Run,
 } from '@/lib/resume-runs';
+import { stampLabel, type AiProvider } from '@/lib/ai-providers';
+import { GenerateModal, ProviderBadge } from './generate-modal';
 import { Modal } from './modal';
 import { Toast, useToast } from './toast';
 
@@ -137,7 +139,11 @@ export function ResumeListProvider({
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
   const [pdfError, setPdfError] = useState<string | null>(null);
-  const [confirmRegen, setConfirmRegen] = useState(false);
+  // The generation waiting on a provider choice. The picker stacks over the
+  // resume panel when one is open — `Modal` gives the keyboard to whichever
+  // dialog is topmost, so Escape dismisses the picker without also closing the
+  // panel behind it.
+  const [pending, setPending] = useState<{ t: ResumeTarget; quiet: boolean } | null>(null);
   // Card-level downloads, keyed by job. An array rather than a Set in state so
   // each change is a new reference React can actually see.
   const [downloadingIds, setDownloadingIds] = useState<number[]>([]);
@@ -282,7 +288,7 @@ export function ResumeListProvider({
   }, [target]);
 
   const runGeneration = useCallback(
-    async (t: ResumeTarget) => {
+    async (t: ResumeTarget, provider: AiProvider) => {
       if (!profileId) return;
 
       const at = Date.now();
@@ -317,7 +323,7 @@ export function ResumeListProvider({
         const res = await fetch('/api/resumes/preview', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ jobId: t.jobId, profileId, notes }),
+          body: JSON.stringify({ jobId: t.jobId, profileId, notes, provider }),
           // Without the timeout a hung request never settles, the run stays
           // 'running' forever, and it holds a concurrency slot for the session.
           signal: AbortSignal.any([canceller.signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS)]),
@@ -353,7 +359,12 @@ export function ResumeListProvider({
           ({
             jobId: t.jobId,
             templateKey: '',
-            model: '',
+            // Taken from the generation response rather than left blank: the
+            // draft says which model wrote it, so a failed status refresh
+            // still leaves the card correctly badged.
+            model: typeof data?.model === 'string' ? data.model : '',
+            provider: data?.provider ?? null,
+            providerLabel: typeof data?.providerLabel === 'string' ? data.providerLabel : '',
             updatedAt: new Date().toISOString(),
             headline: typeof data?.headline === 'string' ? data.headline : '',
             inferredCount: 0,
@@ -396,7 +407,6 @@ export function ResumeListProvider({
     (t: ResumeTarget) => {
       setTarget(t);
       targetRef.current = t;
-      setConfirmRegen(false);
       setPdfError(null);
       replacePdfUrl(null);
       // A dialog that opened on the letter tab of the PREVIOUS job, showing
@@ -408,19 +418,26 @@ export function ResumeListProvider({
     [replacePdfUrl],
   );
 
-  const generate = useCallback(
-    (t: ResumeTarget) => {
-      openFor(t);
-      void runGeneration(t);
-    },
-    [openFor, runGeneration],
-  );
+  // Both entry points now ask which vendor to bill before spending anything.
+  // `quiet` is the difference that survives the picker: a card-level generate
+  // reports by toast, a panel-level one opens the panel to watch it.
+  const generate = useCallback((t: ResumeTarget) => setPending({ t, quiet: false }), []);
 
-  const generateQuiet = useCallback(
-    (t: ResumeTarget) => {
-      void runGeneration(t);
+  const generateQuiet = useCallback((t: ResumeTarget) => setPending({ t, quiet: true }), []);
+
+  const startPending = useCallback(
+    (provider: AiProvider) => {
+      const p = pending;
+      setPending(null);
+      if (!p || !profileId) return;
+      // The stored draft is about to be replaced either way, so drop the cached
+      // copy now — otherwise a failed rewrite leaves the old document on screen
+      // looking like the new one.
+      evictDoc(profileId, p.t.jobId);
+      if (!p.quiet) openFor(p.t);
+      void runGeneration(p.t, provider);
     },
-    [runGeneration],
+    [openFor, pending, profileId, runGeneration],
   );
 
   const view = useCallback(
@@ -559,7 +576,6 @@ export function ResumeListProvider({
 
     setTarget(null);
     targetRef.current = null;
-    setConfirmRegen(false);
     replacePdfUrl(null);
     setDocTab('resume');
     setLetterBody(null);
@@ -662,6 +678,9 @@ export function ResumeListProvider({
                     <time dateTime={st.updatedAt}>{new Date(st.updatedAt).toLocaleString()}</time>
                   </>
                 )}
+                {stampLabel(st) && (
+                  <ProviderBadge provider={st.provider} label={stampLabel(st)!} />
+                )}
               </>
             ) : null}
           </span>
@@ -685,10 +704,10 @@ export function ResumeListProvider({
                 Open full editor ↗
               </Link>
             )}
-            {!generating && (st || pdfError || failed) && !confirmRegen && !exhausted && (
+            {!generating && (st || pdfError || failed) && !exhausted && (
               <button
                 type="button"
-                onClick={() => (st ? setConfirmRegen(true) : target && void runGeneration(target))}
+                onClick={() => target && setPending({ t: target, quiet: false })}
                 className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--text)] transition hover:bg-white/5"
               >
                 {st ? 'Rewrite' : 'Try again'}
@@ -717,39 +736,6 @@ export function ResumeListProvider({
         }
       >
         <div className="p-5">
-          {confirmRegen && (
-            <div className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
-              <p className="text-sm text-amber-100">
-                <strong className="font-semibold">Rewrite this resume?</strong> The current wording
-                is replaced and cannot be recovered — there is only one resume per job. Your
-                template stays. This calls the model again.
-              </p>
-              <div className="mt-3 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setConfirmRegen(false)}
-                  className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--text)] transition hover:bg-white/5"
-                >
-                  Keep it
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setConfirmRegen(false);
-                    if (target && profileId) {
-                      evictDoc(profileId, target.jobId);
-                      replacePdfUrl(null);
-                      void runGeneration(target);
-                    }
-                  }}
-                  className="rounded-lg bg-amber-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-amber-500"
-                >
-                  Rewrite it
-                </button>
-              </div>
-            </div>
-          )}
-
           {generating && (
             <div
               aria-busy="true"
@@ -906,6 +892,26 @@ export function ResumeListProvider({
           )}
         </div>
       </Modal>
+
+      <GenerateModal
+        open={!!pending}
+        title={
+          pending && status[pending.t.jobId] ? 'Rewrite this resume?' : 'Generate a tailored resume'
+        }
+        description={
+          pending
+            ? `${pending.t.title}${pending.t.company ? ` · ${pending.t.company}` : ''} — the resume and cover letter are written together in one paid call.`
+            : undefined
+        }
+        warning={
+          pending && status[pending.t.jobId]
+            ? 'The current wording is replaced and cannot be recovered — there is only one resume per job. Your template stays.'
+            : undefined
+        }
+        confirmLabel={pending && status[pending.t.jobId] ? 'Rewrite' : 'Generate'}
+        onCancel={() => setPending(null)}
+        onConfirm={startPending}
+      />
     </ResumeCtx.Provider>
   );
 }

@@ -266,6 +266,7 @@ export function RateCard({ rates }: { rates: UsageSummary['rates'] }) {
           <thead>
             <tr className="text-xs uppercase tracking-wide text-[var(--muted)]">
               <th className="pb-2 pr-4 font-medium">Model</th>
+              <th className="pb-2 pr-4 font-medium">Provider</th>
               <th className="pb-2 pr-4 text-right font-medium">Input / MTok</th>
               <th className="pb-2 pr-4 text-right font-medium">Cache write</th>
               <th className="pb-2 pr-4 text-right font-medium">Cache read</th>
@@ -276,6 +277,7 @@ export function RateCard({ rates }: { rates: UsageSummary['rates'] }) {
             {rates.map((r) => (
               <tr key={r.model} className="border-t border-[var(--border)]">
                 <td className="py-2 pr-4 font-medium text-white">{r.model}</td>
+                <td className="py-2 pr-4 text-[var(--muted)]">{r.providerLabel}</td>
                 <td className="py-2 pr-4 text-right text-[var(--muted)]">
                   ${r.inputPerMTok.toFixed(2)}
                 </td>

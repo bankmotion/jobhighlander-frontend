@@ -86,6 +86,7 @@ export function AiUsageDashboard({ initial }: { initial: UsageSummary }) {
 
       <div className="mt-6 grid gap-5 lg:grid-cols-2">
         <BreakdownTable title="By generator" rows={data.byFeature} firstHeader="Generator" />
+        <BreakdownTable title="By provider" rows={data.byProvider} firstHeader="Provider" />
         <BreakdownTable title="By model" rows={data.byModel} firstHeader="Model" />
       </div>
 

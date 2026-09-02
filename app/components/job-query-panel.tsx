@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { ConfirmModal } from './confirm-modal';
+import { GenerateModal, ProviderBadge } from './generate-modal';
+import { stampLabel, type AiProvider } from '@/lib/ai-providers';
 import { useDisplayZone } from '@/lib/display-zone';
 import {
   QUESTION_MAX_CHARS,
@@ -32,6 +34,7 @@ export function JobQueryPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
+  const [picking, setPicking] = useState(false);
   const boxRef = useRef<HTMLTextAreaElement>(null);
 
   // Only when the host could not fetch it. Not a state sync — the fetch is the
@@ -57,16 +60,17 @@ export function JobQueryPanel({
     };
   }, [initial, jobId, profileId]);
 
-  async function ask() {
+  async function ask(provider: AiProvider) {
     const q = question.trim();
     if (!q || !profileId) return;
+    setPicking(false);
     setBusy(true);
     setError(null);
     try {
       const res = await fetch('/api/job-queries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId, profileId, question: q }),
+        body: JSON.stringify({ jobId, profileId, question: q, provider }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -119,9 +123,9 @@ export function JobQueryPanel({
           onKeyDown={(e) => {
             // Ctrl/Cmd+Enter submits. A bare Enter must stay a newline: these
             // questions run to several sentences.
-            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && question.trim()) {
               e.preventDefault();
-              void ask();
+              setPicking(true);
             }
           }}
           maxLength={QUESTION_MAX_CHARS}
@@ -134,7 +138,7 @@ export function JobQueryPanel({
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={ask}
+            onClick={() => setPicking(true)}
             disabled={busy || !question.trim()}
             className="rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -200,6 +204,16 @@ export function JobQueryPanel({
         </ul>
       </section>
 
+      <GenerateModal
+        open={picking}
+        busy={busy}
+        title="Ask about this job"
+        description="Your profile, and any resume and cover letter already written for this posting, are sent with the question. This is a paid call."
+        confirmLabel="Ask"
+        onCancel={() => setPicking(false)}
+        onConfirm={ask}
+      />
+
       <ConfirmModal
         open={confirmId !== null}
         title="Delete this question?"
@@ -240,9 +254,14 @@ function QueryCard({
           className="min-w-0 flex-1 text-left"
         >
           <p className={`text-sm font-medium text-white ${open ? '' : 'truncate'}`}>{row.question}</p>
-          <p className="mt-0.5 text-[11px] text-[var(--muted)]">
-            {zone ? `${when(row.createdAt, zone)} · ` : ''}
-            {row.askedBy} · <ContextNote context={row.context} />
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-[var(--muted)]">
+            <span>
+              {zone ? `${when(row.createdAt, zone)} · ` : ''}
+              {row.askedBy} · <ContextNote context={row.context} />
+            </span>
+            {/* Answers in one log can come from different vendors, so each says
+                which one wrote it rather than the reader inferring from tone. */}
+            {stampLabel(row) && <ProviderBadge provider={row.provider} label={stampLabel(row)!} />}
           </p>
         </button>
         <button

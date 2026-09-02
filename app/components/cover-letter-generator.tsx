@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import type { CoverLetter } from '@/lib/cover-letters';
 import type { ProfileSummary } from '@/lib/types';
-import { ConfirmModal } from './confirm-modal';
+import { stampLabel, type AiProvider } from '@/lib/ai-providers';
+import { GenerateModal, ProviderBadge } from './generate-modal';
 import { Toast, useToast } from './toast';
 
 const label = (p: ProfileSummary) =>
@@ -34,14 +35,14 @@ export function CoverLetterGenerator({
   // edit-then-undo correctly reports nothing to save.
   const dirty = letter !== null && text !== letter.body;
 
-  async function generate() {
+  async function generate(provider: AiProvider) {
     setBusy(true);
     setError(null);
     try {
       const res = await fetch('/api/cover-letters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId, profileId }),
+        body: JSON.stringify({ jobId, profileId, provider }),
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
@@ -108,13 +109,16 @@ export function CoverLetterGenerator({
           <p className="text-sm text-[var(--muted)]">
             Written for{' '}
             <span className="text-[var(--text)]">{profile ? label(profile) : 'this profile'}</span>
-            {letter && (
-              <>
-                {' · '}
-                <span>{letter.edited ? 'edited by hand' : `generated with ${letter.model}`}</span>
-              </>
-            )}
+            {letter?.edited && <> · <span>edited by hand</span></>}
           </p>
+          {/* Kept even on a hand-edited letter: the wording it started from
+              still came from a specific model, and that is what a reviewer
+              wants to know before trusting the claims in it. */}
+          {letter && stampLabel(letter) && (
+            <p className="mt-1">
+              <ProviderBadge provider={letter.provider} label={stampLabel(letter)!} />
+            </p>
+          )}
         </div>
 
         <div className="flex shrink-0 items-center gap-2">
@@ -127,9 +131,10 @@ export function CoverLetterGenerator({
             </button>
           )}
           <button
-            // Regenerating discards hand-edited wording, so an edited letter
-            // asks first. A fresh generation has nothing to lose and does not.
-            onClick={() => (letter?.edited || dirty ? setConfirming(true) : generate())}
+            // Every path opens the picker: the provider choice IS the
+            // confirmation, so a fresh generation and a destructive rewrite ask
+            // the same question and differ only in the warning they carry.
+            onClick={() => setConfirming(true)}
             disabled={busy || !hasResume}
             className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-4 py-2 text-sm text-[var(--text)] transition hover:border-[var(--primary)] disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -186,16 +191,21 @@ export function CoverLetterGenerator({
         </div>
       )}
 
-      <ConfirmModal
+      <GenerateModal
         open={confirming}
-        title="Replace this letter?"
-        message={
+        busy={busy}
+        title={letter ? 'Replace this letter?' : 'Write a cover letter'}
+        description="The letter and the tailored resume are written together, in one paid call that takes 20–60 seconds."
+        warning={
           dirty
             ? 'You have unsaved changes, and regenerating writes a completely new letter over them.'
-            : 'You edited this letter by hand. Regenerating writes a completely new one over your wording.'
+            : letter?.edited
+              ? 'You edited this letter by hand. Regenerating writes a completely new one over your wording.'
+              : letter
+                ? 'The saved letter and resume for this posting will both be replaced.'
+                : undefined
         }
-        confirmLabel="Regenerate"
-        busy={busy}
+        confirmLabel={letter ? 'Regenerate' : 'Generate'}
         onCancel={() => setConfirming(false)}
         onConfirm={generate}
       />

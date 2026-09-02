@@ -1,3 +1,5 @@
+import type { AiProvider } from './ai-providers';
+
 export interface UsageBucket {
   key: string;
   label: string;
@@ -14,6 +16,8 @@ export type UsageTotals = Omit<UsageBucket, 'key' | 'label' | 'sub'>;
 
 export interface RateRow {
   model: string;
+  provider: AiProvider | null;
+  providerLabel: string;
   inputPerMTok: number;
   outputPerMTok: number;
   cacheWritePerMTok: number;
@@ -26,6 +30,7 @@ export interface UsageSummary {
   days: number;
   totals: UsageTotals;
   daily: UsageBucket[];
+  byProvider: UsageBucket[];
   byModel: UsageBucket[];
   byFeature: UsageBucket[];
   unpricedCalls: number;
@@ -51,6 +56,8 @@ export interface UsageCall {
   feature: string;
   featureLabel: string;
   model: string;
+  provider: AiProvider | null;
+  providerLabel: string;
   userId: number | null;
   userLabel: string;
   profileId: number | null;

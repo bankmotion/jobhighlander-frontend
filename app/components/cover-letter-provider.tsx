@@ -2,6 +2,8 @@
 
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react';
 import type { CoverLetter, CoverLetterStatusMap } from '@/lib/cover-letters';
+import { stampLabel, type AiProvider } from '@/lib/ai-providers';
+import { GenerateModal, ProviderBadge } from './generate-modal';
 import { Modal } from './modal';
 import { Toast, useToast } from './toast';
 
@@ -39,6 +41,9 @@ export function CoverLetterProvider({
   const [letter, setLetter] = useState<CoverLetter | null>(null);
   const [loading, setLoading] = useState(false);
   const [copying, setCopying] = useState<Set<number>>(() => new Set());
+  // The job waiting on a provider choice. Stacks over the letter panel when one
+  // is open; `Modal` gives the keyboard to whichever dialog is topmost.
+  const [pending, setPending] = useState<number | null>(null);
   const bodies = useRef<Map<number, string>>(new Map());
   const { toast, show, dismiss } = useToast();
 
@@ -97,8 +102,8 @@ export function CoverLetterProvider({
     [load],
   );
 
-  const write = useCallback(
-    async (jobId: number) => {
+  const runWrite = useCallback(
+    async (jobId: number, provider: AiProvider) => {
       if (!profileId || busy.has(jobId)) return;
       mark(jobId, true);
       setOpenJob(jobId);
@@ -107,7 +112,7 @@ export function CoverLetterProvider({
         const res = await fetch('/api/cover-letters', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ jobId, profileId }),
+          body: JSON.stringify({ jobId, profileId, provider }),
         });
         const data = await res.json().catch(() => null);
         if (!res.ok) {
@@ -130,6 +135,10 @@ export function CoverLetterProvider({
     },
     [busy, mark, profileId, show],
   );
+
+  // The public entry point only asks the question; `runWrite` spends the money
+  // once it is answered.
+  const write = useCallback((jobId: number) => setPending(jobId), []);
 
   const toClipboard = useCallback(
     async (text: string) => {
@@ -222,6 +231,11 @@ export function CoverLetterProvider({
           </p>
         ) : letter ? (
           <div>
+            {stampLabel(letter) && (
+              <p className="mb-2">
+                <ProviderBadge provider={letter.provider} label={stampLabel(letter)!} />
+              </p>
+            )}
             <pre className="whitespace-pre-wrap rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4 font-mono text-[13px] leading-relaxed text-[var(--text)]">
               {letter.body}
             </pre>
@@ -230,6 +244,24 @@ export function CoverLetterProvider({
           <p className="py-10 text-center text-sm text-[var(--muted)]">No letter to show.</p>
         )}
       </Modal>
+
+      <GenerateModal
+        open={pending !== null}
+        title={pending !== null && status[pending] ? 'Replace this letter?' : 'Write a cover letter'}
+        description="The letter and the tailored resume are written together, in one paid call that takes 20–60 seconds."
+        warning={
+          pending !== null && status[pending]
+            ? 'The saved letter and resume for this posting will both be replaced.'
+            : undefined
+        }
+        confirmLabel={pending !== null && status[pending] ? 'Regenerate' : 'Generate'}
+        onCancel={() => setPending(null)}
+        onConfirm={(provider) => {
+          const jobId = pending;
+          setPending(null);
+          if (jobId !== null) void runWrite(jobId, provider);
+        }}
+      />
 
       <Toast toast={toast} onDismiss={dismiss} />
     </CoverLetterCtx.Provider>

@@ -1,4 +1,5 @@
 import { getToken } from './auth';
+import type { AiProvider } from './ai-providers';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
@@ -6,6 +7,8 @@ export interface ResumeStatus {
   jobId: number;
   templateKey: string;
   model: string;
+  provider: AiProvider | null;
+  providerLabel: string;
   updatedAt: string;
   headline: string;
   inferredCount: number;
