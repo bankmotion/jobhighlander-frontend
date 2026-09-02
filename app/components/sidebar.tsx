@@ -183,11 +183,11 @@ export function Sidebar({ role, profiles }: { role: Role; profiles: ProfileSumma
               pathname.startsWith('/admin/scrape-runs') ||
               pathname.startsWith('/admin/scraper-settings')
             }
-            // Nine entries at ~40px each. The group is `overflow-hidden` with
+            // Ten entries at ~40px each. The group is `overflow-hidden` with
             // no scrollbar, so anything past this height is not merely cut off
             // — it is unreachable and gives no hint that it exists. Raise this
             // whenever a link is added.
-            maxHeight={430}
+            maxHeight={470}
           >
             <Link href="/admin" className={linkCls(pathname === '/admin')}>
               <span className="text-base">👥</span> Users
@@ -214,7 +214,7 @@ export function Sidebar({ role, profiles }: { role: Role; profiles: ProfileSumma
               href="/admin/payments"
               className={linkCls(pathname.startsWith('/admin/payments'))}
             >
-              Payments
+              <span className="text-base">💳</span> Payments
             </Link>
             <Link href="/admin/prompts" className={linkCls(pathname.startsWith('/admin/prompts'))}>
               <span className="text-base">🗣</span> Prompts
