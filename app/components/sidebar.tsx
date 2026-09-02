@@ -196,7 +196,7 @@ export function Sidebar({ role, profiles }: { role: Role; profiles: ProfileSumma
               href="/admin/profiles"
               className={linkCls(pathname.startsWith('/admin/profiles'))}
             >
-              <span className="text-base">🗂️</span> Profiles &amp; AI
+              <span className="text-base">🗂️</span> Profiles
             </Link>
             <Link
               href="/admin/bid-performance"

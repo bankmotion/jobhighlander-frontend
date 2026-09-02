@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { fetchAllProfiles } from '@/lib/admin-profiles.server';
 import { AdminProfilesTable } from '@/app/components/admin-profiles-table';
 
@@ -12,9 +13,12 @@ export default async function AdminProfilesPage() {
     <div>
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-white">Profiles</h1>
       <p className="mb-5 text-sm text-[var(--muted)]">
-        Every profile in the system, and whether it may spend AI credit. Switching a profile off
-        stops resume generation, cover letters and Ask AI for it immediately — for every member,
-        not just its owner. New profiles start disabled.
+        Every profile in the system, with who owns it and how much it has been used. Whether AI can
+        run is decided by the user&apos;s balance, not by the profile —{' '}
+        <Link href="/admin/payments" className="text-[var(--text)] underline hover:text-white">
+          manage that on Payments
+        </Link>
+        .
       </p>
 
       {profiles ? (

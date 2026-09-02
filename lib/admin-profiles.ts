@@ -6,7 +6,6 @@ export interface AdminProfileRow {
   location: string | null;
   owner: { id: number; email: string; role: string };
   memberCount: number;
-  aiEnabled: boolean;
   applications: number;
   resumes: number;
   createdAt: string;
