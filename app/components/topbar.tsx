@@ -4,7 +4,9 @@ import { RefreshButton } from './refresh-button';
 import { TimezonePicker } from './timezone-picker';
 import { ThemeToggle } from './theme-toggle';
 import { NavToggle } from './nav-toggle';
+import { BalanceChip } from './balance-chip';
 import { fetchMyInvitations } from '@/lib/profiles';
+import { fetchBalance } from '@/lib/billing.server';
 import type { Session } from '@/lib/session';
 
 const ROLE_BADGE: Record<string, string> = {
@@ -18,7 +20,12 @@ export async function Topbar({ session }: { session: Session }) {
   const initial = session.email.charAt(0).toUpperCase();
   // Fetched here rather than in the menu so the badge count is correct on the
   // first paint — a client fetch would render "no invitations" and then pop.
-  const invitations = await fetchMyInvitations().catch(() => []);
+  // Both in parallel — neither depends on the other, and the bar is on the
+  // critical path of every page.
+  const [invitations, balance] = await Promise.all([
+    fetchMyInvitations().catch(() => []),
+    fetchBalance().catch(() => null),
+  ]);
   return (
     <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur">
       <div className="flex items-center justify-between gap-4 px-6 py-3">
@@ -30,6 +37,7 @@ export async function Topbar({ session }: { session: Session }) {
           <TimezonePicker />
           <ThemeToggle />
           <RefreshButton />
+          <BalanceChip balance={balance} />
           <InboxMenu invitations={invitations} />
           <span className={`hidden rounded-full px-2.5 py-0.5 text-xs font-medium sm:inline ${ROLE_BADGE[session.role]}`}>
             {session.role}
