@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import Link from 'next/link';
 import { siteLabel } from '@/lib/stats';
+import { useAppliedJobPanel } from './applied-job-panel';
 import type { AppliedRow } from '@/lib/applied';
 
 // Distinct enough to tell four or five bidders apart without being a rainbow.
@@ -171,6 +171,7 @@ export function AppliedApplications({
   showProfile?: boolean;
 }) {
   const [query, setQuery] = useState('');
+  const panel = useAppliedJobPanel();
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -284,17 +285,19 @@ export function AppliedApplications({
                   {showProfile && <> · {r.profileName}</>}
                 </p>
               </div>
-              {/* Only when the posting still exists — a deleted or merged job
-                  would 404, and a dead link is worse than no link. */}
+              {/* Opens beside the list rather than in a new tab: reading one
+                  posting should not cost the filters, scroll position and
+                  range that were set up to find it. Only when the job still
+                  exists — a deduplicated or deleted one has nothing to show. */}
               {r.jobId ? (
-                <Link
-                  href={`/jobs/${r.jobId}?profile=${r.profileId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  type="button"
+                  onClick={() => panel.open(r.jobId as number, r.jobTitle)}
+                  title="Open this posting beside the list"
                   className="shrink-0 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1 text-xs text-[var(--text)] transition hover:border-[var(--border-strong)]"
                 >
-                  View job ↗
-                </Link>
+                  View job
+                </button>
               ) : (
                 <span className="shrink-0 text-xs text-[var(--muted)]">posting removed</span>
               )}

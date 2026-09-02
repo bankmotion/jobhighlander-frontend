@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { AppliedApplications, WhoBid } from './bid-applied-parts';
+import { AppliedJobPanelProvider } from './applied-job-panel';
 import { teamBidPrefs } from '@/lib/view-prefs';
 import { bucketDaily, dateInputValue, pctText, siteLabel, RANGES, SERIES } from '@/lib/stats';
 import {
@@ -106,6 +107,7 @@ export function TeamBidPerformanceDashboard({
   const idleMembers = data.byBidder.filter((b) => b.applications === 0).length;
 
   return (
+    <AppliedJobPanelProvider>
     <div className={pending ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
       <div className="mb-5 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -343,6 +345,7 @@ export function TeamBidPerformanceDashboard({
         )}
       </section>
     </div>
+    </AppliedJobPanelProvider>
   );
 }
 

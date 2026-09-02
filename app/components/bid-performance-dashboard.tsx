@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ProfileSummary } from '@/lib/types';
 import { AppliedApplications, WhoBid } from './bid-applied-parts';
+import { AppliedJobPanelProvider } from './applied-job-panel';
 import { bidPrefs } from '@/lib/view-prefs';
 import {
   bucketDaily,
@@ -80,6 +81,7 @@ export function BidPerformanceDashboard({
   const empty = data.totals.applications === 0;
 
   return (
+    <AppliedJobPanelProvider>
     <div className={pending ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
       <div className="mb-5 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -273,6 +275,7 @@ export function BidPerformanceDashboard({
         </div>
       )}
     </div>
+    </AppliedJobPanelProvider>
   );
 }
 
