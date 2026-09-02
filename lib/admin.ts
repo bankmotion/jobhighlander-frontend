@@ -7,6 +7,7 @@ export interface AdminUser {
   id: number;
   email: string;
   role: Role;
+  balanceMicroUsd: number;
   createdAt: string;
 }
 

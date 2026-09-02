@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import type { AdminUser } from '@/lib/admin';
+import { usdt } from '@/lib/billing';
 import type { Role } from '@/lib/session';
 
 const ROLE_META: Record<Role, { label: string; badge: string; dot: string; desc: string }> = {
@@ -33,6 +34,16 @@ export function UserRow({
       <td className="py-2.5 pr-4">{user.email}</td>
       <td className="py-2.5 pr-4">
         <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${meta.badge}`}>{meta.label}</span>
+      </td>
+      {/* Red at or below zero: that is exactly the state where the account
+          cannot generate anything, which is the question this column answers. */}
+      <td
+        className={`py-2.5 pr-4 text-right font-medium ${
+          user.balanceMicroUsd > 0 ? 'text-[var(--text)]' : 'text-red-300'
+        }`}
+        title={user.balanceMicroUsd > 0 ? 'In credit' : 'Cannot use AI until topped up'}
+      >
+        {usdt(user.balanceMicroUsd)}
       </td>
       <td className="py-2.5 pr-4 text-[var(--muted)]">{new Date(user.createdAt).toLocaleDateString()}</td>
       <td className="py-2.5">

@@ -22,6 +22,7 @@ export default async function AdminPage() {
             <tr className="text-xs uppercase tracking-wide text-[var(--muted)]">
               <th className="pb-2 pr-4 font-medium">Email</th>
               <th className="pb-2 pr-4 font-medium">Role</th>
+              <th className="pb-2 pr-4 text-right font-medium">Balance</th>
               <th className="pb-2 pr-4 font-medium">Joined</th>
               <th className="pb-2 font-medium">Actions</th>
             </tr>

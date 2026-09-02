@@ -38,6 +38,16 @@ export interface CreditEntry {
   balanceAfterMicroUsd: number;
   note: string | null;
   createdAt: string;
+  /** Present only on the account-wide history. */
+  user?: { id: number; email: string };
+  createdBy?: { id: number; email: string } | null;
+}
+
+export interface CreditableUser {
+  id: number;
+  email: string;
+  role: string;
+  balanceMicroUsd: number;
 }
 
 export const MICRO = 1_000_000;

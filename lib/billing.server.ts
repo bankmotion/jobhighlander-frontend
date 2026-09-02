@@ -1,5 +1,11 @@
 import { getToken } from './auth';
-import type { Balance, CreditEntry, DepositInfo, TopUpRequest } from './billing';
+import type {
+  Balance,
+  CreditEntry,
+  CreditableUser,
+  DepositInfo,
+  TopUpRequest,
+} from './billing';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
@@ -33,3 +39,9 @@ export const fetchLedger = async (): Promise<CreditEntry[]> =>
 // turns that into null, same as the usage fetchers.
 export const fetchAllTopUps = async (): Promise<TopUpRequest[] | null> =>
   (await get<{ requests: TopUpRequest[] }>('/api/billing/top-ups/all'))?.requests ?? null;
+
+export const fetchCreditEntries = async (): Promise<CreditEntry[] | null> =>
+  (await get<{ entries: CreditEntry[] }>('/api/billing/entries'))?.entries ?? null;
+
+export const fetchCreditableUsers = async (): Promise<CreditableUser[] | null> =>
+  (await get<{ users: CreditableUser[] }>('/api/billing/users'))?.users ?? null;

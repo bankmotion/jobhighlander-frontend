@@ -176,6 +176,7 @@ export function Sidebar({ role, profiles }: { role: Role; profiles: ProfileSumma
               pathname.startsWith('/admin/profiles') ||
               pathname.startsWith('/admin/bid-performance') ||
               pathname.startsWith('/admin/ai-usage') ||
+              pathname.startsWith('/admin/payments') ||
               pathname.startsWith('/admin/prompts') ||
               pathname.startsWith('/admin/keywords') ||
               pathname.startsWith('/admin/stage-types') ||
@@ -208,6 +209,12 @@ export function Sidebar({ role, profiles }: { role: Role; profiles: ProfileSumma
               className={linkCls(pathname.startsWith('/admin/ai-usage'))}
             >
               <span className="text-base">💸</span> AI Usage (all)
+            </Link>
+            <Link
+              href="/admin/payments"
+              className={linkCls(pathname.startsWith('/admin/payments'))}
+            >
+              Payments
             </Link>
             <Link href="/admin/prompts" className={linkCls(pathname.startsWith('/admin/prompts'))}>
               <span className="text-base">🗣</span> Prompts
