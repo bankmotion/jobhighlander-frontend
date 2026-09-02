@@ -50,9 +50,25 @@ export function WhoBid({
 
   // Geometry: a stroked circle whose dash pattern walks the circumference. Each
   // arc is one slice, offset by everything before it.
+  //
+  // The running total is accumulated HERE rather than inside the JSX map. React
+  // Compiler rejects reassigning a render-scoped variable from a callback —
+  // reasonably, since the order those callbacks run in is not the component's
+  // to promise. Precomputing keeps the arithmetic in one obvious place too.
   const R = 54;
   const C = 2 * Math.PI * R;
+  const arcs: { key: string; dash: string; offset: number; color: string }[] = [];
   let walked = 0;
+  for (let i = 0; i < ranked.length; i++) {
+    const len = (ranked[i].count / total) * C;
+    arcs.push({
+      key: ranked[i].key,
+      dash: `${len} ${C - len}`,
+      offset: -walked,
+      color: RAMP[i % RAMP.length],
+    });
+    walked += len;
+  }
 
   return (
     <Card title="Who bid" note={note}>
@@ -61,28 +77,21 @@ export function WhoBid({
           <svg viewBox="0 0 140 140" className="h-[150px] w-[150px] -rotate-90" role="img"
             aria-label={`Applications by bidder: ${ranked.map((s) => `${s.label} ${s.count}`).join(', ')}`}>
             <circle cx="70" cy="70" r={R} fill="none" stroke="var(--surface-2)" strokeWidth="20" />
-            {ranked.map((s, i) => {
-              const len = (s.count / total) * C;
-              const dash = `${len} ${C - len}`;
-              const offset = -walked;
-              walked += len;
-              const dim = hover !== null && hover !== s.key;
-              return (
-                <circle
-                  key={s.key}
-                  cx="70"
-                  cy="70"
-                  r={R}
-                  fill="none"
-                  stroke={RAMP[i % RAMP.length]}
-                  strokeWidth="20"
-                  strokeDasharray={dash}
-                  strokeDashoffset={offset}
-                  opacity={dim ? 0.35 : 1}
-                  className="transition-opacity"
-                />
-              );
-            })}
+            {arcs.map((a) => (
+              <circle
+                key={a.key}
+                cx="70"
+                cy="70"
+                r={R}
+                fill="none"
+                stroke={a.color}
+                strokeWidth="20"
+                strokeDasharray={a.dash}
+                strokeDashoffset={a.offset}
+                opacity={hover !== null && hover !== a.key ? 0.35 : 1}
+                className="transition-opacity"
+              />
+            ))}
           </svg>
           {/* Centred over the ring rather than inside the SVG, so it is real
               text that can be selected and does not rotate with the group. */}
