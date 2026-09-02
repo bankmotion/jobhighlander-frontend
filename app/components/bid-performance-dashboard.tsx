@@ -24,6 +24,7 @@ export function BidPerformanceDashboard({
   bidder = null,
   viewerId = null,
   custom,
+  todayPreset,
 }: {
   data: BidPerformance;
   profiles: ProfileSummary[];
@@ -33,6 +34,7 @@ export function BidPerformanceDashboard({
   // Needed so the viewer's own row can be labelled rather than shown twice.
   viewerId?: number | null;
   custom: { from: string; to: string } | null;
+  todayPreset?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -48,6 +50,7 @@ export function BidPerformanceDashboard({
   function navigate(
     next: {
       days?: number;
+      preset?: 'today' | null;
       from?: string;
       to?: string;
       profile?: string | null;
@@ -55,8 +58,16 @@ export function BidPerformanceDashboard({
     } = {},
   ) {
     const q = new URLSearchParams();
-    const useCustom = next.from && next.to ? true : next.days ? false : Boolean(custom);
-    if (useCustom) {
+    // Precedence, most explicit first: an argument the caller passed, then
+    // whatever is currently showing. Each branch sets exactly one range param,
+    // so the server never has to arbitrate between two of them.
+    const wantsToday =
+      next.preset === 'today' ||
+      (next.preset === undefined && !next.days && !next.from && todayPreset);
+    const useCustom = next.from && next.to ? true : next.days || wantsToday ? false : Boolean(custom);
+    if (wantsToday) {
+      q.set('preset', 'today');
+    } else if (useCustom) {
       q.set('from', next.from ?? custom!.from);
       q.set('to', next.to ?? custom!.to);
     } else {
@@ -74,8 +85,9 @@ export function BidPerformanceDashboard({
 
   function setRange(next: number) {
     setDays(next);
-    // Clearing from/to is what makes a preset click override a custom range.
-    navigate({ days: next, from: undefined, to: undefined });
+    // Clearing from/to and preset is what makes a range click override both a
+    // custom range and Today.
+    navigate({ days: next, preset: null, from: undefined, to: undefined });
   }
 
   const empty = data.totals.applications === 0;
@@ -85,14 +97,29 @@ export function BidPerformanceDashboard({
     <div className={pending ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
       <div className="mb-5 space-y-3">
         <div className="flex flex-wrap items-center gap-2">
+          {/* Today is the calendar day; the 24 hours button beside it is a
+              rolling window. Both are offered because they answer different
+              questions and disagree for most of the day. */}
+          <button
+            type="button"
+            onClick={() => navigate({ preset: 'today', days: undefined, from: undefined, to: undefined })}
+            aria-pressed={Boolean(todayPreset)}
+            className={`rounded-lg px-3 py-1.5 text-sm transition ${
+              todayPreset
+                ? 'bg-[var(--primary)] font-medium text-white'
+                : 'border border-[var(--border)] text-[var(--muted)] hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            Today
+          </button>
           {RANGES.map((r) => (
             <button
               key={r.days}
               type="button"
               onClick={() => setRange(r.days)}
-              aria-pressed={!custom && days === r.days}
+              aria-pressed={!custom && !todayPreset && days === r.days}
               className={`rounded-lg px-3 py-1.5 text-sm transition ${
-                !custom && days === r.days
+                !custom && !todayPreset && days === r.days
                   ? 'bg-[var(--primary)] font-medium text-white'
                   : 'border border-[var(--border)] text-[var(--muted)] hover:bg-white/5 hover:text-white'
               }`}

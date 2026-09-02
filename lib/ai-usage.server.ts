@@ -3,6 +3,7 @@ import {
   CALL_PAGE_SIZE,
   usageQuery,
   type AdminUsageSummary,
+  type UsageRange,
   type ProviderRate,
   type UsageCallPage,
   type UsageFilter,
@@ -26,14 +27,14 @@ async function get<T>(path: string): Promise<T | null> {
   }
 }
 
-export const fetchMyAiUsage = (days: number): Promise<UsageSummary | null> =>
-  get<UsageSummary>(`/api/ai-usage/me?days=${days}`);
+export const fetchMyAiUsage = (range: UsageRange): Promise<UsageSummary | null> =>
+  get<UsageSummary>(`/api/ai-usage/me?${usageQuery(range, { userId: null, profileId: null })}`);
 
 export const fetchAllAiUsage = (
-  days: number,
+  range: UsageRange,
   filter: UsageFilter,
 ): Promise<AdminUsageSummary | null> =>
-  get<AdminUsageSummary>(`/api/ai-usage/all?${usageQuery(days, filter)}`);
+  get<AdminUsageSummary>(`/api/ai-usage/all?${usageQuery(range, filter)}`);
 
 export const fetchAiRates = async (): Promise<ProviderRate[] | null> => {
   const data = await get<{ rates: ProviderRate[] }>('/api/ai-usage/rates');
@@ -41,10 +42,10 @@ export const fetchAiRates = async (): Promise<ProviderRate[] | null> => {
 };
 
 export const fetchAiUsageCalls = (
-  days: number,
+  range: UsageRange,
   filter: UsageFilter,
   offset = 0,
 ): Promise<UsageCallPage | null> =>
   get<UsageCallPage>(
-    `/api/ai-usage/calls?${usageQuery(days, filter, { limit: CALL_PAGE_SIZE, offset })}`,
+    `/api/ai-usage/calls?${usageQuery(range, filter, { limit: CALL_PAGE_SIZE, offset })}`,
   );

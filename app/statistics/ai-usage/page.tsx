@@ -1,10 +1,11 @@
+import { DEFAULT_RANGE } from '@/lib/ai-usage';
 import { fetchMyAiUsage } from '@/lib/ai-usage.server';
 import { AiUsageDashboard } from '@/app/components/ai-usage-dashboard';
 
 export const dynamic = 'force-dynamic';
 
 export default async function MyAiUsagePage() {
-  const usage = await fetchMyAiUsage(30);
+  const usage = await fetchMyAiUsage(DEFAULT_RANGE);
 
   return (
     <div>

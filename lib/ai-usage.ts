@@ -45,6 +45,10 @@ export interface UsageSummary {
   from: string;
   to: string;
   days: number;
+  /** Whether `daily` holds hourly or daily buckets, so the chart can title itself. */
+  granularity: 'hour' | 'day';
+  /** The range in words, for captions: "today", "the last 24 hours", "1 Sep – 8 Sep". */
+  rangeLabel: string;
   totals: UsageTotals;
   daily: UsageBucket[];
   byProvider: UsageBucket[];
@@ -106,24 +110,68 @@ export const NO_FILTER: UsageFilter = { userId: null, profileId: null };
 
 export const CALL_PAGE_SIZE = 50;
 
-export const RANGES = [
-  { days: 7, label: '7 days' },
-  { days: 30, label: '30 days' },
-  { days: 90, label: '90 days' },
-  { days: 365, label: '12 months' },
-] as const;
+/**
+ * What range the page is showing.
+ *
+ * `today` and `24h` are deliberately separate. One is the calendar day so far
+ * and resets at midnight UTC; the other is a rolling window that spans two
+ * dates for most of the day. They answer different questions and routinely
+ * disagree — at 09:00 UTC, "today" is nine hours of data and "24 hours" is
+ * twenty-four — so collapsing them into one tab would be wrong either way.
+ */
+export type UsageRange =
+  | { kind: 'preset'; preset: 'today' | '24h' }
+  | { kind: 'days'; days: number }
+  | { kind: 'custom'; from: string; to: string };
 
+export const RANGES = [
+  { id: 'today', label: 'Today', range: { kind: 'preset', preset: 'today' } },
+  { id: '24h', label: '24 hours', range: { kind: 'preset', preset: '24h' } },
+  { id: '7d', label: '7 days', range: { kind: 'days', days: 7 } },
+  { id: '30d', label: '30 days', range: { kind: 'days', days: 30 } },
+  { id: '90d', label: '90 days', range: { kind: 'days', days: 90 } },
+  { id: '365d', label: '12 months', range: { kind: 'days', days: 365 } },
+] as const satisfies readonly { id: string; label: string; range: UsageRange }[];
+
+export const DEFAULT_RANGE: UsageRange = { kind: 'days', days: 30 };
+
+export const isSameRange = (a: UsageRange, b: UsageRange): boolean =>
+  a.kind === b.kind &&
+  (a.kind === 'preset'
+    ? a.preset === (b as { preset: string }).preset
+    : a.kind === 'days'
+      ? a.days === (b as { days: number }).days
+      : a.from === (b as { from: string }).from && a.to === (b as { to: string }).to);
+
+/** Which preset tab is lit, or null when a custom range is showing. */
+export const rangeId = (range: UsageRange): string | null =>
+  RANGES.find((r) => isSameRange(r.range, range))?.id ?? null;
+
+/**
+ * Only ever sends the one parameter the range actually means. The server reads
+ * `preset` and `from`/`to` in preference to `days`, so sending several at once
+ * would make which window you get depend on precedence rules rather than on
+ * what was clicked.
+ */
 export function usageQuery(
-  days: number,
+  range: UsageRange,
   filter: UsageFilter,
   extra: Record<string, number | string> = {},
 ): string {
-  const q = new URLSearchParams({ days: String(days) });
+  const q = new URLSearchParams();
+  if (range.kind === 'days') q.set('days', String(range.days));
+  else if (range.kind === 'preset') q.set('preset', range.preset);
+  else {
+    q.set('from', range.from);
+    q.set('to', range.to);
+  }
   if (filter.userId != null) q.set('userId', String(filter.userId));
   if (filter.profileId != null) q.set('profileId', String(filter.profileId));
   for (const [k, v] of Object.entries(extra)) q.set(k, String(v));
   return q.toString();
 }
+
+export const dateInputValue = (d: Date): string => d.toISOString().slice(0, 10);
 
 export function usd(amount: number): string {
   if (amount === 0) return '$0.00';

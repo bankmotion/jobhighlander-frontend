@@ -1,6 +1,6 @@
 import { proxy } from '@/lib/proxy';
 
-const ALLOWED = ['days', 'userId', 'profileId'] as const;
+const ALLOWED = ['days', 'preset', 'from', 'to', 'userId', 'profileId'] as const;
 
 export async function GET(req: Request) {
   const from = new URL(req.url).searchParams;

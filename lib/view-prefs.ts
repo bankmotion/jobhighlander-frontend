@@ -1,6 +1,7 @@
 'use client';
 
 import { createJsonLocalStore, createLocalStore } from './local-store';
+import { DEFAULT_RANGE, type UsageRange } from './ai-usage';
 
 // Per-page view settings, remembered between visits.
 //
@@ -53,38 +54,65 @@ export function createQueryPrefs(key: string, keys: readonly string[]): QueryPre
 // the profile decides whose resumes are reported and must not be pinned by a
 // filter store, here it is only ever a filter on what is being counted.
 export const bidPrefs = createQueryPrefs('jh.prefs.bid-performance', [
-  'days', 'from', 'to', 'profile', 'user',
+  'days', 'preset', 'from', 'to', 'profile', 'user',
 ]);
 
 export const teamBidPrefs = createQueryPrefs('jh.prefs.team-bid-performance', [
-  'days', 'from', 'to', 'profile', 'user',
+  'days', 'preset', 'from', 'to', 'profile', 'user',
 ]);
 
 // ── AI usage (client state) ──
 export interface AiUsagePrefs {
-  days: number;
+  range: UsageRange;
   userId: number | null;
   profileId: number | null;
 }
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+function isRange(v: unknown): v is UsageRange {
+  if (!v || typeof v !== 'object') return false;
+  const r = v as Record<string, unknown>;
+  if (r.kind === 'preset') return r.preset === 'today' || r.preset === '24h';
+  // Bounded here as well as on the server: a hand-edited value in localStorage
+  // would otherwise be sent on every visit and rejected each time.
+  if (r.kind === 'days') return typeof r.days === 'number' && r.days >= 1 && r.days <= 365;
+  if (r.kind === 'custom') {
+    return (
+      typeof r.from === 'string' &&
+      typeof r.to === 'string' &&
+      ISO_DATE.test(r.from) &&
+      ISO_DATE.test(r.to) &&
+      r.from <= r.to
+    );
+  }
+  return false;
+}
+
+// Anything stored under the previous `{ days }` shape simply fails validation
+// and falls back to the default. Deliberate: a one-off reset to 30 days is a
+// smaller cost than a migration path that has to be carried forever.
 const isAiPrefs = (v: unknown): v is AiUsagePrefs => {
   if (!v || typeof v !== 'object') return false;
   const p = v as Record<string, unknown>;
   const idOk = (x: unknown) => x === null || (typeof x === 'number' && Number.isInteger(x) && x > 0);
-  // The range is bounded here as well as on the server: a hand-edited value in
-  // localStorage would otherwise be sent on every visit and rejected each time.
-  return typeof p.days === 'number' && p.days >= 1 && p.days <= 365 &&
-    idOk(p.userId) && idOk(p.profileId);
+  return isRange(p.range) && idOk(p.userId) && idOk(p.profileId);
 };
+
+const aiPrefsFallback = (): AiUsagePrefs => ({
+  range: DEFAULT_RANGE,
+  userId: null,
+  profileId: null,
+});
 
 export const myAiUsagePrefs = createJsonLocalStore<AiUsagePrefs>({
   key: 'jh.prefs.ai-usage',
   validate: isAiPrefs,
-  fallback: () => ({ days: 30, userId: null, profileId: null }),
+  fallback: aiPrefsFallback,
 });
 
 export const allAiUsagePrefs = createJsonLocalStore<AiUsagePrefs>({
   key: 'jh.prefs.ai-usage-all',
   validate: isAiPrefs,
-  fallback: () => ({ days: 30, userId: null, profileId: null }),
+  fallback: aiPrefsFallback,
 });

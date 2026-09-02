@@ -1,6 +1,16 @@
 'use client';
 
-import { RANGES, tokens, usd, type UsageBucket, type UsageSummary } from '@/lib/ai-usage';
+import { useState } from 'react';
+import {
+  RANGES,
+  dateInputValue,
+  rangeId,
+  tokens,
+  usd,
+  type UsageBucket,
+  type UsageRange,
+  type UsageSummary,
+} from '@/lib/ai-usage';
 
 export function Stat({
   label,
@@ -26,24 +36,58 @@ export function Stat({
   );
 }
 
+/**
+ * Preset tabs plus a custom from/to range.
+ *
+ * The date inputs are always visible rather than hidden behind a "Custom"
+ * tab: reaching a date range should not cost a click to discover, and the
+ * inputs double as a readout of what any preset actually resolved to.
+ */
 export function RangeTabs({
-  days,
+  range,
+  summary,
   pending,
   onChange,
 }: {
-  days: number;
+  range: UsageRange;
+  /** The window the server actually served, used to seed the date inputs. */
+  summary: Pick<UsageSummary, 'from' | 'to'>;
   pending: boolean;
-  onChange: (days: number) => void;
+  onChange: (range: UsageRange) => void;
 }) {
+  const active = rangeId(range);
+  const custom = range.kind === 'custom';
+  const today = dateInputValue(new Date());
+
+  // Seeded from whichever range is showing, so switching to a custom range
+  // starts from the dates on screen instead of an empty pair of boxes. The
+  // server sends "YYYY-MM-DD" or "YYYY-MM-DD HH:00"; both slice to the date.
+  const [from, setFrom] = useState(range.kind === 'custom' ? range.from : summary.from.slice(0, 10));
+  const [to, setTo] = useState(range.kind === 'custom' ? range.to : summary.to.slice(0, 10));
+
+  // Follow the served window when a preset is clicked, so the inputs never
+  // describe a range that is no longer on screen.
+  const [seen, setSeen] = useState(summary);
+  if (seen !== summary) {
+    setSeen(summary);
+    if (!custom) {
+      setFrom(summary.from.slice(0, 10));
+      setTo(summary.to.slice(0, 10));
+    }
+  }
+
+  const invalid = !from || !to || from > to;
+
   return (
-    <>
+    <div className="flex w-full flex-wrap items-center gap-2">
       {RANGES.map((r) => (
         <button
-          key={r.days}
-          onClick={() => onChange(r.days)}
+          key={r.id}
+          onClick={() => onChange(r.range)}
           disabled={pending}
+          aria-pressed={!custom && active === r.id}
           className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition disabled:cursor-wait ${
-            r.days === days
+            !custom && active === r.id
               ? 'border-[var(--primary)] bg-[var(--primary)]/15 text-white'
               : 'border-[var(--border)] bg-[var(--surface-2)] text-[var(--muted)] hover:border-[var(--border-strong)] hover:text-white'
           }`}
@@ -51,7 +95,47 @@ export function RangeTabs({
           {r.label}
         </button>
       ))}
-    </>
+
+      <span className="mx-1 h-5 w-px bg-[var(--border)]" aria-hidden />
+
+      <label className="sr-only" htmlFor="range-from">
+        From date
+      </label>
+      <input
+        id="range-from"
+        type="date"
+        value={from}
+        max={today}
+        disabled={pending}
+        onChange={(e) => setFrom(e.target.value)}
+        className={`rounded-lg border bg-[var(--surface-2)] px-2 py-1.5 text-xs text-[var(--text)] outline-none transition focus:border-[var(--primary)] disabled:opacity-60 ${
+          custom ? 'border-[var(--primary)]' : 'border-[var(--border)]'
+        }`}
+      />
+      <span className="text-xs text-[var(--muted)]">to</span>
+      <label className="sr-only" htmlFor="range-to">
+        To date
+      </label>
+      <input
+        id="range-to"
+        type="date"
+        value={to}
+        max={today}
+        disabled={pending}
+        onChange={(e) => setTo(e.target.value)}
+        className={`rounded-lg border bg-[var(--surface-2)] px-2 py-1.5 text-xs text-[var(--text)] outline-none transition focus:border-[var(--primary)] disabled:opacity-60 ${
+          custom ? 'border-[var(--primary)]' : 'border-[var(--border)]'
+        }`}
+      />
+      <button
+        onClick={() => onChange({ kind: 'custom', from, to })}
+        disabled={pending || invalid}
+        title={invalid ? 'Pick a start date on or before the end date' : undefined}
+        className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-xs font-medium text-[var(--muted)] transition hover:border-[var(--border-strong)] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        Apply
+      </button>
+    </div>
   );
 }
 
@@ -73,7 +157,13 @@ export function UnpricedNotice({ count }: { count: number }) {
   );
 }
 
-export function CostChart({ daily, title = 'Daily spend' }: { daily: UsageBucket[]; title?: string }) {
+export function CostChart({
+  daily,
+  title = 'Daily spend',
+}: {
+  daily: UsageBucket[];
+  title?: string;
+}) {
   const peak = Math.max(...daily.map((d) => d.costUsd), 0);
 
   return (
@@ -97,7 +187,7 @@ export function CostChart({ daily, title = 'Daily spend' }: { daily: UsageBucket
                 // a bar rounded to zero pixels is indistinguishable from a day
                 // that cost nothing, which is the one thing this must not do.
                 style={{ height: d.costUsd ? `${Math.max((d.costUsd / peak) * 100, 2)}%` : '1px' }}
-                title={`${d.key}: ${usd(d.costUsd)} · ${d.calls} generation${d.calls === 1 ? '' : 's'}`}
+                title={`${d.label}: ${usd(d.costUsd)} · ${d.calls} generation${d.calls === 1 ? '' : 's'}`}
                 className={`min-w-[2px] flex-1 rounded-sm transition ${
                   d.costUsd ? 'bg-[var(--primary)] hover:bg-white' : 'bg-[var(--border-strong)]'
                 }`}
@@ -105,8 +195,8 @@ export function CostChart({ daily, title = 'Daily spend' }: { daily: UsageBucket
             ))}
           </div>
           <div className="mt-2 flex justify-between text-xs text-[var(--muted)]">
-            <span>{daily[0]?.key}</span>
-            <span>{daily[daily.length - 1]?.key}</span>
+            <span>{daily[0]?.label}</span>
+            <span>{daily[daily.length - 1]?.label}</span>
           </div>
         </>
       )}
@@ -194,15 +284,23 @@ export function BreakdownTable({
   );
 }
 
-export function DailyTable({ rows }: { rows: UsageBucket[] }) {
+export function DailyTable({
+  rows,
+  unit = 'day',
+}: {
+  rows: UsageBucket[];
+  unit?: UsageSummary['granularity'];
+}) {
   const active = rows.filter((r) => r.calls > 0).reverse();
+  const noun = unit === 'hour' ? 'hour' : 'day';
 
   return (
     <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
       <div className="mb-3 flex items-baseline justify-between">
-        <h2 className="text-sm font-semibold text-white">By day</h2>
+        <h2 className="text-sm font-semibold text-white">By {noun}</h2>
         <span className="text-xs text-[var(--muted)]">
-          {active.length} day{active.length === 1 ? '' : 's'} with activity
+          {active.length} {noun}
+          {active.length === 1 ? '' : 's'} with activity
         </span>
       </div>
       {active.length === 0 ? (
@@ -212,7 +310,9 @@ export function DailyTable({ rows }: { rows: UsageBucket[] }) {
           <table className="w-full min-w-[560px] text-left text-sm">
             <thead className="sticky top-0 bg-[var(--surface)]">
               <tr className="text-xs uppercase tracking-wide text-[var(--muted)]">
-                <th className="pb-2 pr-4 font-medium">Date (UTC)</th>
+                <th className="pb-2 pr-4 font-medium">
+                  {unit === 'hour' ? 'Hour (UTC)' : 'Date (UTC)'}
+                </th>
                 <th className="pb-2 pr-4 text-right font-medium">Calls</th>
                 <th className="pb-2 pr-4 text-right font-medium">Fresh in</th>
                 <th className="pb-2 pr-4 text-right font-medium">Cache write</th>
@@ -224,7 +324,7 @@ export function DailyTable({ rows }: { rows: UsageBucket[] }) {
             <tbody>
               {active.map((r) => (
                 <tr key={r.key} className="border-t border-[var(--border)]">
-                  <td className="py-2.5 pr-4 font-medium text-white">{r.key}</td>
+                  <td className="py-2.5 pr-4 font-medium text-white">{r.label}</td>
                   <td className="py-2.5 pr-4 text-right text-[var(--muted)]">{r.calls}</td>
                   <td className="py-2.5 pr-4 text-right text-[var(--muted)]">
                     {tokens(r.inputTokens)}

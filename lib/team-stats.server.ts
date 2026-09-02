@@ -1,5 +1,8 @@
 import { getToken } from './auth';
-import type { StatsWindow } from './stats.server';
+// The window builder is shared rather than duplicated: two copies would let the
+// two dashboards drift on what a range means, which is exactly the bug that
+// makes one page's "today" disagree with the other's.
+import { windowParams, type StatsWindow } from './stats.server';
 import type { TeamBidPerformance } from './team-stats';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
@@ -19,12 +22,7 @@ export async function fetchTeamBidPerformance(
   const token = await getToken();
   if (!token) return null;
 
-  const qs = new URLSearchParams();
-  if ('days' in window) qs.set('days', String(window.days));
-  else {
-    qs.set('from', window.from);
-    qs.set('to', window.to);
-  }
+  const qs = windowParams(window);
   if (profileId) qs.set('profileId', String(profileId));
   if (bidder) qs.set('bidder', String(bidder));
 

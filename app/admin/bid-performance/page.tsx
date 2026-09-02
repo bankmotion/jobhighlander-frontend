@@ -13,7 +13,14 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 export default async function TeamBidPerformancePage({
   searchParams,
 }: {
-  searchParams: Promise<{ days?: string; from?: string; to?: string; profile?: string; user?: string }>;
+  searchParams: Promise<{
+    days?: string;
+    preset?: string;
+    from?: string;
+    to?: string;
+    profile?: string;
+    user?: string;
+  }>;
 }) {
   const sp = await searchParams;
 
@@ -21,6 +28,9 @@ export default async function TeamBidPerformancePage({
     sp.from && sp.to && ISO_DATE.test(sp.from) && ISO_DATE.test(sp.to) && sp.from <= sp.to
       ? { from: sp.from, to: sp.to }
       : null;
+
+  // The calendar day so far, distinct from `days=1` which is a rolling 24h.
+  const today = sp.preset === 'today';
 
   const parsedDays = Number(sp.days);
   const days = Number.isFinite(parsedDays) && parsedDays > 0 ? Math.min(parsedDays, 365) : 1;
@@ -33,7 +43,11 @@ export default async function TeamBidPerformancePage({
   const parsedUser = Number(sp.user);
   const bidder = Number.isInteger(parsedUser) && parsedUser > 0 ? parsedUser : undefined;
 
-  const data = await fetchTeamBidPerformance(custom ? custom : { days }, profileId, bidder);
+  const data = await fetchTeamBidPerformance(
+    custom ? custom : today ? { preset: 'today' } : { days },
+    profileId,
+    bidder,
+  );
 
   return (
     <div>
@@ -46,7 +60,8 @@ export default async function TeamBidPerformancePage({
       </p>
 
       {data ? (
-        <TeamBidPerformanceDashboard data={data} custom={custom} />
+        <TeamBidPerformanceDashboard data={data} custom={custom}
+          todayPreset={today} />
       ) : (
         <p className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 text-sm text-[var(--muted)]">
           Statistics could not be loaded. Check that the API server is running, and that your account

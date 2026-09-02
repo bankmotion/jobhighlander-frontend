@@ -4,7 +4,9 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { allAiUsagePrefs } from '@/lib/view-prefs';
 import {
   CALL_PAGE_SIZE,
+  DEFAULT_RANGE,
   NO_FILTER,
+  isSameRange,
   tokens,
   usageQuery,
   usd,
@@ -14,6 +16,7 @@ import {
   type UsageBucket,
   type UsageCallPage,
   type UsageFilter,
+  type UsageRange,
 } from '@/lib/ai-usage';
 import {
   BreakdownTable,
@@ -35,7 +38,7 @@ export function AdminAiUsageDashboard({
 }) {
   const [data, setData] = useState(initial);
   const [calls, setCalls] = useState(initialCalls);
-  const [days, setDays] = useState(initial.days);
+  const [range, setRange] = useState<UsageRange>(DEFAULT_RANGE);
   const [filter, setFilter] = useState<UsageFilter>(NO_FILTER);
   const [pending, startTransition] = useTransition();
   const [callsPending, startCallsTransition] = useTransition();
@@ -49,29 +52,29 @@ export function AdminAiUsageDashboard({
     const saved = allAiUsagePrefs.stored();
     if (!saved) return;
     const same =
-      saved.days === initial.days && saved.userId === null && saved.profileId === null;
+      isSameRange(saved.range, range) && saved.userId === null && saved.profileId === null;
     if (same) return;
-    load(saved.days, { userId: saved.userId, profileId: saved.profileId });
+    load(saved.range, { userId: saved.userId, profileId: saved.profileId });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initial.days]);
 
-  function load(nextDays: number, nextFilter: UsageFilter) {
+  function load(nextRange: UsageRange, nextFilter: UsageFilter) {
     if (pending) return;
     setFailed(false);
     setCallsFailed(false);
     startTransition(async () => {
       try {
         const [summary, page] = await Promise.all([
-          getJson<AdminUsageSummary>(`/api/admin/ai-usage?${usageQuery(nextDays, nextFilter)}`),
+          getJson<AdminUsageSummary>(`/api/admin/ai-usage?${usageQuery(nextRange, nextFilter)}`),
           // Caught separately: a failed call log must not discard a summary
           // that loaded fine, since the totals are the more important half.
-          getJson<UsageCallPage>(callsUrl(nextDays, nextFilter, 0)).catch(() => null),
+          getJson<UsageCallPage>(callsUrl(nextRange, nextFilter, 0)).catch(() => null),
         ]);
         setData(summary);
-        setDays(nextDays);
+        setRange(nextRange);
         setFilter(nextFilter);
         allAiUsagePrefs.set({
-          days: nextDays,
+          range: nextRange,
           userId: nextFilter.userId,
           profileId: nextFilter.profileId,
         });
@@ -88,7 +91,7 @@ export function AdminAiUsageDashboard({
     setCallsFailed(false);
     startCallsTransition(async () => {
       try {
-        setCalls(await getJson<UsageCallPage>(callsUrl(days, filter, offset)));
+        setCalls(await getJson<UsageCallPage>(callsUrl(range, filter, offset)));
       } catch {
         // Keep the page that is on screen. Blanking the table would read as
         // "no calls here" when the truth is "this request did not arrive".
@@ -97,7 +100,7 @@ export function AdminAiUsageDashboard({
     });
   }
 
-  const apply = (next: Partial<UsageFilter>) => load(days, { ...filter, ...next });
+  const apply = (next: Partial<UsageFilter>) => load(range, { ...filter, ...next });
 
   const t = data.totals;
   const totalInput = t.inputTokens + t.cacheWriteTokens + t.cacheReadTokens;
@@ -111,7 +114,14 @@ export function AdminAiUsageDashboard({
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <RangeTabs days={days} pending={pending} onChange={(d) => load(d, filter)} />
+        <RangeTabs
+          range={range}
+          summary={data}
+          pending={pending}
+          onChange={(next) => load(next, filter)}
+        />
+      </div>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         <span className="ml-auto text-xs text-[var(--muted)]">
           {data.from} to {data.to} (UTC)
         </span>
@@ -136,7 +146,7 @@ export function AdminAiUsageDashboard({
         />
         {filtered && (
           <button
-            onClick={() => load(days, NO_FILTER)}
+            onClick={() => load(range, NO_FILTER)}
             disabled={pending}
             className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-xs font-medium text-[var(--muted)] transition hover:border-[var(--border-strong)] hover:text-white disabled:cursor-wait"
           >
@@ -161,7 +171,7 @@ export function AdminAiUsageDashboard({
         <UnpricedNotice count={data.unpricedCalls} />
 
         <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-          <Stat label="Total spend" value={usd(t.costUsd)} hint={`over ${data.days} days`} primary />
+          <Stat label="Total spend" value={usd(t.costUsd)} hint={`over ${data.rangeLabel}`} primary />
           <Stat
             label="Generations"
             value={String(t.calls)}
@@ -183,11 +193,11 @@ export function AdminAiUsageDashboard({
 
         <CostChart
           daily={data.daily}
-          title={
-            filtered
-              ? `Daily spend — ${[scopedUser?.label, scopedProfile?.label].filter(Boolean).join(' · ')}`
-              : 'Daily spend, everyone'
-          }
+          title={(() => {
+            const noun = data.granularity === 'hour' ? 'Spend by hour' : 'Daily spend';
+            const who = [scopedUser?.label, scopedProfile?.label].filter(Boolean).join(' · ');
+            return filtered ? `${noun} — ${who}` : `${noun}, everyone`;
+          })()}
         />
 
         <div className="mt-6 grid gap-5 lg:grid-cols-2">
@@ -221,7 +231,7 @@ export function AdminAiUsageDashboard({
         </div>
 
         <div className="mt-5">
-          <DailyTable rows={data.daily} />
+          <DailyTable rows={data.daily} unit={data.granularity} />
         </div>
 
         <div className="mt-5">
@@ -248,8 +258,8 @@ const SHORT_FEATURE: Record<string, string> = {
 const shortFeature = (feature: string, fallback: string): string =>
   SHORT_FEATURE[feature] ?? fallback;
 
-const callsUrl = (days: number, filter: UsageFilter, offset: number): string =>
-  `/api/admin/ai-usage/calls?${usageQuery(days, filter, { limit: CALL_PAGE_SIZE, offset })}`;
+const callsUrl = (range: UsageRange, filter: UsageFilter, offset: number): string =>
+  `/api/admin/ai-usage/calls?${usageQuery(range, filter, { limit: CALL_PAGE_SIZE, offset })}`;
 
 async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url, { cache: 'no-store' });

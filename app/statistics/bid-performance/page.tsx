@@ -12,7 +12,14 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 export default async function BidPerformancePage({
   searchParams,
 }: {
-  searchParams: Promise<{ days?: string; from?: string; to?: string; profile?: string; user?: string }>;
+  searchParams: Promise<{
+    days?: string;
+    preset?: string;
+    from?: string;
+    to?: string;
+    profile?: string;
+    user?: string;
+  }>;
 }) {
   const sp = await searchParams;
 
@@ -20,6 +27,9 @@ export default async function BidPerformancePage({
     sp.from && sp.to && ISO_DATE.test(sp.from) && ISO_DATE.test(sp.to) && sp.from <= sp.to
       ? { from: sp.from, to: sp.to }
       : null;
+
+  // The calendar day so far, distinct from `days=1` which is a rolling 24h.
+  const today = sp.preset === 'today';
 
   const parsedDays = Number(sp.days);
   const days = Number.isFinite(parsedDays) && parsedDays > 0 ? Math.min(parsedDays, 365) : 1;
@@ -39,7 +49,7 @@ export default async function BidPerformancePage({
     fetchProfiles().catch(() => []),
     getSession().catch(() => null),
     fetchBidPerformance(
-      custom ? { from: custom.from, to: custom.to } : { days },
+      custom ? { from: custom.from, to: custom.to } : today ? { preset: 'today' } : { days },
       wantedProfile ?? undefined,
       bidder ?? undefined,
     ),
@@ -68,6 +78,7 @@ export default async function BidPerformancePage({
           bidder={bidder}
           viewerId={session?.sub ?? null}
           custom={custom}
+          todayPreset={today}
         />
       ) : (
         <p className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 text-sm text-[var(--muted)]">

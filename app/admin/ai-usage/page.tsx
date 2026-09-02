@@ -1,4 +1,4 @@
-import { NO_FILTER } from '@/lib/ai-usage';
+import { DEFAULT_RANGE, NO_FILTER } from '@/lib/ai-usage';
 import { fetchAiRates, fetchAiUsageCalls, fetchAllAiUsage } from '@/lib/ai-usage.server';
 import { AdminAiUsageDashboard } from '@/app/components/admin-ai-usage-dashboard';
 import { AiMarkupEditor } from '@/app/components/ai-markup-editor';
@@ -10,8 +10,8 @@ export default async function AdminAiUsagePage() {
   // independent reads, and fetching them in sequence would make the slower one
   // wait on the faster for no reason.
   const [usage, calls, rates] = await Promise.all([
-    fetchAllAiUsage(30, NO_FILTER),
-    fetchAiUsageCalls(30, NO_FILTER),
+    fetchAllAiUsage(DEFAULT_RANGE, NO_FILTER),
+    fetchAiUsageCalls(DEFAULT_RANGE, NO_FILTER),
     fetchAiRates(),
   ]);
 
