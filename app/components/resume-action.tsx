@@ -10,8 +10,14 @@ export const TONE = {
   busy: 'cursor-wait border-[var(--border-strong)] bg-[var(--surface-2)] text-[var(--muted)]',
   // Violet, NOT emerald: the card already carries an emerald salary pill and a
   // green Remote pill, and a third green makes the row unreadable at a glance.
+  //
+  // Solid rather than a 12% tint, to match Apply Now. The tint read as a
+  // disabled version of that button when the two sat in the same card. Note
+  // `bg-[var(--primary)]` as a whole class token, which is what keeps the label
+  // white on the light theme — a translucent variant is treated as a surface
+  // there and would flip the text to dark ink.
   ready:
-    'border-[var(--primary)] bg-[var(--primary)]/12 font-medium text-white hover:bg-[var(--primary)]/20',
+    'border-[var(--primary)] bg-[var(--primary)] font-medium text-white hover:bg-[var(--primary-hover)]',
   error: 'border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/20',
   // No hover affordance at all: the control is inert, and a border that lights
   // up under the cursor promises a click that does nothing.
