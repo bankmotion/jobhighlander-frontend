@@ -18,10 +18,27 @@ export interface RateRow {
   model: string;
   provider: AiProvider | null;
   providerLabel: string;
+  /** The markup applied on top of list price: 1 is list, 1.2 is +20%. */
+  multiplier: number;
+  listInputPerMTok: number;
+  listOutputPerMTok: number;
+  /** What this deployment bills — list x markup. Every total is built from these. */
   inputPerMTok: number;
   outputPerMTok: number;
   cacheWritePerMTok: number;
   cacheReadPerMTok: number;
+}
+
+/** One provider's markup, as the admin screen reads and writes it. */
+export interface ProviderRate {
+  provider: AiProvider;
+  label: string;
+  model: string;
+  multiplier: number;
+  multiplierBp: number;
+  backfilledAt: string | null;
+  updatedByEmail: string | null;
+  updatedAt: string | null;
 }
 
 export interface UsageSummary {
@@ -58,6 +75,7 @@ export interface UsageCall {
   model: string;
   provider: AiProvider | null;
   providerLabel: string;
+  multiplier: number;
   userId: number | null;
   userLabel: string;
   profileId: number | null;

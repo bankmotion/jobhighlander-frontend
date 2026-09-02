@@ -249,6 +249,17 @@ export function DailyTable({ rows }: { rows: UsageBucket[] }) {
   );
 }
 
+/** One rate cell: what you are billed, with the vendor's price under it when they differ. */
+function Rate({ billed, list, last }: { billed: number; list: number; last?: boolean }) {
+  const marked = Math.abs(billed - list) > 1e-9;
+  return (
+    <td className={`py-2 text-right text-[var(--muted)] ${last ? '' : 'pr-4'}`}>
+      <span className={marked ? 'block text-[var(--text)]' : 'block'}>${billed.toFixed(2)}</span>
+      {marked && <span className="block text-xs line-through opacity-60">${list.toFixed(2)}</span>}
+    </td>
+  );
+}
+
 export function RateCard({ rates }: { rates: UsageSummary['rates'] }) {
   return (
     <details className="mt-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
@@ -256,10 +267,15 @@ export function RateCard({ rates }: { rates: UsageSummary['rates'] }) {
         How these figures are calculated
       </summary>
       <p className="mt-3 text-sm text-[var(--muted)]">
-        Each generation is priced when it runs, at the published list rate for the model it used,
-        and stored. Later price changes do not rewrite past totals. Cached prompt text is billed at
+        Each generation is priced when it runs and stored. Later changes — to the vendor&apos;s
+        rates or to the markup below — do not rewrite past totals. Cached prompt text is billed at
         a premium the first time it is written and at a tenth of the input rate every time it is
         read afterwards, which is why a repeat application costs a fraction of the first one.
+      </p>
+      <p className="mt-2 text-sm text-[var(--muted)]">
+        <span className="text-[var(--text)]">Billed</span> is what you are charged: the vendor&apos;s
+        list price multiplied by this deployment&apos;s markup. Every total on this page is built
+        from the billed column.
       </p>
       <div className="mt-3 overflow-x-auto">
         <table className="w-full min-w-[560px] text-left text-sm">
@@ -267,6 +283,7 @@ export function RateCard({ rates }: { rates: UsageSummary['rates'] }) {
             <tr className="text-xs uppercase tracking-wide text-[var(--muted)]">
               <th className="pb-2 pr-4 font-medium">Model</th>
               <th className="pb-2 pr-4 font-medium">Provider</th>
+              <th className="pb-2 pr-4 text-right font-medium">Markup</th>
               <th className="pb-2 pr-4 text-right font-medium">Input / MTok</th>
               <th className="pb-2 pr-4 text-right font-medium">Cache write</th>
               <th className="pb-2 pr-4 text-right font-medium">Cache read</th>
@@ -279,17 +296,15 @@ export function RateCard({ rates }: { rates: UsageSummary['rates'] }) {
                 <td className="py-2 pr-4 font-medium text-white">{r.model}</td>
                 <td className="py-2 pr-4 text-[var(--muted)]">{r.providerLabel}</td>
                 <td className="py-2 pr-4 text-right text-[var(--muted)]">
-                  ${r.inputPerMTok.toFixed(2)}
+                  {r.multiplier === 1 ? 'list' : `×${Number(r.multiplier.toFixed(4))}`}
                 </td>
-                <td className="py-2 pr-4 text-right text-[var(--muted)]">
-                  ${r.cacheWritePerMTok.toFixed(2)}
-                </td>
-                <td className="py-2 pr-4 text-right text-[var(--muted)]">
-                  ${r.cacheReadPerMTok.toFixed(2)}
-                </td>
-                <td className="py-2 text-right text-[var(--muted)]">
-                  ${r.outputPerMTok.toFixed(2)}
-                </td>
+                {/* Billed above, the vendor's own price struck through beneath
+                    it — so the markup is legible on the row it applies to
+                    rather than only in a column of ratios. */}
+                <Rate billed={r.inputPerMTok} list={r.listInputPerMTok} />
+                <Rate billed={r.cacheWritePerMTok} list={r.listInputPerMTok * 1.25} />
+                <Rate billed={r.cacheReadPerMTok} list={r.listInputPerMTok * 0.1} />
+                <Rate billed={r.outputPerMTok} list={r.listOutputPerMTok} last />
               </tr>
             ))}
           </tbody>

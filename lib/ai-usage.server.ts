@@ -3,6 +3,7 @@ import {
   CALL_PAGE_SIZE,
   usageQuery,
   type AdminUsageSummary,
+  type ProviderRate,
   type UsageCallPage,
   type UsageFilter,
   type UsageSummary,
@@ -33,6 +34,11 @@ export const fetchAllAiUsage = (
   filter: UsageFilter,
 ): Promise<AdminUsageSummary | null> =>
   get<AdminUsageSummary>(`/api/ai-usage/all?${usageQuery(days, filter)}`);
+
+export const fetchAiRates = async (): Promise<ProviderRate[] | null> => {
+  const data = await get<{ rates: ProviderRate[] }>('/api/ai-usage/rates');
+  return data?.rates ?? null;
+};
 
 export const fetchAiUsageCalls = (
   days: number,

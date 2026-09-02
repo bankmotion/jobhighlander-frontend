@@ -390,7 +390,13 @@ function CallLog({
                       an unexpected line on one invoice gets traced. */}
                   <td className="whitespace-nowrap py-2.5 pr-4 text-[var(--muted)]" title={r.model}>
                     <span className="block text-[var(--text)]">{r.model}</span>
-                    <span className="block text-xs">{r.providerLabel}</span>
+                    <span className="block text-xs">
+                      {r.providerLabel}
+                      {/* The markup this row was billed at. Rows predating the
+                          markup — or the backfill — read as list, which is the
+                          audit trail for what has and has not been lifted. */}
+                      {r.multiplier !== 1 && ` · ×${Number(r.multiplier.toFixed(4))}`}
+                    </span>
                   </td>
                   <td
                     className="py-2.5 pr-4 text-right text-[var(--muted)]"

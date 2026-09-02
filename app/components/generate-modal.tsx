@@ -8,17 +8,29 @@ import {
   rememberedProvider,
   type AiProvider,
   type ProviderInfo,
+  type ProviderLoad,
 } from '@/lib/ai-providers';
 import { Modal } from './modal';
 
 /**
  * The catalogue is one row per configured key and changes only when the server
- * is redeployed, so it is fetched once per page load and shared by every
- * picker on it. Without this, opening the modal on twenty job cards would mean
- * twenty identical round trips.
+ * is redeployed, so a successful answer is fetched once per page load and
+ * shared by every picker on it. Without this, opening the modal on twenty job
+ * cards would mean twenty identical round trips.
+ *
+ * FAILURES ARE NOT MEMOIZED. Caching one would pin a transient error — a
+ * restart mid-session, a redeploy — for the life of the tab, so Retry could
+ * never do anything.
  */
-let catalogue: Promise<ProviderInfo[]> | null = null;
-const loadProviders = (): Promise<ProviderInfo[]> => (catalogue ??= fetchProviders());
+let catalogue: Promise<ProviderLoad> | null = null;
+
+function loadProviders(): Promise<ProviderLoad> {
+  catalogue ??= fetchProviders().then((r) => {
+    if (!r.ok) catalogue = null;
+    return r;
+  });
+  return catalogue;
+}
 
 function pick(list: ProviderInfo[]): AiProvider | null {
   const usable = list.filter((p) => p.enabled);
@@ -59,6 +71,8 @@ export function GenerateModal({
   onConfirm: (provider: AiProvider) => void;
 }) {
   const [providers, setProviders] = useState<ProviderInfo[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const [chosen, setChosen] = useState<AiProvider | null>(null);
 
   // Loaded on open rather than on mount: these pickers are rendered once per
@@ -67,17 +81,24 @@ export function GenerateModal({
   useEffect(() => {
     if (!open) return;
     let live = true;
-    void loadProviders().then((list) => {
+    void loadProviders().then((result) => {
       if (!live) return;
-      setProviders(list);
+      if (!result.ok) {
+        setLoadError(result.reason);
+        setProviders(null);
+        return;
+      }
+      setLoadError(null);
+      setProviders(result.providers);
       // Only seed a choice the user has not already made in this dialog, so a
       // slow catalogue cannot overwrite a click that landed first.
-      setChosen((prev) => prev ?? pick(list));
+      setChosen((prev) => prev ?? pick(result.providers));
     });
     return () => {
       live = false;
     };
-  }, [open]);
+    // `attempt` is the Retry trigger — bumping it re-runs the load.
+  }, [open, attempt]);
 
   // Reset between openings so the next generation starts from the remembered
   // preference rather than whatever was clicked and then cancelled. Adjusted
@@ -141,12 +162,27 @@ export function GenerateModal({
             Generate with
           </legend>
 
-          {providers === null ? (
+          {loadError ? (
+            // Deliberately NOT the "no keys are set" message: this branch means
+            // the question never got an answer, so the credentials are not
+            // known to be the problem and must not be blamed.
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
+              <p>Could not load the list of AI providers.</p>
+              <p className="mt-1 text-amber-200/80">{loadError}</p>
+              <button
+                type="button"
+                onClick={() => setAttempt((n) => n + 1)}
+                className="mt-2 rounded-lg border border-amber-400/40 px-3 py-1 text-xs font-medium text-amber-100 transition hover:bg-amber-500/15"
+              >
+                Retry
+              </button>
+            </div>
+          ) : providers === null ? (
             <p className="py-6 text-center text-sm text-[var(--muted)]">Loading providers…</p>
           ) : usable.length === 0 ? (
             <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
-              No AI provider is configured on this server. Ask an admin to set{' '}
-              <code>ANTHROPIC_API_KEY</code> or <code>OPENAI_API_KEY</code>.
+              The server replied, and neither key is set. Ask an admin to set{' '}
+              <code>ANTHROPIC_API_KEY</code> or <code>OPENAI_API_KEY</code> and restart the backend.
             </p>
           ) : (
             <div className="grid gap-2 sm:grid-cols-2">
