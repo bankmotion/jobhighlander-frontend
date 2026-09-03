@@ -562,7 +562,12 @@ body {
    and a flex item's default `min-width: auto` refuses to shrink below its
    content, so width alone would stop at the width of the widest menu label. */
 #jh-sidebar {
-  overflow: hidden;
+  /* Horizontal ONLY. `overflow: hidden` here would win against Tailwind's
+     `md:overflow-y-auto` on specificity — an id beats a class — and a menu
+     taller than the viewport would then have no way to scroll. This is the
+     axis that needs clipping while the width animates to zero; the other must
+     stay scrollable. */
+  overflow-x: hidden;
   transition:
     width 260ms cubic-bezier(0.22, 1, 0.36, 1),
     transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -572,6 +577,9 @@ body {
 :root[data-nav="hidden"] #jh-sidebar {
   width: 0;
   min-width: 0;
+  /* Both axes, but only while collapsed: at zero width there is nothing to
+     scroll, and a scrollbar flickering as it closes is worse than none. */
+  overflow: hidden;
   transform: translateX(-1rem);
   opacity: 0;
   /* Removed from the tab order while collapsed — a hidden panel whose links
