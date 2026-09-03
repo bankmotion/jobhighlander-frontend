@@ -160,7 +160,7 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+      className="jh-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
       onMouseDown={(e) => {
         // mousedown, not click: a click that STARTS inside the panel and ends on
         // the backdrop (selecting text, dragging a scrollbar) would otherwise
@@ -174,7 +174,7 @@ export function Modal({
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className={`flex max-h-[92vh] w-full ${SIZES[size]} flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl focus:outline-none`}
+        className={`jh-dialog flex max-h-[92vh] w-full ${SIZES[size]} flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl focus:outline-none`}
       >
         <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] px-5 py-4">
           <div className="min-w-0">

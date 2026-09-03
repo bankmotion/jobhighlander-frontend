@@ -36,7 +36,10 @@ export function Toast({ toast, onDismiss }: { toast: ToastState | null; onDismis
       className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4"
     >
       <div
-        className={`pointer-events-auto flex items-center gap-3 rounded-lg border px-4 py-2.5 text-sm shadow-xl backdrop-blur ${
+        // Keyed on the toast id so a second message replays the entrance
+        // instead of silently swapping text inside a panel already on screen.
+        key={toast.id}
+        className={`jh-toast pointer-events-auto flex items-center gap-3 rounded-lg border px-4 py-2.5 text-sm shadow-xl backdrop-blur ${
           ok
             ? 'border-green-500/40 bg-green-500/15 text-green-200'
             : 'border-red-500/40 bg-red-500/15 text-red-200'

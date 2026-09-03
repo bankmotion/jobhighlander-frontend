@@ -1,57 +1,56 @@
-import { LogoutButton } from './logout-button';
 import { InboxMenu } from './inbox-menu';
 import { RefreshButton } from './refresh-button';
-import { TimezonePicker } from './timezone-picker';
 import { ThemeToggle } from './theme-toggle';
 import { NavToggle } from './nav-toggle';
+import { AccountMenu } from './account-menu';
 import { BalanceChip } from './balance-chip';
 import { fetchMyInvitations } from '@/lib/profiles';
 import { fetchBalance } from '@/lib/billing.server';
 import type { Session } from '@/lib/session';
 
-const ROLE_BADGE: Record<string, string> = {
-  super_admin: 'bg-purple-500/15 text-purple-300',
-  admin: 'bg-blue-500/15 text-blue-300',
-  bidder: 'bg-green-500/15 text-green-300',
-  guest: 'bg-amber-500/15 text-amber-300',
-};
-
+/**
+ * The bar is grouped by what each control is FOR, with a divider between
+ * groups, rather than being one undifferentiated row of ten items:
+ *
+ *   1. view controls  — sidebar, theme, refresh. Icon-only and recessive;
+ *                       they change how the page looks, never what it says.
+ *   2. state          — balance and inbox. The two things that change on their
+ *                       own and that the user may need to act on.
+ *   3. identity       — one avatar, opening everything about the account.
+ *
+ * Before this, identity spent four slots (email, "Signed in", role chip, a
+ * Logout button) plus a time-zone dropdown, all at the same visual weight as
+ * the balance — so the one number that decides whether the AI works at all
+ * was competing with a caption that never changes.
+ */
 export async function Topbar({ session }: { session: Session }) {
-  const initial = session.email.charAt(0).toUpperCase();
-  // Fetched here rather than in the menu so the badge count is correct on the
-  // first paint — a client fetch would render "no invitations" and then pop.
   // Both in parallel — neither depends on the other, and the bar is on the
   // critical path of every page.
   const [invitations, balance] = await Promise.all([
     fetchMyInvitations().catch(() => []),
     fetchBalance().catch(() => null),
   ]);
+
   return (
     <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur">
-      <div className="flex items-center justify-between gap-4 px-6 py-3">
+      <div className="flex items-center justify-between gap-4 px-6 py-2.5">
         <span className="text-lg font-semibold tracking-tight md:hidden">
           Job<span className="text-[var(--primary)]">HighLander</span>
         </span>
-        <div className="ml-auto flex items-center gap-3">
+
+        <div className="ml-auto flex items-center gap-1.5">
           <NavToggle />
-          <TimezonePicker />
           <ThemeToggle />
           <RefreshButton />
+
+          <span aria-hidden className="mx-1.5 h-5 w-px bg-[var(--border)]" />
+
           <BalanceChip balance={balance} />
           <InboxMenu invitations={invitations} />
-          <span className={`hidden rounded-full px-2.5 py-0.5 text-xs font-medium sm:inline ${ROLE_BADGE[session.role]}`}>
-            {session.role}
-          </span>
-          <div className="hidden items-center gap-2 sm:flex">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--surface-2)] text-sm font-semibold text-[var(--text)]">
-              {initial}
-            </span>
-            <div className="leading-tight">
-              <div className="text-sm">{session.email}</div>
-              <div className="text-xs text-[var(--muted)]">Signed in</div>
-            </div>
-          </div>
-          <LogoutButton />
+
+          <span aria-hidden className="mx-1.5 h-5 w-px bg-[var(--border)]" />
+
+          <AccountMenu session={session} />
         </div>
       </div>
     </header>

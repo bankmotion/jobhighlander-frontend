@@ -82,7 +82,7 @@ export function InboxMenu({ invitations }: { invitations: ReceivedInvitation[] }
           // `pt-2` keeps the gap between icon and panel INSIDE the hover target;
           // a margin would open a dead strip that closes the popup on the way
           // down to it.
-          className="absolute right-0 top-full z-50 w-80 pt-2"
+          className="jh-menu absolute right-0 top-full z-50 w-80 pt-2"
         >
           <div className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl">
             <div className="border-b border-[var(--border)] px-4 py-2.5">

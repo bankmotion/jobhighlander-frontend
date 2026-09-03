@@ -14,10 +14,7 @@ export function TimezonePicker() {
   const chosen = storedZone();
 
   return (
-    <div className="hidden items-center gap-1.5 sm:flex">
-      <span aria-hidden className="text-sm">
-        🌐
-      </span>
+    <div className="flex items-center gap-1.5">
       <label htmlFor="tz-picker" className="sr-only">
         Display time zone
       </label>
