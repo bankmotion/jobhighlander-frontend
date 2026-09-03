@@ -551,8 +551,39 @@ body {
    matching force-show rule would also drag a 240px panel onto a phone, where
    Tailwind is right to keep it out of the way. No attribute means "leave the
    responsive behaviour alone". */
+/* Collapsed by WIDTH, not `display: none`.
+
+   `display` is not animatable — it snaps — so the sidebar used to disappear in
+   one frame and the content column jumped sideways to fill the gap. Animating
+   `width` to zero lets the column reflow smoothly alongside it, and the panel
+   slides out to the left as it goes rather than being squashed.
+
+   `min-width: 0` is what actually lets it collapse: the aside is a flex item,
+   and a flex item's default `min-width: auto` refuses to shrink below its
+   content, so width alone would stop at the width of the widest menu label. */
+#jh-sidebar {
+  overflow: hidden;
+  transition:
+    width 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 180ms ease-out;
+}
+
 :root[data-nav="hidden"] #jh-sidebar {
-  display: none;
+  width: 0;
+  min-width: 0;
+  transform: translateX(-1rem);
+  opacity: 0;
+  /* Removed from the tab order while collapsed — a hidden panel whose links
+     are still focusable sends the keyboard somewhere invisible. */
+  pointer-events: none;
+  visibility: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #jh-sidebar {
+    transition: none;
+  }
 }
 
 /* ── Applied badge ───────────────────────────────────────────────────────

@@ -1,5 +1,4 @@
 import { InboxMenu } from './inbox-menu';
-import { RefreshButton } from './refresh-button';
 import { ThemeToggle } from './theme-toggle';
 import { NavToggle } from './nav-toggle';
 import { AccountMenu } from './account-menu';
@@ -33,15 +32,17 @@ export async function Topbar({ session }: { session: Session }) {
 
   return (
     <header className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg)]/80 backdrop-blur">
-      <div className="flex items-center justify-between gap-4 px-6 py-2.5">
+      <div className="flex items-center gap-4 px-6 py-2.5">
+        {/* On the left, beside the panel it opens and closes — a control that
+            acts on the left edge of the screen does not belong at the right. */}
+        <NavToggle />
+
         <span className="text-lg font-semibold tracking-tight md:hidden">
           Job<span className="text-[var(--primary)]">HighLander</span>
         </span>
 
         <div className="ml-auto flex items-center gap-1.5">
-          <NavToggle />
           <ThemeToggle />
-          <RefreshButton />
 
           <span aria-hidden className="mx-1.5 h-5 w-px bg-[var(--border)]" />
 

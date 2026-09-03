@@ -90,7 +90,12 @@ export function AccountMenu({ session }: { session: Session }) {
       {open && (
         <div
           role="menu"
-          className="jh-menu absolute right-0 top-full z-30 mt-2 w-64 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl"
+          // NOT `overflow-hidden`. The time-zone control below is a custom
+          // popover, not a native <select>, so it is a real DOM child rather
+          // than an OS menu — clipping this panel to its rounded corners cuts
+          // the zone list off. Nothing in here paints to the edge, so there is
+          // no corner bleed to clip in the first place.
+          className="jh-menu absolute right-0 top-full z-30 mt-2 w-72 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl"
         >
           <div className="border-b border-[var(--border)] px-4 py-3">
             <p className="truncate text-sm text-[var(--text)]" title={session.email}>
@@ -105,8 +110,8 @@ export function AccountMenu({ session }: { session: Session }) {
             </span>
           </div>
 
-          <div className="flex items-center justify-between gap-2 px-4 py-3">
-            <span className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
+          <div className="px-4 py-3">
+            <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
               Time zone
             </span>
             <TimezonePicker />

@@ -37,7 +37,7 @@ export function ScrollToTop() {
       onClick={toTop}
       aria-label="Scroll back to top"
       title="Back to top"
-      className="jh-to-top fixed bottom-6 right-6 z-40 flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border-strong)] bg-[var(--surface-2)] text-[var(--text)] shadow-lg transition hover:bg-[var(--primary)] hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+      className="jh-to-top fixed bottom-[5.25rem] right-6 z-40 flex h-11 w-11 items-center justify-center rounded-full border border-[var(--border-strong)] bg-[var(--surface-2)] text-[var(--text)] shadow-lg transition hover:bg-[var(--primary)] hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
     >
       <svg
         viewBox="0 0 24 24"

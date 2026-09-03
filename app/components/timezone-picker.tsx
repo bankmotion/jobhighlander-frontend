@@ -4,9 +4,9 @@ import { setDisplayZone, storedZone, useDisplayZone } from '@/lib/display-zone';
 import { browserZone } from '@/lib/tz';
 import { TimezoneSelect } from './timezone-select';
 
-export function TimezonePicker() {
+export function TimezonePicker({ compact = true }: { compact?: boolean } = {}) {
   const zone = useDisplayZone();
-  if (!zone) return <span aria-hidden className="hidden h-7 w-28 sm:block" />;
+  if (!zone) return <span aria-hidden className="block h-7 w-full" />;
 
   // `storedZone()` distinguishes "explicitly chose this zone" from "this is
   // simply where the device is" — the two can be the same string and the
@@ -14,13 +14,13 @@ export function TimezonePicker() {
   const chosen = storedZone();
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="w-full">
       <label htmlFor="tz-picker" className="sr-only">
         Display time zone
       </label>
       <TimezoneSelect
         id="tz-picker"
-        compact
+        compact={compact}
         allowAuto
         value={chosen}
         deviceZone={browserZone()}

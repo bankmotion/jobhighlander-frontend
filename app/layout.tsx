@@ -7,6 +7,7 @@ import { SidebarData } from '@/app/components/sidebar-data';
 import { Topbar } from '@/app/components/topbar';
 import { PageTransition } from '@/app/components/page-transition';
 import { ScrollToTop } from '@/app/components/scroll-to-top';
+import { RefreshButton } from '@/app/components/refresh-button';
 import { THEME_INIT_SCRIPT } from '@/lib/theme-init';
 import { NAV_INIT_SCRIPT } from '@/lib/nav-init';
 
@@ -51,6 +52,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <PageTransition>{children}</PageTransition>
           </main>
         )}
+        {session && <RefreshButton />}
         <ScrollToTop />
       </body>
     </html>
