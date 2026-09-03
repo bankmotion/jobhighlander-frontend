@@ -16,6 +16,20 @@ const ROLE_META: Record<Role, { label: string; badge: string; dot: string; desc:
 
 const ASSIGNABLE: Role[] = ['super_admin', 'admin', 'bidder', 'guest'];
 
+const MINUTE = 60_000;
+const HOUR = 60 * MINUTE;
+const DAY = 24 * HOUR;
+
+function sinceLogin(iso: string | null): string {
+  if (!iso) return 'never';
+  const ms = Date.now() - new Date(iso).getTime();
+  if (ms < MINUTE) return 'just now';
+  if (ms < HOUR) return `${Math.floor(ms / MINUTE)}m ago`;
+  if (ms < DAY) return `${Math.floor(ms / HOUR)}h ago`;
+  if (ms < 7 * DAY) return `${Math.floor(ms / DAY)}d ago`;
+  return new Date(iso).toLocaleDateString();
+}
+
 export function UserRow({
   user,
   actorRole,
@@ -44,6 +58,16 @@ export function UserRow({
         title={user.balanceMicroUsd > 0 ? 'In credit' : 'Cannot use AI until topped up'}
       >
         {usdt(user.balanceMicroUsd)}
+      </td>
+      {/* "Never" rather than a blank cell — an empty one reads as a rendering
+          fault, and a dormant account is exactly what this column is scanned
+          for. Relative for recent logins, because "3h ago" answers "is this
+          person active" without arithmetic. */}
+      <td
+        className={`py-2.5 pr-4 ${user.lastLoginAt ? 'text-[var(--muted)]' : 'text-[var(--muted)]/60'}`}
+        title={user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : 'Has not signed in'}
+      >
+        {sinceLogin(user.lastLoginAt)}
       </td>
       <td className="py-2.5 pr-4 text-[var(--muted)]">{new Date(user.createdAt).toLocaleDateString()}</td>
       <td className="py-2.5">

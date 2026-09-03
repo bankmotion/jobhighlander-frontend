@@ -2,7 +2,11 @@ import { NextResponse } from 'next/server';
 import { parseJsonBody } from '@/lib/http';
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
-const WEEK = 60 * 60 * 24 * 7;
+// Matches JWT_EXPIRES_IN on the API (24h). These two must stay in step: a
+// cookie that outlives its token leaves someone looking signed in while every
+// request 401s, which reads as the app being broken rather than as a session
+// that ended.
+const SESSION_SECONDS = 60 * 60 * 24;
 
 export async function POST(req: Request) {
   const parsed = await parseJsonBody(req);
@@ -23,7 +27,7 @@ export async function POST(req: Request) {
     httpOnly: true,
     sameSite: 'lax',
     path: '/',
-    maxAge: WEEK,
+    maxAge: SESSION_SECONDS,
   });
   return response;
 }

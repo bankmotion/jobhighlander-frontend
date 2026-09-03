@@ -8,6 +8,8 @@ export interface AdminUser {
   email: string;
   role: Role;
   balanceMicroUsd: number;
+  /** Null until they sign in for the first time after this was added. */
+  lastLoginAt: string | null;
   createdAt: string;
 }
 

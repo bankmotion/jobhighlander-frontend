@@ -46,27 +46,37 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // /profiles, /inbox and /billing are deliberately NOT under /admin — every
+  // signed-in role reaches them, and what they may do there is decided per
+  // profile by the backend, not by this path check.
+  //
+  // Re-checked on EVERY gated page, not just /admin.
+  //
+  // The role is inside the token, so a demoted user carries a session that
+  // still asserts the old one. Checking only under /admin meant they were
+  // bounced off those pages but kept a valid-looking session everywhere else —
+  // admin links still in the sidebar, every request behind them failing. The
+  // API now rejects a token whose role has changed, so this turns any role
+  // change into a sign-out on the next navigation.
+  //
+  // The cost is one internal request per page view. Deliberate: a stale
+  // session is a security question, and answering it late is answering it
+  // wrong. `offline` deliberately falls back to the token rather than locking
+  // everyone out when the API is merely down.
+  const check = await currentRole(token!);
+  if ('revoked' in check) {
+    const url = req.nextUrl.clone();
+    url.pathname = '/login';
+    const res = NextResponse.redirect(url);
+    res.cookies.delete('token');
+    return res;
+  }
+  const role = 'role' in check ? check.role : session.role; // offline → trust token
+
   // /admin/bidders and /admin/templates are open to admins (and super admins):
   // one shares their own profiles, the other shapes their resume output. The
   // rest of /admin (users, keywords, scraper config) stays super_admin only.
-  //
-  // /profiles, /inbox and /ai-usage are deliberately NOT under /admin — every signed-in
-  // role reaches them, and what they may do there is decided per profile by the
-  // backend, not by this path check.
-  //
-  // Re-check the role against the backend here so a just-granted or
-  // just-revoked role applies immediately, without waiting for a fresh login.
   if (pathname.startsWith('/admin')) {
-    const check = await currentRole(token!);
-    if ('revoked' in check) {
-      // Token no longer valid (e.g. revoked back to guest) → sign them out.
-      const url = req.nextUrl.clone();
-      url.pathname = '/login';
-      const res = NextResponse.redirect(url);
-      res.cookies.delete('token');
-      return res;
-    }
-    const role = 'role' in check ? check.role : session.role; // offline → trust token
     const ADMIN_LEVEL = ['/admin/bidders', '/admin/templates'];
     const allowed = ADMIN_LEVEL.some((p) => pathname.startsWith(p))
       ? isAdminRole(role)
