@@ -1,6 +1,7 @@
 import { getToken } from './auth';
 import type {
   Balance,
+  BillingOverview,
   CreditEntry,
   CreditableUser,
   DepositInfo,
@@ -45,3 +46,13 @@ export const fetchCreditEntries = async (): Promise<CreditEntry[] | null> =>
 
 export const fetchCreditableUsers = async (): Promise<CreditableUser[] | null> =>
   (await get<{ users: CreditableUser[] }>('/api/billing/users'))?.users ?? null;
+
+export const fetchBillingOverview = (): Promise<BillingOverview | null> =>
+  get<BillingOverview>('/api/billing/overview');
+
+/**
+ * Pending deposit claims, for the sidebar badge. Zero on any failure — a badge
+ * is decoration, and it must never take the navigation down with it.
+ */
+export const fetchPendingTopUpCount = async (): Promise<number> =>
+  (await get<{ pending: number }>('/api/billing/top-ups/pending-count'))?.pending ?? 0;

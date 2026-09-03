@@ -1,26 +1,30 @@
 import {
   fetchAllTopUps,
+  fetchBillingOverview,
   fetchCreditEntries,
   fetchCreditableUsers,
 } from '@/lib/billing.server';
-import { KIND_LABEL, signedUsdt, usdt } from '@/lib/billing';
+import { usdt } from '@/lib/billing';
 import { TopUpReview } from '@/app/components/top-up-review';
 import { ManualDeposit } from '@/app/components/manual-deposit';
+import { PaymentAccounts } from '@/app/components/payment-accounts';
+import { MoneyHistory } from '@/app/components/money-history';
+import { MoneyChart } from '@/app/components/money-chart';
+import { SpendShare } from '@/app/components/spend-share';
+import { TopUpHistory } from '@/app/components/top-up-history';
 
 export const dynamic = 'force-dynamic';
 
-const when = (iso: string) => new Date(iso).toLocaleString();
-
 export default async function PaymentsPage() {
-  const [topUps, users, entries] = await Promise.all([
+  const [topUps, users, entries, overview] = await Promise.all([
     fetchAllTopUps(),
     fetchCreditableUsers(),
     fetchCreditEntries(),
+    fetchBillingOverview(),
   ]);
 
   const pending = topUps?.filter((r) => r.status === 'pending').length ?? 0;
-  const funded = users?.filter((u) => u.balanceMicroUsd > 0).length ?? 0;
-  const held = users?.reduce((sum, u) => sum + u.balanceMicroUsd, 0) ?? 0;
+  const t = overview?.totals;
 
   return (
     <div>
@@ -30,28 +34,62 @@ export default async function PaymentsPage() {
         a transaction hash; you verify it on-chain and credit what actually arrived.
       </p>
 
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-          <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Awaiting review</p>
-          <p className={`mt-1 text-2xl font-bold ${pending > 0 ? 'text-amber-300' : 'text-white'}`}>
-            {pending}
-          </p>
-          <p className="mt-0.5 text-xs text-[var(--muted)]">deposit claims</p>
+      {t && (
+        <>
+          <div className="mb-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Tile
+              label="Awaiting review"
+              value={String(pending)}
+              hint="deposit claims"
+              tone={pending > 0 ? 'warn' : undefined}
+            />
+            <Tile label="Held on account" value={usdt(t.heldMicroUsd)} hint="across all users" tone="primary" />
+            <Tile
+              label="Deposited"
+              value={usdt(t.depositedMicroUsd)}
+              hint={`${usdt(t.adjustedMicroUsd)} adjusted by hand`}
+            />
+            <Tile
+              label="Can use AI"
+              value={`${t.fundedAccounts}/${overview.accounts.length}`}
+              hint="accounts in credit"
+            />
+          </div>
+
+          {/* The markup is the whole reason charged and vendor cost differ, so
+              the gap between them is stated rather than left to be worked out. */}
+          <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <Tile
+              label="Billed to users"
+              value={usdt(t.chargedMicroUsd)}
+              hint={`${t.generations} generations, all time`}
+            />
+            <Tile label="Vendor cost" value={usdt(t.vendorCostMicroUsd)} hint="Anthropic + OpenAI, at list" />
+            <Tile
+              label="Margin"
+              value={usdt(t.marginMicroUsd)}
+              hint={
+                t.vendorCostMicroUsd > 0
+                  ? `${((t.marginMicroUsd / t.vendorCostMicroUsd) * 100).toFixed(0)}% over list`
+                  : 'no usage yet'
+              }
+              tone="good"
+            />
+            <Tile
+              label="Taken from balances"
+              value={usdt(t.spentMicroUsd)}
+              hint="charges that hit a balance"
+            />
+          </div>
+        </>
+      )}
+
+      {overview && (
+        <div className="mb-6 grid gap-3 lg:grid-cols-[1.6fr_1fr]">
+          <MoneyChart series={overview.series} />
+          <SpendShare accounts={overview.accounts} />
         </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-          <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Held on account</p>
-          <p className="mt-1 text-2xl font-bold text-[var(--primary)]">{usdt(held)}</p>
-          <p className="mt-0.5 text-xs text-[var(--muted)]">across all users</p>
-        </div>
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
-          <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Can use AI</p>
-          <p className="mt-1 text-2xl font-bold text-white">
-            {funded}
-            <span className="text-base font-medium text-[var(--muted)]">/{users?.length ?? 0}</span>
-          </p>
-          <p className="mt-0.5 text-xs text-[var(--muted)]">accounts in credit</p>
-        </div>
-      </div>
+      )}
 
       <section className="mb-6">
         <h2 className="mb-2 text-lg font-semibold text-white">Deposit claims</h2>
@@ -67,59 +105,58 @@ export default async function PaymentsPage() {
 
       <div className="mb-6">{users && <ManualDeposit users={users} />}</div>
 
-      <section>
-        <h2 className="mb-2 text-lg font-semibold text-white">Money history</h2>
-        {!entries || entries.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-[var(--border-strong)] p-8 text-center text-sm text-[var(--muted)]">
-            Nothing yet. Credits, manual adjustments and AI charges all appear here.
-          </div>
-        ) : (
-          <div className="max-h-[520px] overflow-auto rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-            <table className="w-full min-w-[720px] text-left text-sm">
-              <thead className="sticky top-0 bg-[var(--surface)]">
-                <tr className="text-xs uppercase tracking-wide text-[var(--muted)]">
-                  <th className="px-4 pb-2 pt-3 font-medium">When</th>
-                  <th className="px-4 pb-2 pt-3 font-medium">Account</th>
-                  <th className="px-4 pb-2 pt-3 font-medium">What</th>
-                  <th className="px-4 pb-2 pt-3 text-right font-medium">Amount</th>
-                  <th className="px-4 pb-2 pt-3 text-right font-medium">Balance after</th>
-                </tr>
-              </thead>
-              <tbody>
-                {entries.map((e) => (
-                  <tr key={e.id} className="border-t border-[var(--border)]">
-                    <td className="whitespace-nowrap px-4 py-2.5 text-[var(--muted)]">
-                      {when(e.createdAt)}
-                    </td>
-                    <td className="px-4 py-2.5 text-[var(--text)]">{e.user?.email ?? '—'}</td>
-                    <td className="px-4 py-2.5">
-                      <span className="block text-[var(--text)]">{KIND_LABEL[e.kind]}</span>
-                      {e.note && <span className="block text-xs text-[var(--muted)]">{e.note}</span>}
-                      {/* Who granted it. Only credits have an author; an AI
-                          charge is the system, and saying so would be noise. */}
-                      {e.createdBy && (
-                        <span className="block text-xs text-[var(--muted)]">
-                          by {e.createdBy.email}
-                        </span>
-                      )}
-                    </td>
-                    <td
-                      className={`whitespace-nowrap px-4 py-2.5 text-right font-medium ${
-                        e.amountMicroUsd > 0 ? 'text-green-300' : 'text-[var(--text)]'
-                      }`}
-                    >
-                      {signedUsdt(e.amountMicroUsd)}
-                    </td>
-                    <td className="whitespace-nowrap px-4 py-2.5 text-right text-[var(--muted)]">
-                      {usdt(e.balanceAfterMicroUsd)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      {overview && (
+        <div className="mb-6">
+          <PaymentAccounts accounts={overview.accounts} />
+        </div>
+      )}
+
+      {/* Three separate histories rather than one filtered table: a credit
+          request, a manual deposit and an AI charge are different questions,
+          and each is scanned on its own. */}
+      <div className="space-y-8">
+        <TopUpHistory requests={topUps ?? []} />
+        <MoneyHistory
+          entries={entries ?? []}
+          kind="adjustment"
+          title="Manual deposit history"
+          empty="No manual deposits yet. Credits added by hand appear here."
+        />
+        <MoneyHistory
+          entries={entries ?? []}
+          kind="usage"
+          title="AI usage history"
+          empty="Nothing generated yet. Every AI charge taken from a balance appears here."
+        />
+      </div>
+    </div>
+  );
+}
+
+function Tile({
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  tone?: 'primary' | 'good' | 'warn';
+}) {
+  const cls =
+    tone === 'primary'
+      ? 'text-[var(--primary)]'
+      : tone === 'good'
+        ? 'text-emerald-300'
+        : tone === 'warn'
+          ? 'text-amber-300'
+          : 'text-white';
+  return (
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+      <p className="text-xs uppercase tracking-wide text-[var(--muted)]">{label}</p>
+      <p className={`mt-1 text-2xl font-bold tracking-tight ${cls}`}>{value}</p>
+      <p className="mt-0.5 text-xs text-[var(--muted)]">{hint}</p>
     </div>
   );
 }

@@ -43,6 +43,45 @@ export interface CreditEntry {
   createdBy?: { id: number; email: string } | null;
 }
 
+export interface AccountSummary {
+  id: number;
+  email: string;
+  role: string;
+  balanceMicroUsd: number;
+  depositedMicroUsd: number;
+  /** Taken off a balance — can be less than `chargedMicroUsd`, see the page. */
+  spentMicroUsd: number;
+  adjustedMicroUsd: number;
+  generations: number;
+  /** Everything this user's calls cost, balance or no balance. */
+  chargedMicroUsd: number;
+  lastActivityAt: string | null;
+}
+
+export interface MoneyDay {
+  /** YYYY-MM-DD, UTC. */
+  day: string;
+  creditedMicroUsd: number;
+  spentMicroUsd: number;
+}
+
+export interface BillingOverview {
+  accounts: AccountSummary[];
+  /** Last 30 UTC days, zero-filled, oldest first. */
+  series: MoneyDay[];
+  totals: {
+    heldMicroUsd: number;
+    depositedMicroUsd: number;
+    spentMicroUsd: number;
+    adjustedMicroUsd: number;
+    generations: number;
+    chargedMicroUsd: number;
+    vendorCostMicroUsd: number;
+    marginMicroUsd: number;
+    fundedAccounts: number;
+  };
+}
+
 export interface CreditableUser {
   id: number;
   email: string;

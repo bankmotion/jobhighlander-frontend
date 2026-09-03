@@ -14,6 +14,15 @@
   --muted: #8b8b9c;
   --primary: #6c5cff;
   --primary-hover: #5a49ec;
+
+  /* Chart series. Categorical slots 1-4, stepped for THIS surface and checked
+     with the palette validator against #12121b: worst adjacent CVD ΔE 8.4,
+     normal-vision ΔE 19.8, all ≥3:1 contrast. Not an automatic flip of the
+     light values — dark steps are selected, not derived. */
+  --viz-in: #3987e5;
+  --viz-out: #d95926;
+  --viz-3: #199e70;
+  --viz-4: #c98500;
   --green: #22c55e;
   --blue: #3b82f6;
   --red: #ef4444;
@@ -53,6 +62,13 @@
      against a white surface. */
   --primary: #5a48e8;
   --primary-hover: #4936d4;
+
+  /* Same four hues, stepped for the light surface (#ffffff): worst adjacent
+     CVD ΔE 9.1, normal-vision ΔE 19.6. */
+  --viz-in: #2a78d6;
+  --viz-out: #eb6834;
+  --viz-3: #1baf7a;
+  --viz-4: #eda100;
   --green: #15803d;
   --blue: #1d4ed8;
   --red: #dc2626;

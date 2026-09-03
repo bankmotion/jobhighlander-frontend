@@ -10,7 +10,16 @@ import type { ProfileSummary } from '@/lib/types';
 const profileLabel = (p: ProfileSummary): string =>
   [p.firstName, p.lastName].filter(Boolean).join(' ') || p.email || `Profile #${p.id}`;
 
-export function Sidebar({ role, profiles }: { role: Role; profiles: ProfileSummary[] }) {
+export function Sidebar({
+  role,
+  profiles,
+  pendingPayments = 0,
+}: {
+  role: Role;
+  profiles: ProfileSummary[];
+  /** Deposit claims waiting on a decision. Drives the badge on Payments. */
+  pendingPayments?: number;
+}) {
   const pathname = usePathname();
   const params = useSearchParams();
   const isAdmin = role === 'admin' || role === 'super_admin';
@@ -215,6 +224,7 @@ export function Sidebar({ role, profiles }: { role: Role; profiles: ProfileSumma
               className={linkCls(pathname.startsWith('/admin/payments'))}
             >
               <span className="text-base">💳</span> Payments
+              {pendingPayments > 0 && <PendingBadge count={pendingPayments} />}
             </Link>
             <Link href="/admin/prompts" className={linkCls(pathname.startsWith('/admin/prompts'))}>
               <span className="text-base">🗣</span> Prompts
@@ -286,3 +296,30 @@ function NavGroup({
     </div>
   );
 }
+
+/**
+ * Count of deposit claims waiting on a decision, on the right of the menu item.
+ *
+ * Animated because it is asking for something to be done, not reporting a
+ * number: an unnoticed claim is somebody's money sitting in limbo. The ping is
+ * a separate absolutely-positioned ring rather than a pulse on the badge
+ * itself, so the digits stay legible while the ring expands behind them.
+ *
+ * `motion-reduce:animate-none` on both layers — an indefinite animation is the
+ * kind that triggers vestibular symptoms, and the count still reads fine
+ * standing still.
+ */
+function PendingBadge({ count }: { count: number }) {
+  return (
+    <span className="relative ml-auto flex items-center" aria-label={`${count} awaiting review`}>
+      <span
+        aria-hidden
+        className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400/60 motion-reduce:animate-none"
+      />
+      <span className="relative inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-amber-500 px-1.5 py-0.5 text-[11px] font-semibold leading-none text-black motion-reduce:animate-none">
+        {count > 99 ? '99+' : count}
+      </span>
+    </span>
+  );
+}
+
