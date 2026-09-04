@@ -306,6 +306,44 @@ const GROUPS: Group[] = [
       { key: 'dice_delay_s', label: 'Delay between jobs (s)', type: 'number', step: '0.5' },
     ],
   },
+  {
+    title: 'ZipRecruiter',
+    fields: [
+      { key: 'enable_ziprecruiter', label: 'Enabled', type: 'bool' },
+      {
+        key: 'ziprecruiter_use_proxy',
+        label: 'Use proxy',
+        type: 'bool',
+        hint: 'required: without a US exit the site redirects to ziprecruiter.ie',
+      },
+      {
+        key: 'ziprecruiter_search_url',
+        label: 'Search URL',
+        type: 'text',
+        link: true,
+        hint: 'paste a ziprecruiter.com search link; paging is applied by the scraper',
+      },
+      {
+        key: 'ziprecruiter_role_regex',
+        label: 'Role regex',
+        type: 'text',
+        hint: 'empty = keep every role the listing returns',
+      },
+      {
+        key: 'ziprecruiter_max_age_days',
+        label: 'Max age (days)',
+        type: 'number',
+        hint: 'backstop for the days= filter in the search URL',
+      },
+      {
+        key: 'ziprecruiter_budget_min',
+        label: 'Time budget (min)',
+        type: 'number',
+        hint: 'wall-clock ceiling for one pass; the rest resume next run',
+      },
+      { key: 'ziprecruiter_delay_s', label: 'Delay between jobs (s)', type: 'number', step: '0.5' },
+    ],
+  },
 ];
 
 export function ScraperSettingsForm({ initial }: { initial: ScraperSetting[] }) {
