@@ -26,6 +26,7 @@ import { CoverLetterGenerator } from './cover-letter-generator';
 import { JobQueryPanel } from './job-query-panel';
 import { InterviewTimeline } from './interview-timeline';
 import { useApplied } from './applied-provider';
+import { ApplyButton } from './apply-button';
 
 // The job detail, in the same right-to-left drawer the calendar uses, carrying
 // the same five tabs as the full page.
@@ -148,14 +149,7 @@ export function JobDetailPanelProvider({
         footer={
           job ? (
             <>
-              <a
-                href={job.applyUrl ?? job.jobUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--primary-hover)]"
-              >
-                Apply Now <span aria-hidden>↗</span>
-              </a>
+              <ApplyButton job={job} />
               <Link
                 href={detailHref}
                 className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--text)] transition hover:bg-white/5"

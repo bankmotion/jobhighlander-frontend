@@ -11,6 +11,7 @@ import { InterviewAction, InterviewBadge, type InterviewCardStatus } from './int
 import { JobQueryAction } from './job-query-action';
 import { JobPanel } from './job-panel';
 import { useJobPanel } from './job-detail-panel';
+import { ApplyButton } from './apply-button';
 
 export function JobCard({
   job,
@@ -30,7 +31,9 @@ export function JobCard({
 
   const posted = formatPostedRelative(job.postedAt);
   const scraped = formatPostedRelative(job.createdAt);
-  const applyHref = job.applyUrl ?? job.jobUrl;
+  // Where Apply actually goes — also what CopyLinkButton must copy, so the
+  // pasted link is the one the button would have opened.
+  const applyHref = job.applyUrl || job.jobUrl;
   const meta = [job.location, posted && `Posted ${posted}`, scraped && `Scraped ${scraped}`].filter(
     Boolean,
   ) as string[];
@@ -107,14 +110,7 @@ export function JobCard({
         </div>
 
         <div className="flex shrink-0 items-start gap-2">
-          <a
-            href={applyHref}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--primary-hover)]"
-          >
-            Apply Now <span aria-hidden>↗</span>
-          </a>
+          <ApplyButton job={job} />
           {/* The same href the button opens, so what is pasted is what Apply
               would have gone to. */}
           <CopyLinkButton url={applyHref} jobId={job.id} />
