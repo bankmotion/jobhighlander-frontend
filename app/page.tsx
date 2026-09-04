@@ -24,6 +24,8 @@ import { ResumeProfileNotice } from '@/app/components/resume-action';
 import { ResumeProfilePicker } from '@/app/components/resume-profile-picker';
 import { getSession } from '@/lib/auth';
 import { isAdminRole } from '@/lib/session';
+import { parseDate, parsePosted } from '@/lib/posted';
+import { AddJobButton } from '@/app/components/add-job-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,6 +56,11 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   // card, not a reason to remove it from the list.
   const interviewParam = str(sp.interview);
   const interview: InterviewFilter = isInterviewFilter(interviewParam) ? interviewParam : 'all';
+  // When the job was POSTED, not when it was scraped. Defaults to 'all': a list
+  // that silently hid older jobs would look like the scrapers had stopped.
+  const posted = parsePosted(str(sp.posted));
+  const postedFrom = parseDate(str(sp.postedFrom));
+  const postedTo = parseDate(str(sp.postedTo));
 
   const [filters, profiles, presets, session, keywords, stageTypes] = await Promise.all([
     fetchFilters().catch(() => ({ sites: [], locations: [] })),
@@ -90,6 +97,9 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
     applied,
     discarded,
     interview,
+    posted,
+    postedFrom,
+    postedTo,
     ...(profiles.length > 1 && profileId ? { profile: profileId } : {}),
   };
 
@@ -112,6 +122,9 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
       applied,
       discarded,
       interview,
+      posted,
+      postedFrom,
+      postedTo,
       profileId,
       page,
       pageSize: 20,
@@ -149,12 +162,18 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
         <div>
           <h1 className="mb-1 text-2xl font-bold tracking-tight text-white">Jobs</h1>
           <p className="text-sm text-[var(--muted)]">
-            Postings scraped from job sites into the local database.
+            Postings scraped from job sites, plus any the team has added by hand.
           </p>
         </div>
-        {profiles.length > 1 && profile && (
-          <ResumeProfilePicker profiles={profiles} selectedId={profile.id} />
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Beside the profile picker rather than in the filter bar: adding a
+              job changes what the list CONTAINS, where every control in that bar
+              changes what it SHOWS. */}
+          <AddJobButton />
+          {profiles.length > 1 && profile && (
+            <ResumeProfilePicker profiles={profiles} selectedId={profile.id} />
+          )}
+        </div>
       </div>
 
       {!profileId && <ResumeProfileNotice canManage={canManageProfiles} />}
@@ -236,6 +255,11 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                     ...(applied !== 'all' ? { applied } : {}),
                     ...(discarded !== 'all' ? { discarded } : {}),
                     ...(interview !== 'all' ? { interview } : {}),
+                    // The banner counts jobs newer than the list; it must count
+                    // them under the same window the list is showing.
+                    ...(posted !== 'all' ? { posted } : {}),
+                    ...(postedFrom ? { postedFrom } : {}),
+                    ...(postedTo ? { postedTo } : {}),
                     ...(profileId ? { profileId: String(profileId) } : {}),
                   }).toString()}
                 />

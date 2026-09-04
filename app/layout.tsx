@@ -5,6 +5,7 @@ import './globals.css';
 import { getSession } from '@/lib/auth';
 import { SidebarData } from '@/app/components/sidebar-data';
 import { Topbar } from '@/app/components/topbar';
+import { ZoneSync } from '@/app/components/zone-sync';
 import { PageTransition } from '@/app/components/page-transition';
 import { ScrollToTop } from '@/app/components/scroll-to-top';
 import { RefreshButton } from '@/app/components/refresh-button';
@@ -52,6 +53,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <PageTransition>{children}</PageTransition>
           </main>
         )}
+        {/* Mirrors the client's time zone into the cookie the server-rendered
+            stats pages read, and refreshes them when it changes. */}
+        {session && <ZoneSync />}
         {session && <RefreshButton />}
         <ScrollToTop />
       </body>

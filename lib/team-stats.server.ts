@@ -22,7 +22,7 @@ export async function fetchTeamBidPerformance(
   const token = await getToken();
   if (!token) return null;
 
-  const qs = windowParams(window);
+  const qs = await windowParams(window);
   if (profileId) qs.set('profileId', String(profileId));
   if (bidder) qs.set('bidder', String(bidder));
 

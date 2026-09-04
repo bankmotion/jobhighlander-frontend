@@ -1,4 +1,5 @@
 import { getToken } from './auth';
+import { displayZone } from './zone.server';
 import {
   CALL_PAGE_SIZE,
   usageQuery,
@@ -15,8 +16,14 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 async function get<T>(path: string): Promise<T | null> {
   const token = await getToken();
   if (!token) return null;
+  // The viewer's zone is attached to every request from here rather than by
+  // each fetcher: "today" and the daily buckets are computed server-side, so a
+  // fetcher that omitted it would report a UTC day while the page around it
+  // showed local times. One place means a new fetcher cannot get it wrong.
+  const url = new URL(`${API_URL}${path}`);
+  url.searchParams.set('tz', await displayZone());
   try {
-    const res = await fetch(`${API_URL}${path}`, {
+    const res = await fetch(url, {
       cache: 'no-store',
       headers: { Authorization: `Bearer ${token}` },
     });

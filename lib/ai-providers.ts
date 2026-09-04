@@ -23,34 +23,8 @@ export interface ProviderStamp {
   providerLabel?: string | null;
 }
 
-const REMEMBERED_KEY = 'jh:ai-provider';
-
 export const isAiProvider = (v: unknown): v is AiProvider =>
   typeof v === 'string' && (AI_PROVIDERS as readonly string[]).includes(v);
-
-/**
- * The provider chosen last time, so the picker opens on it instead of resetting
- * to a default on every generation. Purely a convenience — the server still
- * validates, and a stored value for a provider that has since lost its key is
- * dropped by the caller against the live catalogue.
- */
-export function rememberedProvider(): AiProvider | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const v = window.localStorage.getItem(REMEMBERED_KEY);
-    return isAiProvider(v) ? v : null;
-  } catch {
-    // Private-mode and blocked-storage browsers throw on read. Forgetting the
-    // preference is a fine outcome; crashing the generate button is not.
-    return null;
-  }
-}
-
-export function rememberProvider(provider: AiProvider): void {
-  try {
-    window.localStorage.setItem(REMEMBERED_KEY, provider);
-  } catch {}
-}
 
 /**
  * The outcome of asking the server which providers it can call.
@@ -94,6 +68,26 @@ export async function fetchProviders(): Promise<ProviderLoad> {
   } catch {
     return { ok: false, reason: 'Could not reach the server to list AI providers.' };
   }
+}
+
+/**
+ * The catalogue is one row per configured key and changes only when the server
+ * is redeployed, so a successful answer is fetched once per page load and
+ * shared by every caller on it. Without this, opening the picker on twenty job
+ * cards would mean twenty identical round trips.
+ *
+ * FAILURES ARE NOT MEMOIZED. Caching one would pin a transient error — a
+ * restart mid-session, a redeploy — for the life of the tab, so Retry could
+ * never do anything.
+ */
+let catalogue: Promise<ProviderLoad> | null = null;
+
+export function loadProviders(): Promise<ProviderLoad> {
+  catalogue ??= fetchProviders().then((r) => {
+    if (!r.ok) catalogue = null;
+    return r;
+  });
+  return catalogue;
 }
 
 /** "$0.20 / $1.20 per 1M tokens" — what this choice costs, at the point of choosing. */

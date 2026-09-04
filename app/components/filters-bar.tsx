@@ -7,6 +7,9 @@ import type { AppliedFilter } from '@/lib/applications';
 import type { DiscardedFilter } from '@/lib/discards';
 import type { InterviewFilter } from '@/lib/interviews';
 import { MultiSelect } from './multi-select';
+import { PostedFilterControl } from './posted-filter';
+import { postedActive, writePosted, type PostedFilter } from '@/lib/posted';
+import { useDisplayZone } from '@/lib/display-zone';
 import { saveJobFilters } from '@/lib/job-filters';
 
 const TEXT_KEYS = ['title', 'company', 'location', 'description'] as const;
@@ -43,6 +46,9 @@ interface Props {
     applied: AppliedFilter;
     discarded: DiscardedFilter;
     interview: InterviewFilter;
+    posted: PostedFilter;
+    postedFrom: string;
+    postedTo: string;
   };
   canFilterApplied: boolean;
 }
@@ -77,6 +83,10 @@ export const SITE_META: Record<string, { label: string; dot: string }> = {
   findmyremote: { label: 'FindMyRemote', dot: '#ec4899' },
   jobicy: { label: 'Jobicy', dot: '#eab308' },
   themuse: { label: 'The Muse', dot: '#06b6d4' },
+  linkedin: { label: 'LinkedIn', dot: '#0a66c2' },
+  // Not a site. Jobs someone added by hand, so the dot is the app's own colour
+  // rather than a brand's.
+  other: { label: 'Added manually', dot: 'var(--primary)' },
 };
 export function siteMeta(s: string) {
   return (
@@ -90,7 +100,17 @@ export function siteMeta(s: string) {
 export function FiltersBar({ filters, current, canFilterApplied }: Props) {
   const router = useRouter();
 
-  const { sites, remote, applied, discarded, interview } = current;
+  const { sites, remote, applied, discarded, interview, posted, postedFrom, postedTo } = current;
+
+  // The date inputs are capped at the viewer's today, not the browser's UTC
+  // day: a max of "tomorrow" is offerable in one zone and nonsense in another.
+  const zone = useDisplayZone();
+  const today = new Intl.DateTimeFormat('en-CA', {
+    timeZone: zone ?? undefined,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
 
   // All five text fields share one draft record rather than a useState pair
   // each. A draft is text typed but not yet submitted; it rides along when any
@@ -116,6 +136,9 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
     applied?: AppliedFilter;
     discarded?: DiscardedFilter;
     interview?: InterviewFilter;
+    posted?: PostedFilter;
+    postedFrom?: string;
+    postedTo?: string;
   }) {
     const qs = new URLSearchParams();
     // The in-progress draft rides along, so toggling a source also applies
@@ -132,6 +155,16 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
     if (nextDiscarded !== 'all') qs.set('discarded', nextDiscarded); // all is the default
     const nextInterview = next.interview ?? interview;
     if (nextInterview !== 'all') qs.set('interview', nextInterview); // all is the default
+    // Switching AWAY from a custom range drops its dates rather than keeping
+    // them primed to reappear the next time Custom is clicked.
+    const nextPosted = next.posted ?? posted;
+    const keepDates = nextPosted === 'custom';
+    writePosted(
+      qs,
+      nextPosted,
+      keepDates ? (next.postedFrom ?? postedFrom) : '',
+      keepDates ? (next.postedTo ?? postedTo) : '',
+    );
     // Filters change WHAT is listed; they must never change WHOSE resumes are
     // reported alongside it.
     if (current.profile) qs.set('profile', String(current.profile));
@@ -170,7 +203,8 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
       !remote ||
       applied !== 'all' ||
       discarded !== 'all' ||
-      interview !== 'all',
+      interview !== 'all' ||
+      postedActive(posted, postedFrom, postedTo),
   );
 
   return (
@@ -315,6 +349,14 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
           })}
         </div>
       )}
+
+      <PostedFilterControl
+        value={posted}
+        from={postedFrom}
+        to={postedTo}
+        today={today}
+        onChange={navigate}
+      />
 
       <button
         type="submit"

@@ -1,43 +1,28 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useEffectEvent, useState, type ReactNode } from 'react';
 import {
-  fetchProviders,
+  loadProviders,
   priceHint,
-  rememberProvider,
-  rememberedProvider,
   type AiProvider,
   type ProviderInfo,
-  type ProviderLoad,
 } from '@/lib/ai-providers';
+import {
+  autoProvider,
+  readAiPreference,
+  setPreferredProvider,
+  setSkipConfirm,
+  skipActive,
+  SKIP_HOURS,
+} from '@/lib/ai-preference';
 import { Modal } from './modal';
-
-/**
- * The catalogue is one row per configured key and changes only when the server
- * is redeployed, so a successful answer is fetched once per page load and
- * shared by every picker on it. Without this, opening the modal on twenty job
- * cards would mean twenty identical round trips.
- *
- * FAILURES ARE NOT MEMOIZED. Caching one would pin a transient error — a
- * restart mid-session, a redeploy — for the life of the tab, so Retry could
- * never do anything.
- */
-let catalogue: Promise<ProviderLoad> | null = null;
-
-function loadProviders(): Promise<ProviderLoad> {
-  catalogue ??= fetchProviders().then((r) => {
-    if (!r.ok) catalogue = null;
-    return r;
-  });
-  return catalogue;
-}
 
 function pick(list: ProviderInfo[]): AiProvider | null {
   const usable = list.filter((p) => p.enabled);
   if (usable.length === 0) return null;
   // Last choice wins, but only while it is still usable — a key removed since
   // the preference was stored must not preselect a provider that 503s.
-  const remembered = rememberedProvider();
+  const remembered = readAiPreference().provider;
   if (remembered && usable.some((p) => p.id === remembered)) return remembered;
   return (usable.find((p) => p.isDefault) ?? usable[0]).id;
 }
@@ -49,6 +34,12 @@ function pick(list: ProviderInfo[]): AiProvider | null {
  * seconds, so the choice and the confirmation are deliberately the same step:
  * a separate "are you sure?" after picking a provider would be two dialogs
  * asking one question.
+ *
+ * It can also be switched off for a day. Someone working through a list of jobs
+ * answers the same question twenty times, and a prompt that is always answered
+ * the same way stops being a decision and becomes a keystroke. When suppressed
+ * this component renders NOTHING and confirms on its own — the callers are
+ * unchanged, so there is exactly one place that decides whether to ask.
  */
 export function GenerateModal({
   open,
@@ -74,6 +65,18 @@ export function GenerateModal({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [chosen, setChosen] = useState<AiProvider | null>(null);
+  const [dontAsk, setDontAsk] = useState(false);
+
+  // Read once per opening, synchronously: whether to ask is a localStorage
+  // question, so deciding it before the first paint is what keeps a suppressed
+  // dialog from flashing on screen before it confirms itself.
+  const [silent, setSilent] = useState(false);
+
+  // The confirm callback changes identity on every parent render, and the
+  // effect below must not re-run when it does — re-running is what would fire a
+  // second silent generation for one click. useEffectEvent lets the effect call
+  // the LATEST callback while staying out of its dependency list.
+  const fireConfirm = useEffectEvent((provider: AiProvider) => onConfirm(provider));
 
   // Loaded on open rather than on mount: these pickers are rendered once per
   // job card, and fetching for all of them up front would be wasted work for
@@ -84,10 +87,24 @@ export function GenerateModal({
     void loadProviders().then((result) => {
       if (!live) return;
       if (!result.ok) {
+        // A silent open cannot stay silent through an error: with no dialog on
+        // screen there is nothing to show the failure in, so it falls back to
+        // asking and the normal error branch explains itself.
+        setSilent(false);
         setLoadError(result.reason);
         setProviders(null);
         return;
       }
+
+      // Re-checked against the live catalogue rather than trusted from storage:
+      // the remembered provider may have lost its key since.
+      const auto = silent ? autoProvider(result.providers) : null;
+      if (auto) {
+        fireConfirm(auto);
+        return;
+      }
+
+      setSilent(false);
       setLoadError(null);
       setProviders(result.providers);
       // Only seed a choice the user has not already made in this dialog, so a
@@ -98,7 +115,7 @@ export function GenerateModal({
       live = false;
     };
     // `attempt` is the Retry trigger — bumping it re-runs the load.
-  }, [open, attempt]);
+  }, [open, attempt, silent]);
 
   // Reset between openings so the next generation starts from the remembered
   // preference rather than whatever was clicked and then cancelled. Adjusted
@@ -108,7 +125,13 @@ export function GenerateModal({
   const [wasOpen, setWasOpen] = useState(open);
   if (wasOpen !== open) {
     setWasOpen(open);
-    if (!open) setChosen(null);
+    if (open) {
+      setSilent(skipActive(readAiPreference()));
+    } else {
+      setChosen(null);
+      setDontAsk(false);
+      setSilent(false);
+    }
   }
 
   const usable = (providers ?? []).filter((p) => p.enabled);
@@ -116,9 +139,17 @@ export function GenerateModal({
 
   function confirm() {
     if (!chosen) return;
-    rememberProvider(chosen);
+    setPreferredProvider(chosen);
+    // Written on confirm, never on tick: ticking the box and then cancelling is
+    // not consent to stop asking.
+    if (dontAsk) setSkipConfirm(true, chosen);
     onConfirm(chosen);
   }
+
+  // Nothing is drawn while a suppressed opening resolves. The alternative is a
+  // dialog that appears and dismisses itself, which is worse than the dialog
+  // the user asked to be rid of.
+  if (silent) return null;
 
   return (
     <Modal
@@ -129,6 +160,24 @@ export function GenerateModal({
       size="md"
       footer={
         <>
+          {/* Left of the buttons and inside the footer, so the thing that
+              changes what this dialog does in future sits with the controls
+              that act on it now. Disabled until there is a choice to remember —
+              suppressing the question without an answer is not a valid state. */}
+          <label
+            className={`mr-auto flex select-none items-center gap-2 text-xs ${
+              ready ? 'cursor-pointer text-[var(--muted)]' : 'cursor-not-allowed opacity-50'
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={dontAsk}
+              disabled={!ready}
+              onChange={(e) => setDontAsk(e.target.checked)}
+              className="h-3.5 w-3.5 accent-[var(--primary)]"
+            />
+            Don&rsquo;t ask again for {SKIP_HOURS} hours
+          </label>
           <button
             type="button"
             onClick={onCancel}

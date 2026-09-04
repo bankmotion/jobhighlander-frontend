@@ -1,4 +1,5 @@
 import { getToken } from './auth';
+import { displayZone } from './zone.server';
 import type { BidPerformance } from './stats';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
@@ -13,7 +14,15 @@ export type StatsWindow =
   | { days: number }
   | { from: string; to: string };
 
-export function windowParams(window: StatsWindow): URLSearchParams {
+/**
+ * Async because it carries the viewer's time zone, which lives in a cookie.
+ *
+ * The zone is attached HERE rather than at each call site: "today" is a
+ * different set of rows in Warsaw than in UTC, and a fetcher that forgot to
+ * pass it would return numbers that look right and are off by a day at the
+ * edges. Building the params is the one place every window goes through.
+ */
+export async function windowParams(window: StatsWindow): Promise<URLSearchParams> {
   const qs = new URLSearchParams();
   if ('preset' in window) qs.set('preset', window.preset);
   else if ('days' in window) qs.set('days', String(window.days));
@@ -21,6 +30,7 @@ export function windowParams(window: StatsWindow): URLSearchParams {
     qs.set('from', window.from);
     qs.set('to', window.to);
   }
+  qs.set('tz', await displayZone());
   return qs;
 }
 
@@ -38,7 +48,7 @@ export async function fetchBidPerformance(
   const token = await getToken();
   if (!token) return null;
 
-  const qs = windowParams(window);
+  const qs = await windowParams(window);
   if (profileId) qs.set('profileId', String(profileId));
   if (bidder) qs.set('bidder', String(bidder));
 

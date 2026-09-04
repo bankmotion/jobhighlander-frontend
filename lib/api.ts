@@ -3,6 +3,8 @@ import type { AppliedFilter } from './applications';
 import type { DiscardedFilter } from './discards';
 import type { InterviewFilter } from './interviews';
 import { getToken } from './auth';
+import { writePosted, type PostedFilter } from './posted';
+import { displayZone } from './zone.server';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
@@ -18,6 +20,9 @@ export interface JobQuery {
   discarded?: DiscardedFilter;
   interview?: InterviewFilter;
   profileId?: number | null;
+  posted?: PostedFilter;
+  postedFrom?: string;
+  postedTo?: string;
   page?: number;
   pageSize?: number;
 }
@@ -42,6 +47,12 @@ export async function fetchJobs(query: JobQuery = {}): Promise<Paginated<Job>> {
   if (query.discarded && query.discarded !== 'all') qs.set('discarded', query.discarded);
   if (query.interview && query.interview !== 'all') qs.set('interview', query.interview);
   if (query.profileId) qs.set('profileId', String(query.profileId));
+  // Posted-date window. 'custom' without either end is dropped by `writePosted`
+  // rather than sent as a parameter the server would ignore.
+  writePosted(qs, query.posted ?? 'all', query.postedFrom ?? '', query.postedTo ?? '');
+  // The window's boundaries are the viewer's calendar days, so the zone has to
+  // travel with them — "today" in Dubai starts four hours before it does here.
+  qs.set('tz', await displayZone());
   if (query.page) qs.set('page', String(query.page));
   if (query.pageSize) qs.set('pageSize', String(query.pageSize));
 
