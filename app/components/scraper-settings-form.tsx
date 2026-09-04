@@ -274,6 +274,38 @@ const GROUPS: Group[] = [
       },
     ],
   },
+  {
+    title: 'Dice',
+    fields: [
+      { key: 'enable_dice', label: 'Enabled', type: 'bool' },
+      {
+        key: 'dice_use_proxy',
+        label: 'Use proxy',
+        type: 'bool',
+        hint: 'off by default — Dice is reachable direct and its data is public',
+      },
+      {
+        key: 'dice_search_url',
+        label: 'Search URL',
+        type: 'text',
+        link: true,
+        hint: 'paste a dice.com search link; paging is applied by the scraper',
+      },
+      {
+        key: 'dice_role_regex',
+        label: 'Role regex',
+        type: 'text',
+        hint: 'empty = keep every role the listing returns',
+      },
+      {
+        key: 'dice_max_age_days',
+        label: 'Max age (days)',
+        type: 'number',
+        hint: 'backstop for the posted-date filter in the search URL',
+      },
+      { key: 'dice_delay_s', label: 'Delay between jobs (s)', type: 'number', step: '0.5' },
+    ],
+  },
 ];
 
 export function ScraperSettingsForm({ initial }: { initial: ScraperSetting[] }) {
