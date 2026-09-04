@@ -355,6 +355,7 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
         from={postedFrom}
         to={postedTo}
         today={today}
+        zone={zone}
         onChange={navigate}
       />
 
