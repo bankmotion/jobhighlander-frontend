@@ -38,3 +38,46 @@ export async function fetchDiscardStatus(
     return {};
   }
 }
+
+/**
+ * A previous dismissal at the same company.
+ *
+ * The mirror of `CompanyHistory` in applications.ts. Kept as its own type
+ * rather than a shared generic because the date field is named for what it
+ * records — `discardedAt`, not a neutral `at` that a reader has to decode.
+ */
+export interface DiscardCompanyHistory {
+  company: string;
+  discardedAt: string;
+  jobTitle: string;
+  jobId: number | null;
+  count: number;
+}
+
+export type DiscardCompanyHistoryMap = Record<number, DiscardCompanyHistory>;
+
+export async function fetchDiscardCompanyHistory(
+  profileId: number,
+  jobIds: number[],
+): Promise<DiscardCompanyHistoryMap> {
+  if (!profileId || jobIds.length === 0) return {};
+  const token = await getToken();
+  if (!token) return {};
+
+  const qs = new URLSearchParams({
+    profileId: String(profileId),
+    jobIds: jobIds.join(','),
+  });
+  try {
+    const res = await fetch(`${API_URL}/api/discards/company-history?${qs}`, {
+      cache: 'no-store',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return {};
+    return await res.json();
+  } catch {
+    // A missing hint is a far better outcome than a job list that fails to
+    // render, so every failure here degrades to "no badge".
+    return {};
+  }
+}

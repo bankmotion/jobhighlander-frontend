@@ -5,7 +5,7 @@ import { formatPostedRelative } from '@/lib/format';
 import { ApplicationAction } from './application-action';
 import { AppliedAction, AppliedBadge, PreviouslyAppliedBadge } from './applied-action';
 import { JobDescription } from './job-description';
-import { DiscardAction, DiscardedBadge } from './discard-action';
+import { DiscardAction, DiscardedBadge, PreviouslyDiscardedBadge } from './discard-action';
 import { CopyLinkButton } from './copy-link-button';
 import { InterviewAction, InterviewBadge, type InterviewCardStatus } from './interview-action';
 import { JobQueryAction } from './job-query-action';
@@ -45,6 +45,7 @@ export function JobCard({
             </span>
             <AppliedBadge jobId={job.id} />
             <PreviouslyAppliedBadge jobId={job.id} />
+            <PreviouslyDiscardedBadge jobId={job.id} />
             <InterviewBadge jobId={job.id} profileId={profileId} interview={interview} />
             <DiscardedBadge jobId={job.id} />
           </div>

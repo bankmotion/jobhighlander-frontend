@@ -2,13 +2,19 @@
 
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import type { DiscardStatus, DiscardStatusMap } from '@/lib/discards';
+import type {
+  DiscardCompanyHistory,
+  DiscardCompanyHistoryMap,
+  DiscardStatus,
+  DiscardStatusMap,
+} from '@/lib/discards';
 import { Toast, useToast } from './toast';
 
 interface Ctx {
   profileId: number | null;
   viewerEmail: string | null;
   discardedOn: (jobId: number) => DiscardStatus | undefined;
+  companyHistoryOn: (jobId: number) => DiscardCompanyHistory | undefined;
   isBusy: (jobId: number) => boolean;
   toggle: (jobId: number) => void;
 }
@@ -24,11 +30,18 @@ export function useDiscard(): Ctx {
 export function DiscardProvider({
   profileId,
   initial,
+  companyHistory = {},
   viewerEmail = null,
   children,
 }: {
   profileId: number | null;
   initial: DiscardStatusMap;
+  /**
+   * Resolved on the server with the page. Not refreshed as the user discards
+   * things: the badge answers "before you got here", and having it appear the
+   * instant you dismiss a sibling posting would be noise, not history.
+   */
+  companyHistory?: DiscardCompanyHistoryMap;
   viewerEmail?: string | null;
   children: ReactNode;
 }) {
@@ -44,6 +57,10 @@ export function DiscardProvider({
   }
 
   const discardedOn = useCallback((jobId: number) => discarded[jobId], [discarded]);
+  const companyHistoryOn = useCallback(
+    (jobId: number) => companyHistory[jobId],
+    [companyHistory],
+  );
   const isBusy = useCallback((jobId: number) => busy.has(jobId), [busy]);
 
   const setBusyFor = useCallback((jobId: number, on: boolean) => {
@@ -103,7 +120,7 @@ export function DiscardProvider({
   );
 
   return (
-    <DiscardCtx.Provider value={{ profileId, viewerEmail, discardedOn, isBusy, toggle }}>
+    <DiscardCtx.Provider value={{ profileId, viewerEmail, discardedOn, companyHistoryOn, isBusy, toggle }}>
       {children}
       <Toast toast={toast} onDismiss={dismiss} />
     </DiscardCtx.Provider>

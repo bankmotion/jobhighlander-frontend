@@ -95,3 +95,72 @@ export function DiscardedBadge({ jobId }: { jobId: number }) {
     </span>
   );
 }
+
+/**
+ * "You have dismissed this company before."
+ *
+ * The counterpart to PreviouslyAppliedBadge, and deliberately quieter than the
+ * DiscardedBadge above it: that one says THIS posting is discarded, which is a
+ * fact about the row you are looking at. This one is a reminder about an
+ * earlier judgement on a DIFFERENT posting, so it is outlined rather than
+ * filled and never dims the card.
+ *
+ * It does not hide or block anything. Having passed on one role at a company
+ * is not a reason to pass on the next, and the badge exists so that call is
+ * made knowingly rather than by accident.
+ */
+export function PreviouslyDiscardedBadge({
+  jobId,
+  size = 'sm',
+}: {
+  jobId: number;
+  size?: 'sm' | 'lg';
+}) {
+  const { companyHistoryOn, discardedOn } = useDiscard();
+  const history = companyHistoryOn(jobId);
+  if (!history) return null;
+
+  // Suppressed when THIS posting is already discarded: the card is dimmed and
+  // carries a "Discarded" badge, and a second red pill about the company would
+  // be saying the obvious twice.
+  if (discardedOn(jobId)) return null;
+
+  const lg = size === 'lg';
+  const more = history.count > 1 ? ` (${history.count} times)` : '';
+
+  return (
+    <span
+      // The earlier role is in the tooltip, matching the applied badge: it is
+      // the first thing you want once the badge has caught your eye, and the
+      // last thing that would fit on it.
+      title={`Previously discarded a role at ${history.company}${more} — most recently ${when(
+        history.discardedAt,
+      )}: "${history.jobTitle}"`}
+      className={`inline-flex items-center gap-1.5 rounded-full border border-red-400/30 bg-transparent font-medium text-red-300/80 ${
+        lg ? 'px-3 py-1.5 text-sm' : 'px-2.5 py-1 text-xs'
+      }`}
+    >
+      <IconHistoryX className={lg ? 'h-3.5 w-3.5' : 'h-3 w-3'} />
+      Previously discarded at this company on {when(history.discardedAt)}
+    </span>
+  );
+}
+
+function IconHistoryX({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      aria-hidden
+    >
+      {/* The same clock-arrow as the applied badge, so the pair reads as one
+          idea, with a cross where that one has hands. */}
+      <path d="M3 12a9 9 0 1 0 3-6.7L3 8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 4v4h4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="m10 10 4 4M14 10l-4 4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}

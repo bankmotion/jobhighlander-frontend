@@ -19,6 +19,7 @@ import { formatPostedRelative } from '@/lib/format';
 import { SidePanel } from './side-panel';
 import { JobTabs } from './job-tabs';
 import { AppliedAction, AppliedBadge, PreviouslyAppliedBadge } from './applied-action';
+import { PreviouslyDiscardedBadge } from './discard-action';
 import { HighlightedText } from './highlighted-text';
 import { ResumeGenerator } from './resume-generator';
 import { CoverLetterGenerator } from './cover-letter-generator';
@@ -181,6 +182,10 @@ export function JobDetailPanelProvider({
               </span>
               <AppliedBadge jobId={job.id} />
               <PreviouslyAppliedBadge jobId={job.id} />
+              {/* Both history badges together: they answer the same question
+                  about this employer, and splitting them would make the pair
+                  read as unrelated facts. */}
+              <PreviouslyDiscardedBadge jobId={job.id} />
             </div>
 
             <h3 className="mt-3 text-xl font-bold tracking-tight text-white">{job.title}</h3>
