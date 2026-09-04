@@ -24,6 +24,7 @@ import {
   AppliedBadge,
   PreviouslyAppliedBadge,
 } from '@/app/components/applied-action';
+import { AppliedCountBadge } from '@/app/components/applied-count-badge';
 import { InterviewTimeline } from '@/app/components/interview-timeline';
 import { JobQueryPanel } from '@/app/components/job-query-panel';
 
@@ -115,6 +116,7 @@ export default async function JobDetail({
                   {job.site}
                 </span>
                 <AppliedBadge jobId={job.id} size="lg" />
+                <AppliedCountBadge count={job.appliedCount} size="lg" />
                 <PreviouslyAppliedBadge jobId={job.id} size="lg" />
               </div>
               <h1 className="mt-3 text-2xl font-bold tracking-tight text-white">{job.title}</h1>

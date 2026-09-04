@@ -4,7 +4,14 @@ import { fetchStageTypes } from '@/lib/stage-types.server';
 import { fetchProfiles } from '@/lib/profiles';
 import { fetchPresets } from '@/lib/templates';
 import { fetchResumeStatus } from '@/lib/resumes';
-import { fetchAppliedStatus, fetchCompanyHistory, isAppliedFilter, type AppliedFilter } from '@/lib/applications';
+import {
+  fetchAppliedStatus,
+  fetchCompanyHistory,
+  isAppliedFilter,
+  isOthersAppliedFilter,
+  type AppliedFilter,
+  type OthersAppliedFilter,
+} from '@/lib/applications';
 import { fetchCoverLetterStatus } from '@/lib/cover-letters';
 import {
   fetchDiscardCompanyHistory,
@@ -52,6 +59,12 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   const page = Math.max(1, Number(str(sp.page)) || 1);
   const appliedParam = str(sp.applied);
   const applied: AppliedFilter = isAppliedFilter(appliedParam) ? appliedParam : 'all';
+  // "Has another candidate already applied?" — board-wide, so unlike `applied`
+  // it stays meaningful with no profile selected.
+  const othersParam = str(sp.othersApplied);
+  const othersApplied: OthersAppliedFilter = isOthersAppliedFilter(othersParam)
+    ? othersParam
+    : 'all';
   const discardedParam = str(sp.discarded);
   // Defaults to `all`, matching the applied filter: discarding greys a card out
   // rather than making it vanish, so nothing leaves the list without the reader
@@ -100,6 +113,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
     sites: arr(sp.site),
     remote,
     applied,
+    othersApplied,
     discarded,
     interview,
     posted,
@@ -125,6 +139,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
       // Applied is recorded per profile, so the filter travels with one. The
       // backend ignores it without a profile the caller may actually use.
       applied,
+      othersApplied,
       discarded,
       interview,
       posted,
@@ -261,6 +276,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                     ...(query.location ? { location: query.location } : {}),
                     ...(remote ? { remote: '1' } : {}),
                     ...(applied !== 'all' ? { applied } : {}),
+                    ...(othersApplied !== 'all' ? { othersApplied } : {}),
                     ...(discarded !== 'all' ? { discarded } : {}),
                     ...(interview !== 'all' ? { interview } : {}),
                     // The banner counts jobs newer than the list; it must count
@@ -278,7 +294,11 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
         </AppliedProvider>
       ) : (
         <div className="rounded-xl border border-dashed border-[var(--border-strong)] p-10 text-center text-sm text-[var(--muted)]">
-          {applied === 'applied' ? (
+          {othersApplied === 'others' ? (
+            <>No jobs here have been applied to by another candidate yet.</>
+          ) : othersApplied === 'none' ? (
+            <>Another candidate has already applied to every job matching these filters.</>
+          ) : applied === 'applied' ? (
             <>No jobs marked as applied yet for this profile.</>
           ) : applied === 'unapplied' ? (
             <>Every job matching these filters is already marked as applied.</>

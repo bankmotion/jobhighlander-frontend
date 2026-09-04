@@ -1,4 +1,4 @@
-import type { AppliedFilter } from '@/lib/applications';
+import type { AppliedFilter, OthersAppliedFilter } from '@/lib/applications';
 import type { DiscardedFilter } from '@/lib/discards';
 import type { InterviewFilter } from '@/lib/interviews';
 import Link from 'next/link';
@@ -16,6 +16,7 @@ interface Props {
     remote: boolean;
     profile?: number;
     applied?: AppliedFilter;
+    othersApplied?: OthersAppliedFilter;
     discarded?: DiscardedFilter;
     interview?: InterviewFilter;
     posted?: PostedFilter;
@@ -37,6 +38,10 @@ function href(page: number, query: Props['query']): string {
   if (query.profile) qs.set('profile', String(query.profile));
   // Paging must not silently widen the list back to every job.
   if (query.applied && query.applied !== 'all') qs.set('applied', query.applied);
+  // Same reasoning: without this, page 2 quietly widens back to every job
+  // regardless of who has applied.
+  if (query.othersApplied && query.othersApplied !== 'all')
+    qs.set('othersApplied', query.othersApplied);
   if (query.discarded && query.discarded !== 'all') qs.set('discarded', query.discarded);
   // Was missing: paging used to drop the interview filter and quietly widen the
   // list, which read as page 2 containing jobs page 1 had excluded.

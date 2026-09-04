@@ -7,6 +7,16 @@ export type AppliedFilter = 'all' | 'applied' | 'unapplied';
 export const isAppliedFilter = (v: string): v is AppliedFilter =>
   v === 'all' || v === 'applied' || v === 'unapplied';
 
+/**
+ * Whether ANOTHER candidate has already applied — the rest of the board, as
+ * opposed to `AppliedFilter`, which is about the profile you are viewing as.
+ * With a profile selected, your own application does not count as "another".
+ */
+export type OthersAppliedFilter = 'all' | 'others' | 'none';
+
+export const isOthersAppliedFilter = (v: string): v is OthersAppliedFilter =>
+  v === 'all' || v === 'others' || v === 'none';
+
 export interface AppliedStatus {
   jobId: number;
   appliedAt: string;

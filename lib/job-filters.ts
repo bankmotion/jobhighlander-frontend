@@ -10,7 +10,7 @@ import { createLocalStore } from './local-store';
 // added here, which is exactly what happened to the posted-date filter.
 const FILTER_KEYS = [
   'title', 'company', 'location', 'description',
-  'site', 'remote', 'applied', 'discarded', 'interview',
+  'site', 'remote', 'applied', 'othersApplied', 'discarded', 'interview',
   'posted', 'postedFrom', 'postedTo',
 ] as const;
 

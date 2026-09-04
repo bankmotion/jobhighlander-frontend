@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { JobFilters } from '@/lib/types';
-import type { AppliedFilter } from '@/lib/applications';
+import type { AppliedFilter, OthersAppliedFilter } from '@/lib/applications';
 import type { DiscardedFilter } from '@/lib/discards';
 import type { InterviewFilter } from '@/lib/interviews';
 import { MultiSelect } from './multi-select';
@@ -44,6 +44,7 @@ interface Props {
     remote: boolean;
     profile?: number;
     applied: AppliedFilter;
+    othersApplied: OthersAppliedFilter;
     discarded: DiscardedFilter;
     interview: InterviewFilter;
     posted: PostedFilter;
@@ -69,6 +70,20 @@ const APPLIED_TABS: { value: AppliedFilter; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'applied', label: 'Applied' },
   { value: 'unapplied', label: 'Not applied' },
+];
+
+//: "Has anyone ELSE gone in on this?" — board-wide, which is a different
+//: question from APPLIED_TABS above (that one is about the profile you are
+//: viewing as). Shown even with no profile selected, where it simply means
+//: "anyone at all has applied".
+const OTHERS_APPLIED_TABS: { value: OthersAppliedFilter; label: string; hint: string }[] = [
+  { value: 'all', label: 'All', hint: 'Every job, whoever has applied' },
+  {
+    value: 'others',
+    label: 'Applied by another candidate',
+    hint: 'Only jobs another profile has already applied to',
+  },
+  { value: 'none', label: 'None', hint: 'Only jobs no other profile has applied to yet' },
 ];
 
 const inputCls =
@@ -102,7 +117,8 @@ export function siteMeta(s: string) {
 export function FiltersBar({ filters, current, canFilterApplied }: Props) {
   const router = useRouter();
 
-  const { sites, remote, applied, discarded, interview, posted, postedFrom, postedTo } = current;
+  const { sites, remote, applied, othersApplied, discarded, interview, posted, postedFrom, postedTo } =
+    current;
 
   // The date inputs are capped at the viewer's today, not the browser's UTC
   // day: a max of "tomorrow" is offerable in one zone and nonsense in another.
@@ -136,6 +152,7 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
     sites?: string[];
     remote?: boolean;
     applied?: AppliedFilter;
+    othersApplied?: OthersAppliedFilter;
     discarded?: DiscardedFilter;
     interview?: InterviewFilter;
     posted?: PostedFilter;
@@ -153,6 +170,8 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
     if (!(next.remote ?? remote)) qs.set('remote', '0'); // remote-only is the default
     const nextApplied = next.applied ?? applied;
     if (nextApplied !== 'all') qs.set('applied', nextApplied); // all is the default
+    const nextOthers = next.othersApplied ?? othersApplied;
+    if (nextOthers !== 'all') qs.set('othersApplied', nextOthers);
     const nextDiscarded = next.discarded ?? discarded;
     if (nextDiscarded !== 'all') qs.set('discarded', nextDiscarded); // all is the default
     const nextInterview = next.interview ?? interview;
@@ -178,6 +197,7 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
   }
 
   const selectApplied = (next: AppliedFilter) => navigate({ applied: next });
+  const selectOthersApplied = (next: OthersAppliedFilter) => navigate({ othersApplied: next });
   const selectDiscarded = (next: DiscardedFilter) => navigate({ discarded: next });
   const selectInterview = (next: InterviewFilter) => navigate({ interview: next });
   const toggleRemote = () => navigate({ remote: !remote });
@@ -204,6 +224,7 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
       sites.length ||
       !remote ||
       applied !== 'all' ||
+      othersApplied !== 'all' ||
       discarded !== 'all' ||
       interview !== 'all' ||
       postedActive(posted, postedFrom, postedTo),
@@ -295,6 +316,35 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
           })}
         </div>
       )}
+
+      {/* Not gated on a selected profile: with none chosen it still answers
+          "has anybody applied to this", which is useful on its own. */}
+      <div
+        role="radiogroup"
+        aria-label="Applied by another candidate"
+        className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-0.5"
+      >
+        {OTHERS_APPLIED_TABS.map((t) => {
+          const on = othersApplied === t.value;
+          return (
+            <button
+              key={t.value}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              title={t.hint}
+              onClick={() => selectOthersApplied(t.value)}
+              className={`rounded-md px-2.5 py-1.5 text-sm transition ${
+                on
+                  ? 'bg-[var(--primary)] font-medium text-white'
+                  : 'text-[var(--muted)] hover:text-[var(--text)]'
+              }`}
+            >
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
 
       {canFilterApplied && (
         <div

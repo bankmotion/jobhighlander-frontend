@@ -17,6 +17,10 @@ export interface Job {
   postedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  /// How many profiles have applied to this posting, across every profile —
+  /// not just the one being viewed as. Optional because endpoints other than
+  /// the job list do not compute it.
+  appliedCount?: number;
 }
 
 export interface Pagination {

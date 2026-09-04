@@ -1,5 +1,5 @@
 import type { Job, JobFilters, Paginated } from './types';
-import type { AppliedFilter } from './applications';
+import type { AppliedFilter, OthersAppliedFilter } from './applications';
 import type { DiscardedFilter } from './discards';
 import type { InterviewFilter } from './interviews';
 import { getToken } from './auth';
@@ -17,6 +17,7 @@ export interface JobQuery {
   sites?: string[];
   remote?: boolean;
   applied?: AppliedFilter;
+  othersApplied?: OthersAppliedFilter;
   discarded?: DiscardedFilter;
   interview?: InterviewFilter;
   profileId?: number | null;
@@ -44,6 +45,8 @@ export async function fetchJobs(query: JobQuery = {}): Promise<Paginated<Job>> {
   // client-side would leave `total` counting rows that were then removed, so
   // the pagination would promise pages that render empty.
   if (query.applied && query.applied !== 'all') qs.set('applied', query.applied);
+  if (query.othersApplied && query.othersApplied !== 'all')
+    qs.set('othersApplied', query.othersApplied);
   if (query.discarded && query.discarded !== 'all') qs.set('discarded', query.discarded);
   if (query.interview && query.interview !== 'all') qs.set('interview', query.interview);
   if (query.profileId) qs.set('profileId', String(query.profileId));

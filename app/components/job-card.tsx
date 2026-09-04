@@ -4,6 +4,7 @@ import type { Job } from '@/lib/types';
 import { formatPostedRelative } from '@/lib/format';
 import { ApplicationAction } from './application-action';
 import { AppliedAction, AppliedBadge, PreviouslyAppliedBadge } from './applied-action';
+import { AppliedCountBadge } from './applied-count-badge';
 import { JobDescription } from './job-description';
 import { DiscardAction, DiscardedBadge, PreviouslyDiscardedBadge } from './discard-action';
 import { CopyLinkButton } from './copy-link-button';
@@ -47,6 +48,7 @@ export function JobCard({
               {job.site}
             </span>
             <AppliedBadge jobId={job.id} />
+            <AppliedCountBadge count={job.appliedCount} />
             <PreviouslyAppliedBadge jobId={job.id} />
             <PreviouslyDiscardedBadge jobId={job.id} />
             <InterviewBadge jobId={job.id} profileId={profileId} interview={interview} />
