@@ -1,5 +1,8 @@
 import { cookies } from 'next/headers';
-import { TZ_COOKIE } from './display-zone';
+// From zone-init, NOT display-zone: that module calls createLocalStore() at the
+// top level, and pulling it into the server graph runs that against a client
+// reference. Same reason theme-init.ts exists separately from theme.ts.
+import { TZ_COOKIE } from './zone-init';
 
 /**
  * The viewer's display zone, as the server sees it.

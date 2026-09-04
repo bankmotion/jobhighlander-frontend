@@ -11,6 +11,7 @@ import { ScrollToTop } from '@/app/components/scroll-to-top';
 import { RefreshButton } from '@/app/components/refresh-button';
 import { THEME_INIT_SCRIPT } from '@/lib/theme-init';
 import { NAV_INIT_SCRIPT } from '@/lib/nav-init';
+import { ZONE_INIT_SCRIPT } from '@/lib/zone-init';
 
 export const metadata: Metadata = {
   title: 'JobHighLander',
@@ -30,6 +31,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             keep the attribute this script wrote instead of the SSR default. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <script dangerouslySetInnerHTML={{ __html: NAV_INIT_SCRIPT }} />
+        {/* Must run before the first data fetch, not in an effect after it:
+            every stats and job window is computed server-side from this cookie,
+            and without it they silently fall back to UTC. */}
+        <script dangerouslySetInnerHTML={{ __html: ZONE_INIT_SCRIPT }} />
       </head>
       <body className="min-h-screen">
         {session ? (

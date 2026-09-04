@@ -2,9 +2,14 @@
 
 import { createLocalStore } from './local-store';
 import { browserZone } from './tz';
+// Re-exported rather than redeclared: the inline <head> script writes this same
+// cookie from this same key, and two copies of either would let them drift.
+import { TZ_COOKIE, ZONE_KEY } from './zone-init';
+
+export { TZ_COOKIE };
 
 const store = createLocalStore<string>({
-  key: 'jh.display-zone',
+  key: ZONE_KEY,
   // Reject anything the runtime does not recognise. A stale or hand-edited zone
   // would otherwise reach `Intl.DateTimeFormat({ timeZone })`, which THROWS on
   // an unknown name — turning a bad preference into a crashed page.
@@ -34,8 +39,6 @@ function isValidZone(zone: string): boolean {
  * Not httpOnly and not a secret: it is a formatting preference, and the client
  * is the thing that knows it.
  */
-export const TZ_COOKIE = 'jh-tz';
-
 const ONE_YEAR = 60 * 60 * 24 * 365;
 
 export function writeZoneCookie(zone: string): void {
