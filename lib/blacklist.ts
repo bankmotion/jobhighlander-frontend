@@ -9,20 +9,16 @@
  */
 
 /**
- * Which list caught a posting's employer.
+ * One blacklist entry: a company, ruled out for exactly ONE profile.
  *
- * `all` is the stronger statement and wins when both apply, so the badge can
- * say whether this is a decision for everyone or just for this profile.
+ * "All profiles" in the UI is not a scope stored here — it is a shortcut that
+ * creates one of these per profile you can use.
  */
-export type BlacklistScope = 'all' | 'profile';
-
 export interface BlacklistEntry {
   id: number;
   company: string;
   companyKey: string;
-  /** null = every profile. */
-  profileId: number | null;
-  scope: BlacklistScope;
+  profileId: number;
   createdAt: string;
   updatedAt: string;
   createdBy: { id: number; email: string };
@@ -34,9 +30,8 @@ export interface BlacklistEntry {
   } | null;
 }
 
-/** Display name for an entry's scope, for the table's "Applies to" column. */
-export function scopeLabel(e: BlacklistEntry): string {
-  if (e.profileId === null) return 'All profiles';
+/** The profile an entry applies to, named for the table. */
+export function profileLabel(e: BlacklistEntry): string {
   const p = e.profile;
   if (!p) return `Profile #${e.profileId}`;
   const name = [p.firstName, p.lastName].filter(Boolean).join(' ').trim();
@@ -80,7 +75,7 @@ export async function addBlacklistEntry(
 
 export async function updateBlacklistEntry(
   id: number,
-  patch: { company?: string; profileId?: number | null },
+  patch: { company?: string; profileId?: number },
 ): Promise<{ ok: boolean; error?: string }> {
   try {
     const res = await fetch(`/api/blacklist/${id}`, {

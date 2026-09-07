@@ -21,10 +21,10 @@ export interface Job {
   /// not just the one being viewed as. Optional because endpoints other than
   /// the job list do not compute it.
   appliedCount?: number;
-  /// Which blacklist caught this employer, or null/absent. 'all' means the
-  /// company is blacklisted for every profile; 'profile' means only for the
-  /// one being viewed as. A FLAG only — the job is never hidden.
-  blacklisted?: 'all' | 'profile' | null;
+  /// True when this employer is blacklisted FOR THE PROFILE being viewed as.
+  /// Nothing is flagged without a profile selected, because every entry belongs
+  /// to one. A FLAG only — the job is never hidden.
+  blacklisted?: boolean;
 }
 
 export interface Pagination {

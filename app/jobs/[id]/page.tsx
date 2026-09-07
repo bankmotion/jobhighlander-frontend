@@ -117,7 +117,7 @@ export default async function JobDetail({
                   {job.site}
                 </span>
                 <AppliedBadge jobId={job.id} size="lg" />
-                <BlacklistBadge scope={job.blacklisted} size="lg" />
+                <BlacklistBadge on={job.blacklisted} size="lg" />
                 <AppliedCountBadge count={job.appliedCount} size="lg" />
                 <PreviouslyAppliedBadge jobId={job.id} size="lg" />
               </div>

@@ -50,7 +50,7 @@ export function JobCard({
             </span>
             {/* First in the row: if this employer is ruled out, that is
                 the thing to know before reading anything else. */}
-            <BlacklistBadge scope={job.blacklisted} />
+            <BlacklistBadge on={job.blacklisted} />
             <AppliedBadge jobId={job.id} />
             <AppliedCountBadge count={job.appliedCount} />
             <PreviouslyAppliedBadge jobId={job.id} />

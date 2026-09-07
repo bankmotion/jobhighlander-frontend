@@ -177,7 +177,7 @@ export function JobDetailPanelProvider({
                 {job.site}
               </span>
               <AppliedBadge jobId={job.id} />
-              <BlacklistBadge scope={job.blacklisted} />
+              <BlacklistBadge on={job.blacklisted} />
               <AppliedCountBadge count={job.appliedCount} />
               <PreviouslyAppliedBadge jobId={job.id} />
               {/* Both history badges together: they answer the same question
