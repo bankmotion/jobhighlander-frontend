@@ -50,14 +50,16 @@ export function ProviderSwitch() {
   }
 
   // With one key configured there is no choice to offer, so the control would
-  // be a segmented control of one — stating which model runs is the whole of
-  // the useful information.
+  // be a segmented control of one — naming the provider is all that is left to
+  // say. The MODEL id is deliberately not shown: which engine sits behind the
+  // provider is an implementation detail, and it changes without the reader
+  // having done anything.
   if (usable.length < 2) {
     return (
       <p className="text-xs text-[var(--muted)]">
         {usable.length === 1 ? (
           <>
-            Using <span className="text-[var(--text)]">{usable[0].label}</span> ({usable[0].model})
+            Using <span className="text-[var(--text)]">{usable[0].label}</span>
           </>
         ) : (
           'No AI provider is configured.'
@@ -82,7 +84,7 @@ export function ProviderSwitch() {
               role="radio"
               aria-checked={active}
               onClick={() => setPreferredProvider(p.id)}
-              title={priceHint(p) ?? p.model}
+              title={priceHint(p) ?? p.label}
               className={`jh-press flex-1 rounded-md px-2 py-1.5 text-left transition ${
                 active
                   ? 'bg-[var(--primary)] text-white'
@@ -90,13 +92,6 @@ export function ProviderSwitch() {
               }`}
             >
               <span className="block text-xs font-medium">{p.label}</span>
-              <span
-                className={`block truncate font-mono text-[10px] ${
-                  active ? 'text-white/70' : 'text-[var(--muted)]'
-                }`}
-              >
-                {p.model}
-              </span>
             </button>
           );
         })}

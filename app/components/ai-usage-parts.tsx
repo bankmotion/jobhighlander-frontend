@@ -211,6 +211,7 @@ export function BreakdownTable({
   onSelect,
   selectedKey,
   share,
+  costOnly,
 }: {
   title: string;
   rows: UsageBucket[];
@@ -218,6 +219,9 @@ export function BreakdownTable({
   onSelect?: (row: UsageBucket) => void;
   selectedKey?: string | null;
   share?: boolean;
+  /** Drop the token columns. What a bidder is accountable for is spend; token
+      counts are an implementation detail of how that spend was reached. */
+  costOnly?: boolean;
 }) {
   const total = share ? rows.reduce((sum, r) => sum + r.costUsd, 0) : 0;
 
@@ -233,8 +237,8 @@ export function BreakdownTable({
               <tr className="text-xs uppercase tracking-wide text-[var(--muted)]">
                 <th className="pb-2 pr-4 font-medium">{firstHeader}</th>
                 <th className="pb-2 pr-4 text-right font-medium">Calls</th>
-                <th className="pb-2 pr-4 text-right font-medium">In</th>
-                <th className="pb-2 pr-4 text-right font-medium">Out</th>
+                {!costOnly && <th className="pb-2 pr-4 text-right font-medium">In</th>}
+                {!costOnly && <th className="pb-2 pr-4 text-right font-medium">Out</th>}
                 <th className="pb-2 text-right font-medium">Cost</th>
                 {share && <th className="pb-2 pl-4 text-right font-medium">Share</th>}
               </tr>
@@ -261,12 +265,16 @@ export function BreakdownTable({
                       )}
                     </td>
                     <td className="py-2.5 pr-4 text-right text-[var(--muted)]">{r.calls}</td>
-                    <td className="py-2.5 pr-4 text-right text-[var(--muted)]">
-                      {tokens(r.inputTokens + r.cacheWriteTokens + r.cacheReadTokens)}
-                    </td>
-                    <td className="py-2.5 pr-4 text-right text-[var(--muted)]">
-                      {tokens(r.outputTokens)}
-                    </td>
+                    {!costOnly && (
+                      <td className="py-2.5 pr-4 text-right text-[var(--muted)]">
+                        {tokens(r.inputTokens + r.cacheWriteTokens + r.cacheReadTokens)}
+                      </td>
+                    )}
+                    {!costOnly && (
+                      <td className="py-2.5 pr-4 text-right text-[var(--muted)]">
+                        {tokens(r.outputTokens)}
+                      </td>
+                    )}
                     <td className="py-2.5 text-right font-medium text-white">{usd(r.costUsd)}</td>
                     {share && (
                       <td className="py-2.5 pl-4 text-right text-[var(--muted)]">

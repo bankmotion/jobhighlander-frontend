@@ -6,16 +6,15 @@ import {
   DEFAULT_RANGE,
   isSameRange,
   usageQuery,
+  usd,
   type UsageRange,
+  type UsageSummary,
 } from '@/lib/ai-usage';
-import { tokens, usd, type UsageSummary } from '@/lib/ai-usage';
 import {
   BreakdownTable,
   CostChart,
-  DailyTable,
   Notice,
   RangeTabs,
-  RateCard,
   Stat,
   UnpricedNotice,
 } from './ai-usage-parts';
@@ -61,7 +60,6 @@ export function AiUsageDashboard({ initial }: { initial: UsageSummary }) {
   }
 
   const t = data.totals;
-  const totalInput = t.inputTokens + t.cacheWriteTokens + t.cacheReadTokens;
 
   return (
     <div className={pending ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
@@ -80,15 +78,16 @@ export function AiUsageDashboard({ initial }: { initial: UsageSummary }) {
 
       <UnpricedNotice count={data.unpricedCalls} />
 
-      <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {/* Cost and how many generations produced it. Token counts are left to
+          the admin view: they are a unit nobody bidding can act on, and pricing
+          already turns them into the number that matters. */}
+      <div className="mb-5 grid grid-cols-2 gap-3">
         <Stat label="Spend" value={usd(t.costUsd)} hint={`over ${data.rangeLabel}`} primary />
         <Stat
           label="Generations"
           value={String(t.calls)}
           hint={t.calls ? `${usd(t.costUsd / t.calls)} each on average` : 'none yet'}
         />
-        <Stat label="Input tokens" value={tokens(totalInput)} hint="prompts sent, incl. cached" />
-        <Stat label="Output tokens" value={tokens(t.outputTokens)} hint="documents written" />
       </div>
 
       <CostChart
@@ -96,17 +95,17 @@ export function AiUsageDashboard({ initial }: { initial: UsageSummary }) {
         title={data.granularity === 'hour' ? 'Spend by hour' : 'Daily spend'}
       />
 
+      {/* "By model" is deliberately absent — which engine ran is not something
+          the reader chose or can change, and it moves under them as providers
+          ship new versions. Generator and provider are both actionable. */}
       <div className="mt-6 grid gap-5 lg:grid-cols-2">
-        <BreakdownTable title="By generator" rows={data.byFeature} firstHeader="Generator" />
-        <BreakdownTable title="By provider" rows={data.byProvider} firstHeader="Provider" />
-        <BreakdownTable title="By model" rows={data.byModel} firstHeader="Model" />
+        <BreakdownTable title="By generator" rows={data.byFeature} firstHeader="Generator" costOnly />
+        <BreakdownTable title="By provider" rows={data.byProvider} firstHeader="Provider" costOnly />
       </div>
 
-      <div className="mt-5">
-        <DailyTable rows={data.daily} unit={data.granularity} />
-      </div>
-
-      <RateCard rates={data.rates} />
+      {/* DailyTable and RateCard stay in the admin view: one is mostly token
+          columns, the other is a per-model price list. The chart above already
+          answers "what did I spend, and when". */}
     </div>
   );
 }
