@@ -26,6 +26,7 @@ import {
 } from '@/app/components/applied-action';
 import { AppliedCountBadge } from '@/app/components/applied-count-badge';
 import { BlacklistBadge } from '@/app/components/blacklist-badge';
+import { CopyTextButton } from '@/app/components/copy-text-button';
 import { InterviewTimeline } from '@/app/components/interview-timeline';
 import { JobQueryPanel } from '@/app/components/job-query-panel';
 
@@ -123,19 +124,23 @@ export default async function JobDetail({
               </div>
               <h1 className="mt-3 text-2xl font-bold tracking-tight text-white">{job.title}</h1>
               <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-[var(--muted)]">
-                {job.company &&
-                  (job.companyUrl ? (
-                    <a
-                      href={job.companyUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-medium text-[var(--text)] transition hover:text-[var(--primary)]"
-                    >
-                      {job.company} ↗
-                    </a>
-                  ) : (
-                    <span className="font-medium text-[var(--text)]">{job.company}</span>
-                  ))}
+                {job.company && (
+                  <span className="inline-flex items-center gap-1">
+                    {job.companyUrl ? (
+                      <a
+                        href={job.companyUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-[var(--text)] transition hover:text-[var(--primary)]"
+                      >
+                        {job.company} ↗
+                      </a>
+                    ) : (
+                      <span className="font-medium text-[var(--text)]">{job.company}</span>
+                    )}
+                    <CopyTextButton value={job.company} what="company name" />
+                  </span>
+                )}
                 {job.company && meta.length > 0 && <span aria-hidden>·</span>}
                 {meta.length > 0 && <span>{meta.join(' · ')}</span>}
               </div>
