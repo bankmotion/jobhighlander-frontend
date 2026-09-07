@@ -3,7 +3,6 @@
 import { useEffect, useEffectEvent, useState, type ReactNode } from 'react';
 import {
   loadProviders,
-  priceHint,
   type AiProvider,
   type ProviderInfo,
 } from '@/lib/ai-providers';
@@ -237,7 +236,6 @@ export function GenerateModal({
             <div className="grid gap-2 sm:grid-cols-2">
               {providers.map((p) => {
                 const selected = chosen === p.id;
-                const hint = priceHint(p);
                 return (
                   <button
                     key={p.id}
@@ -256,13 +254,12 @@ export function GenerateModal({
                       <span className="font-semibold text-white">{p.label}</span>
                       {selected && <span className="text-xs text-[var(--primary)]">Selected</span>}
                     </span>
-                    <span className="mt-0.5 block truncate font-mono text-xs text-[var(--muted)]">
-                      {p.model}
-                    </span>
-                    {/* The price is the whole reason this choice is offered, so
-                        it is stated at the point of choosing rather than
-                        discovered later on the usage page. */}
-                    {hint && <span className="mt-1 block text-xs text-[var(--muted)]">{hint}</span>}
+                    {/* Neither the model id nor the per-token price is shown.
+                        Both are implementation detail the reader did not choose
+                        and cannot act on at this moment — the engine changes
+                        under them as providers ship new versions, and the cost
+                        of one generation is what the usage page reports in
+                        money. The provider name is the whole of the choice. */}
                     {!p.enabled && (
                       <span className="mt-1 block text-xs text-amber-300/80">Not configured</span>
                     )}

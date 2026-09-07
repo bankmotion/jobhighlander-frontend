@@ -98,14 +98,19 @@ export function priceHint(p: ProviderInfo): string | null {
 }
 
 /**
- * The badge for an already-generated document.
+ * The badge for an already-generated document: the PROVIDER only.
  *
- * Falls back to the raw model string when the server could not classify it —
- * an unknown model is still information, and "Unknown provider" alone is not.
+ * The model id used to be appended ("OpenAI · gpt-5.6-luna"). It is deliberately
+ * gone: the reader did not choose the engine, cannot change it, and it moves
+ * under them as providers ship new versions — so it was noise on every
+ * generated document. Which provider wrote it is the part that stays true and
+ * that someone might act on.
+ *
+ * `model` is still what decides whether there is a stamp at all, because a
+ * record with no model is one that never ran. When the server could not
+ * classify the provider there is nothing honest to name, so no badge shows.
  */
 export function stampLabel(stamp: ProviderStamp | null | undefined): string | null {
   if (!stamp?.model) return null;
-  return stamp.providerLabel && stamp.provider
-    ? `${stamp.providerLabel} · ${stamp.model}`
-    : stamp.model;
+  return stamp.providerLabel && stamp.provider ? stamp.providerLabel : null;
 }

@@ -372,8 +372,10 @@ function ResumeSummary({ resume }: { resume: SavedResume }) {
         </div>
       ))}
 
+      {/* Template only. Which model wrote it is implementation detail the
+          reader did not choose, and it changes as providers ship new versions. */}
       <p className="border-t border-[var(--border)] pt-2 text-[11px] text-[var(--muted)]">
-        {resume.templateKey} · {resume.model}
+        {resume.templateKey}
       </p>
     </div>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { loadProviders, priceHint, type ProviderInfo } from '@/lib/ai-providers';
+import { loadProviders, type ProviderInfo } from '@/lib/ai-providers';
 import {
   setPreferredProvider,
   setSkipConfirm,
@@ -84,7 +84,7 @@ export function ProviderSwitch() {
               role="radio"
               aria-checked={active}
               onClick={() => setPreferredProvider(p.id)}
-              title={priceHint(p) ?? p.label}
+              title={`Generate with ${p.label}`}
               className={`jh-press flex-1 rounded-md px-2 py-1.5 text-left transition ${
                 active
                   ? 'bg-[var(--primary)] text-white'
