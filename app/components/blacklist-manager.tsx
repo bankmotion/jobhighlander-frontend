@@ -75,17 +75,32 @@ export function BlacklistManager({
 
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editCompany, setEditCompany] = useState('');
+  //: Profiles the entry should apply to once saved. Seeded from the rows it
+  //: currently has, then diffed on save — so Edit can widen the scope, not
+  //: only narrow it the way the per-pill "×" does.
+  const [editProfiles, setEditProfiles] = useState<number[]>([]);
 
-  async function reload(profileId?: number) {
-    setEntries(await loadBlacklist(profileId));
+  /**
+   * Always loads EVERY entry the user can see, never the filtered subset.
+   *
+   * The profile filter narrows what is DISPLAYED, below. Fetching the subset
+   * instead would hand Edit a partial scope — a company covering two profiles
+   * would open with one selected, and saving would look like it had never
+   * applied to the other.
+   */
+  async function reload() {
+    setEntries(await loadBlacklist());
   }
 
   useEffect(() => {
-    void reload(filter === 'all' ? undefined : filter);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filter]);
+    void reload();
+  }, []);
 
-  const groups = useMemo(() => groupByCompany(entries), [entries]);
+  const groups = useMemo(() => {
+    const all = groupByCompany(entries);
+    // Narrowed for display only; each group keeps ALL of its entries.
+    return filter === 'all' ? all : all.filter((g) => g.entries.some((e) => e.profileId === filter));
+  }, [entries, filter]);
   const allMine = profiles.length;
 
   async function onAdd() {
@@ -112,26 +127,62 @@ export function BlacklistManager({
         : `${name} was already blacklisted for ${skipped === 1 ? 'that profile' : 'those profiles'}`,
     });
     setCompany('');
-    await reload(filter === 'all' ? undefined : filter);
+    await reload();
   }
 
+  /**
+   * Save a company edit: the name, the set of profiles, or both.
+   *
+   * Ordered deliberately — drop first, then rename what stays, then add the new
+   * ones under the NEW name. Adding before renaming would leave the fresh rows
+   * holding the old name until a second pass, and the unique index is on
+   * (profile, companyKey), so a rename that collides with a row we are about to
+   * drop would be rejected for no good reason.
+   */
   async function onSaveEdit(g: Group) {
     const name = editCompany.trim();
     if (!name) return;
-    setBusy(true);
-    setMsg(null);
-    // Renaming a company means renaming every row that stands for it.
-    const results = await Promise.all(
-      g.entries.map((e) => updateBlacklistEntry(e.id, { company: name })),
-    );
-    setBusy(false);
-    const bad = results.find((r) => !r.ok);
-    if (bad) {
-      setMsg({ ok: false, text: bad.error ?? 'Could not save' });
+    if (editProfiles.length === 0) {
+      setMsg({ ok: false, text: 'Pick at least one profile, or use Delete to remove it entirely.' });
       return;
     }
-    setEditingKey(null);
-    await reload(filter === 'all' ? undefined : filter);
+    setBusy(true);
+    setMsg(null);
+
+    const had = g.entries.map((e) => e.profileId);
+    const dropped = g.entries.filter((e) => !editProfiles.includes(e.profileId));
+    const kept = g.entries.filter((e) => editProfiles.includes(e.profileId));
+    const addedProfiles = editProfiles.filter((id) => !had.includes(id));
+    const renamed = name !== g.company;
+
+    const errors: string[] = [];
+    for (const r of await Promise.all(dropped.map((e) => deleteBlacklistEntry(e.id)))) {
+      if (!r.ok && r.error) errors.push(r.error);
+    }
+    if (renamed) {
+      for (const r of await Promise.all(
+        kept.map((e) => updateBlacklistEntry(e.id, { company: name })),
+      )) {
+        if (!r.ok && r.error) errors.push(r.error);
+      }
+    }
+    if (addedProfiles.length) {
+      const r = await addBlacklistEntry(name, addedProfiles);
+      if (!r.ok && r.error) errors.push(r.error);
+    }
+
+    setBusy(false);
+    if (errors.length) {
+      setMsg({ ok: false, text: errors[0] });
+    } else {
+      const bits: string[] = [];
+      if (renamed) bits.push(`renamed to ${name}`);
+      if (addedProfiles.length) bits.push(`added ${addedProfiles.length} profile${addedProfiles.length === 1 ? '' : 's'}`);
+      if (dropped.length) bits.push(`removed ${dropped.length} profile${dropped.length === 1 ? '' : 's'}`);
+      setMsg({ ok: true, text: bits.length ? `Saved — ${bits.join(', ')}` : 'Nothing changed' });
+      setEditingKey(null);
+    }
+    await reload();
   }
 
   async function onDeleteGroup(g: Group) {
@@ -144,7 +195,7 @@ export function BlacklistManager({
     setBusy(false);
     const bad = results.find((r) => !r.ok);
     if (bad) setMsg({ ok: false, text: bad.error ?? 'Could not remove' });
-    await reload(filter === 'all' ? undefined : filter);
+    await reload();
   }
 
   async function onRemoveOne(e: BlacklistEntry) {
@@ -152,7 +203,7 @@ export function BlacklistManager({
     const res = await deleteBlacklistEntry(e.id);
     setBusy(false);
     if (!res.ok) setMsg({ ok: false, text: res.error ?? 'Could not remove' });
-    await reload(filter === 'all' ? undefined : filter);
+    await reload();
   }
 
   function toggleProfile(id: number) {
@@ -311,7 +362,37 @@ export function BlacklistManager({
                         )}
                       </td>
                       <td className="py-2.5 pr-4">
-                        {everywhere ? (
+                        {editing ? (
+                          // Same control as the add form, so widening and
+                          // narrowing the scope work the same way in both.
+                          <span className="flex flex-wrap gap-1">
+                            {profiles.map((p) => {
+                              const on = editProfiles.includes(p.id);
+                              return (
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  aria-pressed={on}
+                                  title={on ? `Applies to ${profileName(p)}` : `Add ${profileName(p)}`}
+                                  onClick={() =>
+                                    setEditProfiles((cur) =>
+                                      cur.includes(p.id)
+                                        ? cur.filter((x) => x !== p.id)
+                                        : [...cur, p.id],
+                                    )
+                                  }
+                                  className={`rounded-full px-2 py-0.5 text-xs transition ${
+                                    on
+                                      ? 'bg-[var(--primary)] font-medium text-white'
+                                      : 'bg-[var(--surface-2)] text-[var(--muted)] ring-1 ring-inset ring-[var(--border)] hover:text-[var(--text)]'
+                                  }`}
+                                >
+                                  {profileName(p)}
+                                </button>
+                              );
+                            })}
+                          </span>
+                        ) : everywhere ? (
                           <span
                             title={g.entries.map((e) => profileLabel(e)).join(', ')}
                             className="rounded-full bg-red-500/15 px-2 py-0.5 text-xs font-semibold text-red-300 ring-1 ring-inset ring-red-400/30"
@@ -323,7 +404,11 @@ export function BlacklistManager({
                             {g.entries.map((e) => (
                               <span
                                 key={e.id}
-                                className="inline-flex items-center gap-1 rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-xs text-[var(--text)] ring-1 ring-inset ring-[var(--border)]"
+                                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs ring-1 ring-inset ${
+                                  filter !== 'all' && e.profileId === filter
+                                    ? 'bg-[var(--primary)]/20 text-white ring-[var(--primary)]/40'
+                                    : 'bg-[var(--surface-2)] text-[var(--text)] ring-[var(--border)]'
+                                }`}
                               >
                                 {profileLabel(e)}
                                 {g.entries.length > 1 && (
@@ -367,6 +452,7 @@ export function BlacklistManager({
                               onClick={() => {
                                 setEditingKey(g.companyKey);
                                 setEditCompany(g.company);
+                                setEditProfiles(g.entries.map((e) => e.profileId));
                                 setMsg(null);
                               }}
                               className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs text-[var(--muted)] transition hover:border-[var(--primary)] hover:text-white"
