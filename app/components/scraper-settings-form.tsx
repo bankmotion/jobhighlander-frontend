@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ScraperSetting } from '@/lib/scraper-settings';
 
@@ -348,18 +348,38 @@ const GROUPS: Group[] = [
 
 export function ScraperSettingsForm({ initial }: { initial: ScraperSetting[] }) {
   const router = useRouter();
-  const [values, setValues] = useState<Record<string, string>>(() =>
-    Object.fromEntries(initial.map((s) => [s.key, s.value])),
+  const saved = useMemo(
+    () => Object.fromEntries(initial.map((s) => [s.key, s.value])) as Record<string, string>,
+    [initial],
   );
+  const [values, setValues] = useState<Record<string, string>>(() => ({ ...saved }));
+  const [active, setActive] = useState<string>(GROUPS[0].title);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const set = (key: string, value: string) => setValues((v) => ({ ...v, [key]: value }));
 
+  // Which keys differ from what is stored. Tabs hide most of the form, so an
+  // edit made on one tab is invisible from another — without this the only way
+  // to know something is pending would be to visit every tab before saving.
+  const dirty = useMemo(() => {
+    const out = new Set<string>();
+    for (const [k, v] of Object.entries(values)) if ((saved[k] ?? '') !== v) out.add(k);
+    return out;
+  }, [values, saved]);
+
+  const group = GROUPS.find((g) => g.title === active) ?? GROUPS[0];
+  const otherTabsWithEdits = GROUPS.filter(
+    (g) => g.title !== active && g.fields.some((f) => dirty.has(f.key)),
+  ).map((g) => g.title);
+
   async function save() {
     setSaving(true);
     setMsg(null);
     try {
+      // Still sends EVERY key, not just the visible tab: the form is one
+      // document that happens to be paginated, and a partial PUT would drop
+      // edits made on tabs the user has since navigated away from.
       const settings = Object.entries(values).map(([key, value]) => ({ key, value }));
       const res = await fetch('/api/admin/scraper-settings', {
         method: 'PUT',
@@ -377,37 +397,48 @@ export function ScraperSettingsForm({ initial }: { initial: ScraperSetting[] }) 
   }
 
   return (
-    <div className="space-y-5">
-      {GROUPS.map((g) => (
-        <section
-          key={g.title}
-          className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
-        >
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">
-            {g.title}
-          </h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {g.fields.map((f) => (
-              <FieldRow
-                key={f.key}
-                field={f}
-                value={values[f.key] ?? ''}
-                onChange={(v) => set(f.key, v)}
-              />
-            ))}
-          </div>
-        </section>
-      ))}
+    <div className="space-y-4">
+      <TabBar groups={GROUPS} active={active} onSelect={setActive} values={values} dirty={dirty} />
+
+      <section
+        role="tabpanel"
+        id={panelId(group.title)}
+        aria-labelledby={tabId(group.title)}
+        className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
+      >
+        <h2 className="mb-3 flex flex-wrap items-center gap-2 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">
+          {group.title}
+          {enabledState(group, values) === false && (
+            <span className="rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-[11px] font-medium normal-case tracking-normal text-[var(--muted)]">
+              disabled — skipped by the scheduler
+            </span>
+          )}
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {group.fields.map((f) => (
+            <FieldRow
+              key={f.key}
+              field={f}
+              value={values[f.key] ?? ''}
+              onChange={(v) => set(f.key, v)}
+              dirty={dirty.has(f.key)}
+            />
+          ))}
+        </div>
+      </section>
 
       <div className="jh-sticky-bar sticky bottom-0 z-10 flex items-center justify-between gap-3 rounded-t-xl px-4 py-3">
         {msg ? (
-          <span className={`text-sm ${msg.ok ? 'text-green-300' : 'text-red-400'}`}>
-            {msg.text}
+          <span className={`text-sm ${msg.ok ? 'text-green-300' : 'text-red-400'}`}>{msg.text}</span>
+        ) : dirty.size ? (
+          // Counted across ALL tabs, so the bar describes the whole form rather
+          // than whichever panel happens to be open.
+          <span className="text-sm text-amber-300">
+            {dirty.size} unsaved change{dirty.size === 1 ? '' : 's'}
+            {otherTabsWithEdits.length ? ` — also on ${otherTabsWithEdits.join(', ')}` : ''}
           </span>
         ) : (
-          <span className="text-sm text-[var(--muted)]">
-            Changes apply on the next scraper run.
-          </span>
+          <span className="text-sm text-[var(--muted)]">Changes apply on the next scraper run.</span>
         )}
         <button
           onClick={save}
@@ -421,19 +452,126 @@ export function ScraperSettingsForm({ initial }: { initial: ScraperSetting[] }) 
   );
 }
 
+const slug = (title: string) => title.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
+const tabId = (title: string) => `scraper-tab-${slug(title)}`;
+const panelId = (title: string) => `scraper-panel-${slug(title)}`;
+
+/** A group's on/off state, or null for groups that have no enable toggle. */
+function enabledState(group: Group, values: Record<string, string>): boolean | null {
+  const f = group.fields.find((x) => x.key.startsWith('enable_'));
+  return f ? (values[f.key] ?? '') === 'true' : null;
+}
+
+function TabBar({
+  groups,
+  active,
+  onSelect,
+  values,
+  dirty,
+}: {
+  groups: Group[];
+  active: string;
+  onSelect: (title: string) => void;
+  values: Record<string, string>;
+  dirty: Set<string>;
+}) {
+  // Arrow keys move between tabs — what a keyboard user expects of a tablist,
+  // and what the roving tabIndex below sets up.
+  function onKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) return;
+    e.preventDefault();
+    const i = groups.findIndex((g) => g.title === active);
+    const next =
+      e.key === 'Home'
+        ? 0
+        : e.key === 'End'
+          ? groups.length - 1
+          : e.key === 'ArrowRight'
+            ? (i + 1) % groups.length
+            : (i - 1 + groups.length) % groups.length;
+    onSelect(groups[next].title);
+    document.getElementById(tabId(groups[next].title))?.focus();
+  }
+
+  return (
+    <div
+      role="tablist"
+      aria-label="Scraper settings sections"
+      onKeyDown={onKeyDown}
+      className="flex flex-wrap gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-1.5"
+    >
+      {groups.map((g) => {
+        const on = g.title === active;
+        const enabled = enabledState(g, values);
+        const hasEdits = g.fields.some((f) => dirty.has(f.key));
+        return (
+          <button
+            key={g.title}
+            id={tabId(g.title)}
+            role="tab"
+            aria-selected={on}
+            aria-controls={panelId(g.title)}
+            tabIndex={on ? 0 : -1}
+            onClick={() => onSelect(g.title)}
+            title={
+              enabled === null
+                ? undefined
+                : enabled
+                  ? `${g.title} is enabled`
+                  : `${g.title} is disabled and will be skipped`
+            }
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition ${
+              on
+                ? 'bg-[var(--primary)] font-medium text-white'
+                : 'text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-[var(--text)]'
+            }`}
+          >
+            {/* Turns the tab strip into an at-a-glance view of which scrapers
+                actually run — usually the reason for opening this page. */}
+            {enabled !== null && (
+              <span
+                aria-hidden
+                className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                  enabled ? 'bg-emerald-400' : 'bg-[var(--border-strong)]'
+                }`}
+              />
+            )}
+            {g.title}
+            {hasEdits && (
+              <span
+                aria-label="unsaved changes"
+                title="Unsaved changes on this tab"
+                className={`h-1.5 w-1.5 shrink-0 rounded-full ${on ? 'bg-white' : 'bg-amber-400'}`}
+              />
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function FieldRow({
   field,
   value,
   onChange,
+  dirty,
 }: {
   field: Field;
   value: string;
   onChange: (v: string) => void;
+  /** Differs from what is stored — marked so an edit is visible in the panel
+      as well as on its tab. */
+  dirty?: boolean;
 }) {
   if (field.type === 'bool') {
     const on = value === 'true';
     return (
-      <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2.5">
+      <label
+        className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg border bg-[var(--surface-2)] px-3 py-2.5 ${
+          dirty ? 'border-amber-400/60' : 'border-[var(--border)]'
+        }`}
+      >
         <span className="text-sm text-[var(--text)]">
           {field.label}
           {field.hint && <span className="ml-2 text-xs text-[var(--muted)]">{field.hint}</span>}
@@ -468,7 +606,9 @@ function FieldRow({
           min={field.type === 'number' ? '0' : undefined}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm outline-none transition focus:border-[var(--primary)]"
+          className={`w-full rounded-lg border bg-[var(--surface-2)] px-3 py-2 text-sm outline-none transition focus:border-[var(--primary)] ${
+            dirty ? 'border-amber-400/60' : 'border-[var(--border)]'
+          }`}
         />
         {field.link &&
           (openable ? (
