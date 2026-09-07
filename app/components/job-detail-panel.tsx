@@ -20,6 +20,7 @@ import { SidePanel } from './side-panel';
 import { JobTabs } from './job-tabs';
 import { AppliedAction, AppliedBadge, PreviouslyAppliedBadge } from './applied-action';
 import { AppliedCountBadge } from './applied-count-badge';
+import { BlacklistBadge } from './blacklist-badge';
 import { PreviouslyDiscardedBadge } from './discard-action';
 import { HighlightedText } from './highlighted-text';
 import { ResumeGenerator } from './resume-generator';
@@ -176,6 +177,7 @@ export function JobDetailPanelProvider({
                 {job.site}
               </span>
               <AppliedBadge jobId={job.id} />
+              <BlacklistBadge scope={job.blacklisted} />
               <AppliedCountBadge count={job.appliedCount} />
               <PreviouslyAppliedBadge jobId={job.id} />
               {/* Both history badges together: they answer the same question

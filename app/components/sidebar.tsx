@@ -135,6 +135,12 @@ export function Sidebar({
           <span className="text-base">👤</span> Profiles
         </Link>
 
+        {/* Everyone's, not an admin screen: the bidders are the ones who learn
+            an employer is not worth bidding. */}
+        <Link href="/blacklist" className={linkCls(pathname.startsWith('/blacklist'))}>
+          <span className="text-base">🚫</span> Blacklist
+        </Link>
+
         {/* Everyone's own balance and top-ups. Distinct from the super-admin
             Payments screen below, which is about everybody else's money. */}
         <Link href="/billing" className={linkCls(pathname.startsWith('/billing'))}>

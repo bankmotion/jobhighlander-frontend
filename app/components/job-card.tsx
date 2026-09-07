@@ -5,6 +5,7 @@ import { formatPostedRelative } from '@/lib/format';
 import { ApplicationAction } from './application-action';
 import { AppliedAction, AppliedBadge, PreviouslyAppliedBadge } from './applied-action';
 import { AppliedCountBadge } from './applied-count-badge';
+import { BlacklistBadge } from './blacklist-badge';
 import { JobDescription } from './job-description';
 import { DiscardAction, DiscardedBadge, PreviouslyDiscardedBadge } from './discard-action';
 import { CopyLinkButton } from './copy-link-button';
@@ -47,6 +48,9 @@ export function JobCard({
             <span className="inline-block rounded-md bg-[var(--blue)]/15 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-blue-300">
               {job.site}
             </span>
+            {/* First in the row: if this employer is ruled out, that is
+                the thing to know before reading anything else. */}
+            <BlacklistBadge scope={job.blacklisted} />
             <AppliedBadge jobId={job.id} />
             <AppliedCountBadge count={job.appliedCount} />
             <PreviouslyAppliedBadge jobId={job.id} />

@@ -25,6 +25,7 @@ import {
   PreviouslyAppliedBadge,
 } from '@/app/components/applied-action';
 import { AppliedCountBadge } from '@/app/components/applied-count-badge';
+import { BlacklistBadge } from '@/app/components/blacklist-badge';
 import { InterviewTimeline } from '@/app/components/interview-timeline';
 import { JobQueryPanel } from '@/app/components/job-query-panel';
 
@@ -116,6 +117,7 @@ export default async function JobDetail({
                   {job.site}
                 </span>
                 <AppliedBadge jobId={job.id} size="lg" />
+                <BlacklistBadge scope={job.blacklisted} size="lg" />
                 <AppliedCountBadge count={job.appliedCount} size="lg" />
                 <PreviouslyAppliedBadge jobId={job.id} size="lg" />
               </div>
