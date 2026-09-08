@@ -303,7 +303,8 @@ export function ResumeGenerator({
         setError(data?.error ?? 'Could not render the Word file (' + res.status + ')');
         return;
       }
-      await saveBlob(await res.blob(), docxFileName);
+      const out = await saveBlob(await res.blob(), docxFileName);
+      if (out.to === 'downloads' && out.error) setError(`Saved to Downloads — ${out.error}`);
     } catch {
       setError('Could not render the Word file.');
     } finally {
@@ -318,7 +319,8 @@ export function ResumeGenerator({
     if (!pdfUrl) return;
     await primeSaveDir();
     try {
-      await saveBlob(await (await fetch(pdfUrl)).blob(), fileName);
+      const out = await saveBlob(await (await fetch(pdfUrl)).blob(), fileName);
+      if (out.to === 'downloads' && out.error) setError(`Saved to Downloads — ${out.error}`);
     } catch {
       setError('Could not save the PDF.');
     }

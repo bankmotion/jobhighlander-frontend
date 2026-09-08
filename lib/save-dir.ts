@@ -168,7 +168,20 @@ export async function chooseSaveDir(): Promise<ChooseResult> {
   }
 
   cached = handle;
-  saveDirNameStore.set(handle.name);
+  // A drive root reports an empty or separator-only name. Chromium restricts
+  // writing to drive roots and system locations, and the restriction does not
+  // show up until a save is attempted -- so say it here, where it can still be
+  // acted on, rather than letting every download quietly go elsewhere.
+  const looksLikeRoot = !handle.name || /^[\\/]+$/.test(handle.name) || /^[A-Za-z]:[\\/]?$/.test(handle.name);
+  saveDirNameStore.set(handle.name || 'drive root');
+  if (looksLikeRoot) {
+    return {
+      ok: false,
+      reason: 'failed',
+      detail:
+        'That looks like a drive root. Chrome does not allow saving there — pick a normal folder such as Documents/Resumes.',
+    };
+  }
   return { ok: true, name: handle.name };
 }
 

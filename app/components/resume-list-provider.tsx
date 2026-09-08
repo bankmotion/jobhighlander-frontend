@@ -532,9 +532,11 @@ export function ResumeListProvider({
 
         const savedTo = await saveBlob(await res.blob(), resumeName);
         // Silence here would be the worst outcome: the file exists, just not
-        // where it was asked to go, and nothing would ever say so.
-        if (savedTo === 'downloads' && saveDirConfigured()) {
-          show('Your chosen folder could not be written to — saved to Downloads instead.', 'error');
+        // where it was asked to go, and nothing would ever say so. The reason
+        // is included because "it did not work" is not something anyone can act
+        // on, and the browser already knows exactly what went wrong.
+        if (savedTo.to === 'downloads' && saveDirConfigured()) {
+          show(`Saved to Downloads — ${savedTo.error ?? 'the chosen folder was not writable'}`, 'error');
         }
 
         // The cover letter follows in the same format, so one click yields the
@@ -561,8 +563,11 @@ export function ResumeListProvider({
             // Into the same folder as the resume, which is the point of the
             // pair travelling together.
             const letterTo = await saveBlob(await letterRes.blob(), letterName);
-            if (letterTo === 'downloads' && saveDirConfigured()) {
-              show('The cover letter went to Downloads — your folder was not writable.', 'error');
+            if (letterTo.to === 'downloads' && saveDirConfigured()) {
+              show(
+                `Cover letter saved to Downloads — ${letterTo.error ?? 'the chosen folder was not writable'}`,
+                'error',
+              );
             }
           } else if (letterRes.status !== 204) {
             const err = await letterRes.json().catch(() => null);
@@ -683,7 +688,10 @@ export function ResumeListProvider({
     if (!pdfUrl) return;
     await primeSaveDir();
     try {
-      await saveBlob(await (await fetch(pdfUrl)).blob(), `resume_${fileName}.pdf`);
+      const out = await saveBlob(await (await fetch(pdfUrl)).blob(), `resume_${fileName}.pdf`);
+      if (out.to === 'downloads' && saveDirConfigured()) {
+        show(`Saved to Downloads — ${out.error ?? 'the chosen folder was not writable'}`, 'error');
+      }
     } catch {
       show('Could not save the PDF.', 'error');
     }

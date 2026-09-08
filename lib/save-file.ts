@@ -5,6 +5,18 @@ import { writableSaveDir } from './save-dir';
 /** Where a file ended up, so the caller can say so if it was not where asked. */
 export type SavedTo = 'folder' | 'downloads';
 
+export interface SaveOutcome {
+  to: SavedTo;
+  /**
+   * Why the chosen folder was not used, verbatim from the browser.
+   *
+   * Carried rather than swallowed because this failure is otherwise invisible:
+   * the file still arrives, just in the wrong place, so without the reason the
+   * only symptom is "it does not work" and every diagnosis is a guess.
+   */
+  error?: string;
+}
+
 /**
  * Write a generated file out.
  *
@@ -18,7 +30,8 @@ export type SavedTo = 'folder' | 'downloads';
  * file to a stale preference would be a worse outcome than putting it somewhere
  * predictable.
  */
-export async function saveBlob(blob: Blob, filename: string): Promise<SavedTo> {
+export async function saveBlob(blob: Blob, filename: string): Promise<SaveOutcome> {
+  let error: string | undefined;
   const dir = await writableSaveDir();
   if (dir) {
     try {
@@ -26,10 +39,15 @@ export async function saveBlob(blob: Blob, filename: string): Promise<SavedTo> {
       const writable = await file.createWritable();
       await writable.write(blob);
       await writable.close();
-      return 'folder';
-    } catch {
-      // Fall through and download instead.
+      return { to: 'folder' };
+    } catch (err) {
+      // Named, then fall through and download. Which of the three calls above
+      // failed matters: getFileHandle rejects an unusable NAME, createWritable
+      // rejects an unusable LOCATION.
+      error = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
     }
+  } else {
+    error = 'the folder could not be opened for writing';
   }
 
   const url = URL.createObjectURL(blob);
@@ -45,5 +63,5 @@ export async function saveBlob(blob: Blob, filename: string): Promise<SavedTo> {
   // cleanup — a filter toggle unmounts the caller, and tearing the URL down
   // there would kill a download in flight.
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
-  return 'downloads';
+  return { to: 'downloads', error };
 }
