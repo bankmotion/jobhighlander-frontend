@@ -32,7 +32,7 @@ import {
 } from '@/lib/resume-runs';
 import { stampLabel, type AiProvider } from '@/lib/ai-providers';
 import { saveBlob } from '@/lib/save-file';
-import { primeSaveDir } from '@/lib/save-dir';
+import { primeSaveDir, saveDirConfigured } from '@/lib/save-dir';
 import { GenerateModal, ProviderBadge } from './generate-modal';
 import { Modal } from './modal';
 import { Toast, useToast } from './toast';
@@ -530,7 +530,12 @@ export function ResumeListProvider({
           return;
         }
 
-        await saveBlob(await res.blob(), resumeName);
+        const savedTo = await saveBlob(await res.blob(), resumeName);
+        // Silence here would be the worst outcome: the file exists, just not
+        // where it was asked to go, and nothing would ever say so.
+        if (savedTo === 'downloads' && saveDirConfigured()) {
+          show('Your chosen folder could not be written to — saved to Downloads instead.', 'error');
+        }
 
         // The cover letter follows in the same format, so one click yields the
         // pair that gets sent together.

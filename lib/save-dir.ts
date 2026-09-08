@@ -68,55 +68,117 @@ function openDb(): Promise<IDBDatabase> {
   });
 }
 
-async function idb<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => IDBRequest): Promise<T | null> {
+/**
+ * Run one IndexedDB request.
+ *
+ * Throws on failure rather than returning null. The two are NOT the same thing:
+ * "there is no saved folder" and "the folder could not be saved" led to the
+ * same silent answer before, so a failed write still showed the folder as set
+ * and quietly reverted to Downloads on the next page load.
+ *
+ * A write is resolved on the TRANSACTION completing, not on the request
+ * succeeding. `put` reports success before the transaction commits, so
+ * resolving there can report a save that a later abort undoes.
+ */
+function idb<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => IDBRequest): Promise<T | null> {
+  return new Promise<T | null>((resolve, reject) => {
+    let value: T | null = null;
+    void openDb().then((db) => {
+      let tx: IDBTransaction;
+      try {
+        tx = db.transaction(STORE, mode);
+        const req = run(tx.objectStore(STORE));
+        req.onsuccess = () => {
+          value = (req.result as T) ?? null;
+        };
+        req.onerror = () => reject(req.error ?? new Error('IndexedDB request failed'));
+      } catch (err) {
+        // `put` throws synchronously when the value cannot be structured-cloned.
+        db.close();
+        reject(err);
+        return;
+      }
+      tx.oncomplete = () => {
+        db.close();
+        resolve(value);
+      };
+      tx.onabort = () => {
+        db.close();
+        reject(tx.error ?? new Error('IndexedDB transaction aborted'));
+      };
+    }, reject);
+  });
+}
+
+async function storedHandle(): Promise<DirHandle | null> {
   try {
-    const db = await openDb();
-    return await new Promise<T | null>((resolve, reject) => {
-      const tx = db.transaction(STORE, mode);
-      const req = run(tx.objectStore(STORE));
-      req.onsuccess = () => resolve((req.result as T) ?? null);
-      req.onerror = () => reject(req.error);
-      tx.oncomplete = () => db.close();
-    });
+    return await idb<DirHandle>('readonly', (s) => s.get(KEY));
   } catch {
-    // Private mode, a storage policy, or a browser without IndexedDB. Falling
-    // back to the Downloads folder is the behaviour anyway.
+    // A read that fails means no usable folder, which is the same outcome as
+    // not having one. Writes are the case that must be reported.
     return null;
   }
 }
 
-async function storedHandle(): Promise<DirHandle | null> {
-  return idb<DirHandle>('readonly', (s) => s.get(KEY));
-}
+export type ChooseResult =
+  | { ok: true; name: string }
+  | { ok: false; reason: 'cancelled' | 'unsupported' }
+  | { ok: false; reason: 'failed'; detail: string };
 
 /**
  * Ask the user for a folder and remember it.
  *
- * Returns the folder name on success, null if they cancelled or the browser
- * cannot do this. MUST be called from a click: the picker needs user activation.
+ * MUST be called from a click: the picker needs user activation.
+ *
+ * The name is only recorded once the handle is genuinely stored AND permission
+ * is settled. Writing it earlier is what made a failed save look like a
+ * successful one — the menu said the folder was set while every download went
+ * to Downloads.
  */
-export async function chooseSaveDir(): Promise<string | null> {
+export async function chooseSaveDir(): Promise<ChooseResult> {
   const show = directoryPicker();
-  if (!show) return null;
+  if (!show) return { ok: false, reason: 'unsupported' };
   let handle: DirHandle;
   try {
     // `id` makes Chromium reopen at the last folder picked for this purpose
     // rather than at a default that has nothing to do with resumes.
     handle = await show({ mode: 'readwrite', id: 'jh-resumes' });
   } catch {
-    return null; // cancelled
+    return { ok: false, reason: 'cancelled' };
   }
-  await idb('readwrite', (s) => s.put(handle, KEY));
+
+  // Settle permission while the picker's own activation is live.
+  if (!(await permitted(handle))) {
+    return { ok: false, reason: 'failed', detail: 'Permission to write to that folder was refused.' };
+  }
+
+  // Prove it round-trips before claiming it is set. A handle that cannot be
+  // stored works until the next reload and then silently stops.
+  try {
+    await idb('readwrite', (s) => s.put(handle, KEY));
+    if (!(await idb<DirHandle>('readonly', (s) => s.get(KEY)))) {
+      throw new Error('the folder did not persist');
+    }
+  } catch (err) {
+    return {
+      ok: false,
+      reason: 'failed',
+      detail: err instanceof Error ? err.message : 'the folder could not be stored',
+    };
+  }
+
+  cached = handle;
   saveDirNameStore.set(handle.name);
-  // Settle permission now, while the picker's own activation is live, and hold
-  // the handle so the next download does not have to ask anything at all.
-  cached = (await permitted(handle)) ? handle : null;
-  return handle.name;
+  return { ok: true, name: handle.name };
 }
 
 /** Go back to letting the browser put files in its Downloads folder. */
 export async function clearSaveDir(): Promise<void> {
-  await idb('readwrite', (s) => s.delete(KEY));
+  try {
+    await idb('readwrite', (s) => s.delete(KEY));
+  } catch {
+    // Reverting to Downloads must succeed even if the store cannot be written.
+  }
   saveDirNameStore.set(null);
   cached = null;
 }
@@ -188,6 +250,59 @@ export async function writableSaveDir(): Promise<DirHandle | null> {
 /** True when a folder is configured, whether or not it is currently usable. */
 export async function hasSaveDir(): Promise<boolean> {
   return (await storedHandle()) !== null;
+}
+
+/**
+ * Write and delete a probe file in the chosen folder.
+ *
+ * Exists because every failure here is invisible by design: the fallback puts
+ * the file somewhere sensible, so a broken folder looks exactly like a working
+ * one until you go looking in the wrong place. This does the same operations a
+ * real save does and returns whatever went wrong verbatim.
+ *
+ * Call from a click, so permission can still be requested if it has lapsed.
+ */
+export async function testSaveDir(): Promise<{ ok: true; name: string } | { ok: false; detail: string }> {
+  const handle = await storedHandle();
+  if (!handle) return { ok: false, detail: 'No folder is stored — choose one again.' };
+  if (!(await permitted(handle))) {
+    return { ok: false, detail: 'The browser refused permission to write to that folder.' };
+  }
+  try {
+    const probe = await handle.getFileHandle('.jobhighlander-write-test', { create: true });
+    const writable = await probe.createWritable();
+    await writable.write(new Blob(['ok']));
+    await writable.close();
+    // Tidy up. Older Chromium lacks removeEntry, and a stray empty file is a
+    // far smaller problem than reporting a working folder as broken.
+    try {
+      await (handle as unknown as { removeEntry?: (n: string) => Promise<void> }).removeEntry?.(
+        '.jobhighlander-write-test',
+      );
+    } catch {
+      // Left behind; harmless.
+    }
+    cached = handle;
+    return { ok: true, name: handle.name };
+  } catch (err) {
+    return { ok: false, detail: err instanceof Error ? `${err.name}: ${err.message}` : String(err) };
+  }
+}
+
+/**
+ * Whether a folder is configured, read synchronously.
+ *
+ * Backed by the localStorage name mirror rather than IndexedDB so a caller can
+ * ask on every save without an async hop — it is used to tell a genuine
+ * fallback ("you chose a folder and this did not go there") apart from the
+ * ordinary case of never having chosen one.
+ */
+export function saveDirConfigured(): boolean {
+  try {
+    return Boolean(saveDirNameStore.read());
+  } catch {
+    return false;
+  }
 }
 
 /** The current folder name for display. Empty string means the Downloads folder. */
