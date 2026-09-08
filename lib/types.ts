@@ -79,6 +79,9 @@ export interface Education {
 export interface ProfileOwner {
   id: number;
   email: string;
+  /// Present on the profile LIST, where the members panel names each person's
+  /// role. Optional because other endpoints return the owner without it.
+  role?: Role;
 }
 
 export interface Profile {
@@ -98,6 +101,23 @@ export interface Profile {
   updatedAt: string;
 }
 
+/**
+ * Someone invited to a profile.
+ *
+ * `pending` is carried alongside `accepted` on purpose: "invited but has not
+ * answered" is a different fact from "has access", and an owner chasing a
+ * bidder needs to tell them apart rather than wonder why the person they
+ * invited is missing.
+ */
+export interface ProfileMember {
+  id: number;
+  status: 'pending' | 'accepted';
+  createdAt: string;
+  respondedAt: string | null;
+  user: { id: number; email: string; role: Role };
+  invitedBy: { id: number; email: string };
+}
+
 export interface ProfileSummary {
   id: number;
   ownerId: number;
@@ -109,6 +129,9 @@ export interface ProfileSummary {
   location: string | null;
   updatedAt: string;
   _count: { workExperiences: number; educations: number };
+  /// Everyone invited to this profile, excluding declined. The OWNER is not in
+  /// here — they are `owner`, and they are a member by definition.
+  invitations: ProfileMember[];
 }
 
 // ── Profile invitations ──

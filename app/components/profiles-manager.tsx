@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import type { Profile, ProfileSummary, ReceivedInvitation } from '@/lib/types';
 import { invitationProfileName, respondToInvitation } from '@/lib/invitations';
 import { ProfileEditor, type ProfilePayload } from './profile-editor';
+import { ProfileDetailModal } from './profile-detail-modal';
 import { Toast, useToast } from './toast';
 
 type View = { mode: 'list' } | { mode: 'new' } | { mode: 'edit'; id: number };
@@ -34,6 +35,10 @@ export function ProfilesManager({
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [answeringId, setAnsweringId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  //: Which profile the read-only Details panel is showing. Separate from the
+  //: editor the card opens: reading who can use a profile should not put you
+  //: inside a form you may not be allowed to save.
+  const [detail, setDetail] = useState<ProfileSummary | null>(null);
   const { toast, show, dismiss } = useToast();
 
   const owned = profiles.filter((p) => p.canEdit);
@@ -223,6 +228,7 @@ export function ProfilesManager({
               profiles={owned}
               loadingId={loadingId}
               onOpen={openProfile}
+              onDetail={setDetail}
             />
           )}
           {shared.length > 0 && (
@@ -232,11 +238,13 @@ export function ProfilesManager({
               profiles={shared}
               loadingId={loadingId}
               onOpen={openProfile}
+              onDetail={setDetail}
             />
           )}
         </div>
       )}
 
+      <ProfileDetailModal summary={detail} onClose={() => setDetail(null)} />
       <Toast toast={toast} onDismiss={dismiss} />
     </div>
   );
@@ -248,58 +256,90 @@ function ProfileGroup({
   profiles,
   loadingId,
   onOpen,
+  onDetail,
 }: {
   title: string;
   hint: string;
   profiles: ProfileSummary[];
   loadingId: number | null;
   onOpen: (id: number) => void;
+  onDetail: (p: ProfileSummary) => void;
 }) {
   return (
     <section>
       <h2 className="text-sm font-semibold text-white">{title}</h2>
       <p className="mb-3 text-xs text-[var(--muted)]">{hint}</p>
       <ul className="grid gap-3 sm:grid-cols-2">
-        {profiles.map((p) => (
-          <li key={p.id}>
-            <button
-              onClick={() => onOpen(p.id)}
-              disabled={loadingId === p.id}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-left transition hover:border-[var(--border-strong)] disabled:opacity-60"
+        {profiles.map((p) => {
+          const accepted = (p.invitations ?? []).filter((m) => m.status === 'accepted');
+          const pending = (p.invitations ?? []).filter((m) => m.status === 'pending');
+          // Owner included: they are a member of their own profile by definition.
+          const memberCount = accepted.length + 1;
+          return (
+            <li
+              key={p.id}
+              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] transition hover:border-[var(--border-strong)]"
             >
-              <div className="flex items-center justify-between gap-2">
-                <span className="truncate font-medium text-white">{nameOf(p)}</span>
-                {loadingId === p.id ? (
-                  <span className="shrink-0 text-xs text-[var(--muted)]">Loading…</span>
-                ) : (
-                  !p.canEdit && (
-                    <span className="shrink-0 rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-xs text-[var(--muted)]">
-                      View only
-                    </span>
-                  )
-                )}
-              </div>
-              {(p.email || p.location) && (
-                <div className="mt-1 truncate text-sm text-[var(--muted)]">
-                  {[p.email, p.location].filter(Boolean).join(' · ')}
+              {/* The card body opens the editor; the actions below sit OUTSIDE
+                  it, because a button nested inside a button is invalid. */}
+              <button
+                onClick={() => onOpen(p.id)}
+                disabled={loadingId === p.id}
+                className="w-full p-4 pb-2 text-left disabled:opacity-60"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate font-medium text-white">{nameOf(p)}</span>
+                  {loadingId === p.id ? (
+                    <span className="shrink-0 text-xs text-[var(--muted)]">Loading…</span>
+                  ) : (
+                    !p.canEdit && (
+                      <span className="shrink-0 rounded-full bg-[var(--surface-2)] px-2 py-0.5 text-xs text-[var(--muted)]">
+                        View only
+                      </span>
+                    )
+                  )}
                 </div>
-              )}
-              <div className="mt-2 flex flex-wrap gap-2 text-xs text-[var(--muted)]">
-                <span className="rounded-md bg-[var(--surface-2)] px-2 py-0.5">
-                  {p._count.workExperiences} experience{p._count.workExperiences === 1 ? '' : 's'}
-                </span>
-                <span className="rounded-md bg-[var(--surface-2)] px-2 py-0.5">
-                  {p._count.educations} education
-                </span>
-                {!p.canEdit && (
-                  <span className="truncate rounded-md bg-[var(--surface-2)] px-2 py-0.5">
-                    owner: {p.owner.email}
-                  </span>
+                {(p.email || p.location) && (
+                  <div className="mt-1 truncate text-sm text-[var(--muted)]">
+                    {[p.email, p.location].filter(Boolean).join(' · ')}
+                  </div>
                 )}
+                <div className="mt-2 flex flex-wrap gap-2 text-xs text-[var(--muted)]">
+                  <span className="rounded-md bg-[var(--surface-2)] px-2 py-0.5">
+                    {p._count.workExperiences} experience{p._count.workExperiences === 1 ? '' : 's'}
+                  </span>
+                  <span className="rounded-md bg-[var(--surface-2)] px-2 py-0.5">
+                    {p._count.educations} education
+                  </span>
+                  <span className="rounded-md bg-[var(--surface-2)] px-2 py-0.5">
+                    {memberCount} member{memberCount === 1 ? '' : 's'}
+                  </span>
+                  {pending.length > 0 && (
+                    <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-amber-300">
+                      {pending.length} invited
+                    </span>
+                  )}
+                </div>
+              </button>
+
+              {/* Names, not just a count — knowing TWO people can use a profile
+                  is not the same as knowing WHICH two. */}
+              <div className="flex flex-wrap items-center justify-between gap-2 px-4 pb-3 pt-1">
+                <span className="min-w-0 truncate text-xs text-[var(--muted)]">
+                  {[p.owner.email, ...accepted.map((m) => m.user.email)].slice(0, 2).join(', ')}
+                  {memberCount > 2 && ` +${memberCount - 2} more`}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => onDetail(p)}
+                  className="shrink-0 rounded-lg border border-[var(--border)] px-2.5 py-1 text-xs text-[var(--muted)] transition hover:border-[var(--primary)] hover:text-white"
+                >
+                  Details
+                </button>
               </div>
-            </button>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>
     </section>
   );
