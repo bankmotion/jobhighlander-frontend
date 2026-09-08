@@ -1,6 +1,6 @@
 'use client';
 
-import { writableSaveDir } from './save-dir';
+import { resetSaveDirCache, writableSaveDir, type DirHandle } from './save-dir';
 
 /** Where a file ended up, so the caller can say so if it was not where asked. */
 export type SavedTo = 'folder' | 'downloads';
@@ -15,6 +15,30 @@ export interface SaveOutcome {
    * only symptom is "it does not work" and every diagnosis is a guess.
    */
   error?: string;
+}
+
+const describe = (err: unknown): string =>
+  err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+
+/**
+ * The handle is holding state that no longer matches what is on disk.
+ *
+ * Chromium raises this on the SECOND write into a folder: the first write
+ * changed the directory, which invalidates the state the cached handle read
+ * when it was resolved. It is exactly why a resume saved correctly and the
+ * cover letter written immediately after it did not.
+ *
+ * Recoverable — the folder is fine, only this handle's view of it is stale.
+ */
+const isStale = (err: unknown): boolean =>
+  err instanceof DOMException &&
+  (err.name === 'InvalidStateError' || err.name === 'InvalidModificationError');
+
+async function writeInto(dir: DirHandle, filename: string, blob: Blob): Promise<void> {
+  const file = await dir.getFileHandle(filename, { create: true });
+  const writable = await file.createWritable();
+  await writable.write(blob);
+  await writable.close();
 }
 
 /**
@@ -35,16 +59,29 @@ export async function saveBlob(blob: Blob, filename: string): Promise<SaveOutcom
   const dir = await writableSaveDir();
   if (dir) {
     try {
-      const file = await dir.getFileHandle(filename, { create: true });
-      const writable = await file.createWritable();
-      await writable.write(blob);
-      await writable.close();
+      await writeInto(dir, filename, blob);
       return { to: 'folder' };
     } catch (err) {
-      // Named, then fall through and download. Which of the three calls above
-      // failed matters: getFileHandle rejects an unusable NAME, createWritable
-      // rejects an unusable LOCATION.
-      error = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+      // Named, then fall through and download. Which call failed matters:
+      // getFileHandle rejects an unusable NAME, createWritable an unusable
+      // LOCATION, and a stale handle rejects a folder that is perfectly fine.
+      error = describe(err);
+
+      if (isStale(err)) {
+        // Drop the cached handle and resolve a fresh one from storage before
+        // trying again. Retrying with the SAME handle would fail identically —
+        // it is the handle that is stale, not the folder.
+        try {
+          resetSaveDirCache();
+          const fresh = await writableSaveDir();
+          if (fresh) {
+            await writeInto(fresh, filename, blob);
+            return { to: 'folder' };
+          }
+        } catch (retryErr) {
+          error = `${error} (retry: ${describe(retryErr)})`;
+        }
+      }
     }
   } else {
     error = 'the folder could not be opened for writing';
