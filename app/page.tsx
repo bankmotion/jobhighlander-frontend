@@ -24,6 +24,7 @@ import { isInterviewFilter, type InterviewFilter } from '@/lib/interviews';
 import { fetchJobQueryCounts } from '@/lib/job-queries.server';
 import { FiltersBar } from '@/app/components/filters-bar';
 import { JobFiltersRestore } from '@/app/components/job-filters-restore';
+import { ViewedOwner } from '@/app/components/viewed-tracker';
 import { JobCard } from '@/app/components/job-card';
 import { JobDetailPanelProvider } from '@/app/components/job-detail-panel';
 import { NewJobsBanner } from '@/app/components/new-jobs-banner';
@@ -201,6 +202,10 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
       {!profileId && <ResumeProfileNotice canManage={canManageProfiles} />}
 
       <JobFiltersRestore profileId={profileId} />
+
+      {/* Binds the locally-stored "viewed" marks to this account, so a shared
+          browser does not hand one person's reading history to the next. */}
+      <ViewedOwner email={session?.email ?? null} />
 
       <FiltersBar
         filters={filters}

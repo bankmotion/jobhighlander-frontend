@@ -14,6 +14,7 @@ import { fetchStageTypes } from '@/lib/stage-types.server';
 import { fetchJobQueries } from '@/lib/job-queries.server';
 import type { JobQuery } from '@/lib/job-queries';
 import { getSession } from '@/lib/auth';
+import { MarkViewedOnMount, ViewedOwner } from '@/app/components/viewed-tracker';
 import { HighlightedText } from '@/app/components/highlighted-text';
 import { ResumeGenerator } from '@/app/components/resume-generator';
 import { JobTabs } from '@/app/components/job-tabs';
@@ -98,6 +99,11 @@ export default async function JobDetail({
   const isApplied = Boolean(appliedStatus[job.id]);
 
   return (
+    <>
+      {/* Reaching this page is the same act as opening the panel in the list,
+          so it counts as viewing the posting. */}
+      <ViewedOwner email={session?.email ?? null} />
+      <MarkViewedOnMount jobId={job.id} />
     <AppliedProvider
       key={profileId ?? 'none'}
       profileId={profileId}
@@ -278,5 +284,6 @@ export default async function JobDetail({
         />
       </article>
     </AppliedProvider>
+    </>
   );
 }

@@ -90,6 +90,9 @@ export function JobDetailPanelProvider({
   const [job, setJob] = useState<Job | null>(null);
   const [data, setData] = useState<Loaded | null>(null);
 
+  // Not marking viewed here: the title that opens this panel is itself an
+  // action click, so `JobPanel` has already recorded it. Marking in both places
+  // would mean two rules to keep in step for one behaviour.
   const open = useCallback((next: Job) => setJob(next), []);
   const close = useCallback(() => setJob(null), []);
 

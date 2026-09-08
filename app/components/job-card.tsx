@@ -13,6 +13,7 @@ import { CopyTextButton } from './copy-text-button';
 import { InterviewAction, InterviewBadge, type InterviewCardStatus } from './interview-action';
 import { JobQueryAction } from './job-query-action';
 import { JobPanel } from './job-panel';
+import { ViewedBadge } from './viewed-badge';
 import { useJobPanel } from './job-detail-panel';
 import { ApplyButton } from './apply-button';
 
@@ -58,6 +59,8 @@ export function JobCard({
             <PreviouslyDiscardedBadge jobId={job.id} />
             <InterviewBadge jobId={job.id} profileId={profileId} interview={interview} />
             <DiscardedBadge jobId={job.id} />
+            {/* Last in the row: the least urgent thing about a posting. */}
+            <ViewedBadge jobId={job.id} />
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
