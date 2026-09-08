@@ -23,11 +23,17 @@ import type { Session } from '@/lib/session';
  * was competing with a caption that never changes.
  */
 export async function Topbar({ session }: { session: Session }) {
-  // Both in parallel — neither depends on the other, and the bar is on the
-  // critical path of every page.
+  // AI spend is charged to the profile's OWNER, so a bidder has no balance of
+  // their own — a chip reading $0.00 would look like a problem they need to fix
+  // and send them to top up for nothing. Not fetched at all for them, rather
+  // than fetched and hidden: it is a request on the critical path of every page.
+  const showsBalance = session.role !== 'bidder';
+
+  // In parallel — neither depends on the other, and the bar is on the critical
+  // path of every page.
   const [invitations, balance] = await Promise.all([
     fetchMyInvitations().catch(() => []),
-    fetchBalance().catch(() => null),
+    showsBalance ? fetchBalance().catch(() => null) : Promise.resolve(null),
   ]);
 
   return (
@@ -46,7 +52,7 @@ export async function Topbar({ session }: { session: Session }) {
 
           <span aria-hidden className="mx-1.5 h-5 w-px bg-[var(--border)]" />
 
-          <BalanceChip balance={balance} />
+          {showsBalance && <BalanceChip balance={balance} />}
           <InboxMenu invitations={invitations} />
 
           <span aria-hidden className="mx-1.5 h-5 w-px bg-[var(--border)]" />

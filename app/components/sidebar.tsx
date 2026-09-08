@@ -141,11 +141,16 @@ export function Sidebar({
           <span className="text-base">🚫</span> Blacklist
         </Link>
 
-        {/* Everyone's own balance and top-ups. Distinct from the super-admin
-            Payments screen below, which is about everybody else's money. */}
-        <Link href="/billing" className={linkCls(pathname.startsWith('/billing'))}>
-          <span className="text-base">💰</span> Billing
-        </Link>
+        {/* Balance and top-ups for whoever PAYS. AI spend is charged to the
+            profile's owner, so a bidder has no balance of their own — showing
+            them a billing page would invite a top-up that buys nothing.
+            Distinct from the super-admin Payments screen below, which is about
+            everybody else's money. */}
+        {role !== 'bidder' && (
+          <Link href="/billing" className={linkCls(pathname.startsWith('/billing'))}>
+            <span className="text-base">💰</span> Billing
+          </Link>
+        )}
 
         <NavGroup
           icon="📊"

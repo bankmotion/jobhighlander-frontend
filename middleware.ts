@@ -46,9 +46,10 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // /profiles, /inbox and /billing are deliberately NOT under /admin — every
-  // signed-in role reaches them, and what they may do there is decided per
-  // profile by the backend, not by this path check.
+  // /profiles and /inbox are deliberately NOT under /admin — every signed-in
+  // role reaches them, and what they may do there is decided per profile by the
+  // backend, not by this path check. /billing is the exception, gated below:
+  // bidders do not pay, so there is nothing there for them.
   //
   // Re-checked on EVERY gated page, not just /admin.
   //
@@ -72,6 +73,17 @@ export async function middleware(req: NextRequest) {
     return res;
   }
   const role = 'role' in check ? check.role : session.role; // offline → trust token
+
+  // Billing belongs to whoever PAYS, and since AI spend is charged to the
+  // profile's owner a bidder has no balance to top up and no statement to read.
+  // Gated here rather than only hidden in the nav: a hidden link is not a
+  // guard, and the page would otherwise render a $0.00 balance and a deposit
+  // address that would take their money for nothing.
+  if (pathname.startsWith('/billing') && role === 'bidder') {
+    const url = req.nextUrl.clone();
+    url.pathname = '/';
+    return NextResponse.redirect(url);
+  }
 
   // /admin/bidders and /admin/templates are open to admins (and super admins):
   // one shares their own profiles, the other shapes their resume output. The
