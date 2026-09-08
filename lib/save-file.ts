@@ -2,6 +2,9 @@
 
 import { writableSaveDir } from './save-dir';
 
+/** Where a file ended up, so the caller can say so if it was not where asked. */
+export type SavedTo = 'folder' | 'downloads';
+
 /**
  * Write a generated file out.
  *
@@ -15,7 +18,7 @@ import { writableSaveDir } from './save-dir';
  * file to a stale preference would be a worse outcome than putting it somewhere
  * predictable.
  */
-export async function saveBlob(blob: Blob, filename: string): Promise<void> {
+export async function saveBlob(blob: Blob, filename: string): Promise<SavedTo> {
   const dir = await writableSaveDir();
   if (dir) {
     try {
@@ -23,7 +26,7 @@ export async function saveBlob(blob: Blob, filename: string): Promise<void> {
       const writable = await file.createWritable();
       await writable.write(blob);
       await writable.close();
-      return;
+      return 'folder';
     } catch {
       // Fall through and download instead.
     }
@@ -42,4 +45,5 @@ export async function saveBlob(blob: Blob, filename: string): Promise<void> {
   // cleanup — a filter toggle unmounts the caller, and tearing the URL down
   // there would kill a download in flight.
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  return 'downloads';
 }

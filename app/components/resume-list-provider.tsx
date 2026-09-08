@@ -32,6 +32,7 @@ import {
 } from '@/lib/resume-runs';
 import { stampLabel, type AiProvider } from '@/lib/ai-providers';
 import { saveBlob } from '@/lib/save-file';
+import { primeSaveDir } from '@/lib/save-dir';
 import { GenerateModal, ProviderBadge } from './generate-modal';
 import { Modal } from './modal';
 import { Toast, useToast } from './toast';
@@ -489,6 +490,13 @@ export function ResumeListProvider({
       const resumeName = `resume_${base}.${MIME_EXT[format]}`;
       const letterName = `cover_${base}.${MIME_EXT[format]}`;
 
+      // Before the render request, while this click is still the browser's
+      // current user activation. Re-granting folder permission after a restart
+      // needs one, and a PDF render takes long enough to spend it — which is
+      // why the first save of a session used to land in Downloads despite a
+      // folder being set.
+      await primeSaveDir();
+
       markDownloading(t.jobId, true);
       try {
         const known = status[t.jobId] ?? getRun(profileId, t.jobId, Date.now())?.status;
@@ -665,6 +673,7 @@ export function ResumeListProvider({
   // behaving differently from the card's is the inconsistency worth removing.
   const savePreviewPdf = useCallback(async () => {
     if (!pdfUrl) return;
+    await primeSaveDir();
     try {
       await saveBlob(await (await fetch(pdfUrl)).blob(), `resume_${fileName}.pdf`);
     } catch {

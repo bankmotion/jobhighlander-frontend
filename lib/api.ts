@@ -2,6 +2,7 @@ import type { Job, JobFilters, Paginated } from './types';
 import type { AppliedFilter, OthersAppliedFilter } from './applications';
 import type { DiscardedFilter } from './discards';
 import type { InterviewFilter } from './interviews';
+import type { ResumeFilter } from './resumes';
 import { getToken } from './auth';
 import { writePosted, type PostedFilter } from './posted';
 import { displayZone } from './zone.server';
@@ -20,6 +21,7 @@ export interface JobQuery {
   othersApplied?: OthersAppliedFilter;
   discarded?: DiscardedFilter;
   interview?: InterviewFilter;
+  resume?: ResumeFilter;
   profileId?: number | null;
   posted?: PostedFilter;
   postedFrom?: string;
@@ -49,6 +51,7 @@ export async function fetchJobs(query: JobQuery = {}): Promise<Paginated<Job>> {
     qs.set('othersApplied', query.othersApplied);
   if (query.discarded && query.discarded !== 'all') qs.set('discarded', query.discarded);
   if (query.interview && query.interview !== 'all') qs.set('interview', query.interview);
+  if (query.resume && query.resume !== 'all') qs.set('resume', query.resume);
   if (query.profileId) qs.set('profileId', String(query.profileId));
   // Posted-date window. 'custom' without either end is dropped by `writePosted`
   // rather than sent as a parameter the server would ignore.

@@ -37,3 +37,14 @@ export async function fetchResumeStatus(
     return {};
   }
 }
+
+/**
+ * Whether a tailored resume has been generated for a job, for the selected
+ * profile. Per profile, like applied, discarded and interview: a resume is
+ * written FROM a profile, so without one selected there is nothing to have
+ * generated and the filter is ignored.
+ */
+export type ResumeFilter = 'all' | 'generated' | 'notgenerated';
+
+export const isResumeFilter = (v: string): v is ResumeFilter =>
+  v === 'all' || v === 'generated' || v === 'notgenerated';

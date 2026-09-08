@@ -6,6 +6,7 @@ import type { JobFilters } from '@/lib/types';
 import type { AppliedFilter, OthersAppliedFilter } from '@/lib/applications';
 import type { DiscardedFilter } from '@/lib/discards';
 import type { InterviewFilter } from '@/lib/interviews';
+import type { ResumeFilter } from '@/lib/resumes';
 import { MultiSelect } from './multi-select';
 import { PostedFilterControl } from './posted-filter';
 import { postedActive, writePosted, type PostedFilter } from '@/lib/posted';
@@ -49,6 +50,7 @@ interface Props {
     othersApplied: OthersAppliedFilter;
     discarded: DiscardedFilter;
     interview: InterviewFilter;
+    resume: ResumeFilter;
     posted: PostedFilter;
     postedFrom: string;
     postedTo: string;
@@ -66,6 +68,15 @@ const INTERVIEW_TABS: { value: InterviewFilter; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'started', label: 'Interviewing' },
   { value: 'notstarted', label: 'No interview' },
+];
+
+//: "Have I already written a resume for this?" Per profile, like the tabs
+//: above, and hidden with no profile selected for the same reason: without one
+//: there is nobody the resume would have been generated for.
+const RESUME_TABS: { value: ResumeFilter; label: string; hint: string }[] = [
+  { value: 'all', label: 'All', hint: 'Every job, resume or not' },
+  { value: 'generated', label: 'Resume ready', hint: 'Only jobs you have generated a resume for' },
+  { value: 'notgenerated', label: 'No resume', hint: 'Only jobs you have not generated a resume for' },
 ];
 
 const APPLIED_TABS: { value: AppliedFilter; label: string }[] = [
@@ -119,8 +130,18 @@ export function siteMeta(s: string) {
 export function FiltersBar({ filters, current, canFilterApplied, canFilterOthersApplied }: Props) {
   const router = useRouter();
 
-  const { sites, remote, applied, othersApplied, discarded, interview, posted, postedFrom, postedTo } =
-    current;
+  const {
+    sites,
+    remote,
+    applied,
+    othersApplied,
+    discarded,
+    interview,
+    resume,
+    posted,
+    postedFrom,
+    postedTo,
+  } = current;
 
   // The date inputs are capped at the viewer's today, not the browser's UTC
   // day: a max of "tomorrow" is offerable in one zone and nonsense in another.
@@ -157,6 +178,7 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
     othersApplied?: OthersAppliedFilter;
     discarded?: DiscardedFilter;
     interview?: InterviewFilter;
+    resume?: ResumeFilter;
     posted?: PostedFilter;
     postedFrom?: string;
     postedTo?: string;
@@ -178,6 +200,8 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
     if (nextDiscarded !== 'all') qs.set('discarded', nextDiscarded); // all is the default
     const nextInterview = next.interview ?? interview;
     if (nextInterview !== 'all') qs.set('interview', nextInterview); // all is the default
+    const nextResume = next.resume ?? resume;
+    if (nextResume !== 'all') qs.set('resume', nextResume); // all is the default
     // Switching AWAY from a custom range drops its dates rather than keeping
     // them primed to reappear the next time Custom is clicked.
     const nextPosted = next.posted ?? posted;
@@ -202,6 +226,7 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
   const selectOthersApplied = (next: OthersAppliedFilter) => navigate({ othersApplied: next });
   const selectDiscarded = (next: DiscardedFilter) => navigate({ discarded: next });
   const selectInterview = (next: InterviewFilter) => navigate({ interview: next });
+  const selectResume = (next: ResumeFilter) => navigate({ resume: next });
   const toggleRemote = () => navigate({ remote: !remote });
 
   function submit(e: React.FormEvent) {
@@ -229,6 +254,7 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
       othersApplied !== 'all' ||
       discarded !== 'all' ||
       interview !== 'all' ||
+      resume !== 'all' ||
       postedActive(posted, postedFrom, postedTo),
   );
 
@@ -400,6 +426,38 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
                 role="radio"
                 aria-checked={on}
                 onClick={() => selectInterview(t.value)}
+                className={`rounded-md px-2.5 py-1.5 text-sm transition ${
+                  on
+                    ? 'bg-[var(--primary)] font-medium text-white'
+                    : 'text-[var(--muted)] hover:text-[var(--text)]'
+                }`}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Gated on a profile, like the tabs above: a resume is generated FROM a
+          profile, so with none selected there is nobody to have generated it
+          and the server ignores the filter anyway. */}
+      {canFilterApplied && (
+        <div
+          role="radiogroup"
+          aria-label="Resume"
+          className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-0.5"
+        >
+          {RESUME_TABS.map((t) => {
+            const on = resume === t.value;
+            return (
+              <button
+                key={t.value}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                title={t.hint}
+                onClick={() => selectResume(t.value)}
                 className={`rounded-md px-2.5 py-1.5 text-sm transition ${
                   on
                     ? 'bg-[var(--primary)] font-medium text-white'

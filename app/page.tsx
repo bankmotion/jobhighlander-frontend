@@ -4,6 +4,7 @@ import { fetchStageTypes } from '@/lib/stage-types.server';
 import { fetchProfiles } from '@/lib/profiles';
 import { fetchPresets } from '@/lib/templates';
 import { fetchResumeStatus } from '@/lib/resumes';
+import { isResumeFilter, type ResumeFilter } from '@/lib/resumes';
 import {
   fetchAppliedStatus,
   fetchCompanyHistory,
@@ -75,6 +76,11 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   // card, not a reason to remove it from the list.
   const interviewParam = str(sp.interview);
   const interview: InterviewFilter = isInterviewFilter(interviewParam) ? interviewParam : 'all';
+  // Defaults to 'all' for the same reason as the rest: a job you have already
+  // written a resume for is still a job, and hiding it by default would make
+  // the board look like it had shrunk.
+  const resumeParam = str(sp.resume);
+  const resume: ResumeFilter = isResumeFilter(resumeParam) ? resumeParam : 'all';
   // When the job was POSTED, not when it was scraped. Defaults to 'all': a list
   // that silently hid older jobs would look like the scrapers had stopped.
   const posted = parsePosted(str(sp.posted));
@@ -117,6 +123,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
     othersApplied,
     discarded,
     interview,
+    resume,
     posted,
     postedFrom,
     postedTo,
@@ -143,6 +150,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
       othersApplied,
       discarded,
       interview,
+      resume,
       posted,
       postedFrom,
       postedTo,

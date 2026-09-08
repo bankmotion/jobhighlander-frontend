@@ -108,6 +108,9 @@ export async function chooseSaveDir(): Promise<string | null> {
   }
   await idb('readwrite', (s) => s.put(handle, KEY));
   saveDirNameStore.set(handle.name);
+  // Settle permission now, while the picker's own activation is live, and hold
+  // the handle so the next download does not have to ask anything at all.
+  cached = (await permitted(handle)) ? handle : null;
   return handle.name;
 }
 
@@ -115,30 +118,76 @@ export async function chooseSaveDir(): Promise<string | null> {
 export async function clearSaveDir(): Promise<void> {
   await idb('readwrite', (s) => s.delete(KEY));
   saveDirNameStore.set(null);
+  cached = null;
 }
 
 /**
- * The chosen folder, if it is still usable.
+ * Resolved handle for this page's lifetime.
  *
- * Permission does not survive a browser restart, so a stored handle can come
- * back needing it again. `requestPermission` needs user activation — every
- * download but the automatic post-generation one has it, and that one simply
- * falls through to the Downloads folder rather than failing.
+ * `undefined` means "not looked yet", `null` means "looked and there is none".
+ * Cached because permission only needs establishing once per page: re-asking on
+ * every download would re-prompt, and re-reading IndexedDB would put an async
+ * hop in front of every save for an answer that cannot have changed.
+ */
+let cached: DirHandle | null | undefined;
+
+async function permitted(handle: DirHandle): Promise<boolean> {
+  const opts = { mode: 'readwrite' } as const;
+  const query = handle.queryPermission?.bind(handle);
+  const request = handle.requestPermission?.bind(handle);
+
+  // No permission API on this handle. Assume the write is allowed and let it
+  // fail if it is not — treating "cannot ask" as "denied" silently disables the
+  // chosen folder on any browser that does not expose these methods, which is a
+  // worse answer than simply trying.
+  if (!query && !request) return true;
+
+  try {
+    if (query && (await query(opts)) === 'granted') return true;
+    if (request && (await request(opts)) === 'granted') return true;
+  } catch {
+    // Usually "requires user activation" — the caller asked at a moment with
+    // none left. Not a permanent no.
+  }
+  return false;
+}
+
+/**
+ * Establish the folder while a click is still the current user activation.
+ *
+ * Call this at the START of a download, BEFORE any fetch. Permission does not
+ * survive a browser restart, and re-granting it needs activation — which a
+ * render round trip of several seconds has already spent. Priming here is what
+ * makes a chosen folder survive a reload instead of quietly reverting to
+ * Downloads on the first save of every session.
+ *
+ * Safe to call repeatedly; after the first success it is a no-op.
+ */
+export async function primeSaveDir(): Promise<void> {
+  if (cached) return;
+  const handle = await storedHandle();
+  if (!handle) {
+    cached = null;
+    return;
+  }
+  cached = (await permitted(handle)) ? handle : null;
+}
+
+/**
+ * The chosen folder, if it is usable right now.
  *
  * A folder that has been deleted, or whose permission is refused, resolves to
  * null so the caller saves to Downloads instead of losing the file.
  */
 export async function writableSaveDir(): Promise<DirHandle | null> {
-  const handle = await storedHandle();
-  if (!handle) return null;
-  try {
-    const opts = { mode: 'readwrite' } as const;
-    if ((await handle.queryPermission?.(opts)) === 'granted') return handle;
-    if ((await handle.requestPermission?.(opts)) === 'granted') return handle;
-    return null;
-  } catch {
-    return null;
-  }
+  if (cached !== undefined) return cached;
+  await primeSaveDir();
+  return cached ?? null;
+}
+
+/** True when a folder is configured, whether or not it is currently usable. */
+export async function hasSaveDir(): Promise<boolean> {
+  return (await storedHandle()) !== null;
 }
 
 /** The current folder name for display. Empty string means the Downloads folder. */

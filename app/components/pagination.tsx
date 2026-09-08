@@ -1,6 +1,7 @@
 import type { AppliedFilter, OthersAppliedFilter } from '@/lib/applications';
 import type { DiscardedFilter } from '@/lib/discards';
 import type { InterviewFilter } from '@/lib/interviews';
+import type { ResumeFilter } from '@/lib/resumes';
 import Link from 'next/link';
 import type { Pagination as PaginationInfo } from '@/lib/types';
 import { writePosted, type PostedFilter } from '@/lib/posted';
@@ -19,6 +20,7 @@ interface Props {
     othersApplied?: OthersAppliedFilter;
     discarded?: DiscardedFilter;
     interview?: InterviewFilter;
+    resume?: ResumeFilter;
     posted?: PostedFilter;
     postedFrom?: string;
     postedTo?: string;
@@ -46,6 +48,7 @@ function href(page: number, query: Props['query']): string {
   // Was missing: paging used to drop the interview filter and quietly widen the
   // list, which read as page 2 containing jobs page 1 had excluded.
   if (query.interview && query.interview !== 'all') qs.set('interview', query.interview);
+  if (query.resume && query.resume !== 'all') qs.set('resume', query.resume);
   // Same reasoning as the filters above: paging must not widen the date window
   // back to every job ever posted.
   writePosted(qs, query.posted ?? 'all', query.postedFrom ?? '', query.postedTo ?? '');

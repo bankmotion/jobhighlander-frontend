@@ -6,6 +6,7 @@ import type { Preset } from '@/lib/templates';
 import { stampLabel, type AiProvider, type ProviderStamp } from '@/lib/ai-providers';
 import { GenerateModal, ProviderBadge } from './generate-modal';
 import { saveBlob } from '@/lib/save-file';
+import { primeSaveDir } from '@/lib/save-dir';
 import { Toast, useToast } from './toast';
 
 interface Flagged {
@@ -283,6 +284,8 @@ export function ResumeGenerator({
   }
 
   async function downloadDocx(forResume: TailoredResume, forProfileId: number, forTemplate?: string) {
+    // While the click still counts as user activation -- see `primeSaveDir`.
+    await primeSaveDir();
     setDocxLoading(true);
     try {
       const res = await fetch('/api/resumes/docx', {
@@ -313,6 +316,7 @@ export function ResumeGenerator({
   // browser's Downloads folder and cannot honour a chosen one.
   async function downloadPdf() {
     if (!pdfUrl) return;
+    await primeSaveDir();
     try {
       await saveBlob(await (await fetch(pdfUrl)).blob(), fileName);
     } catch {
