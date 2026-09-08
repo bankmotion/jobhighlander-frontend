@@ -202,7 +202,15 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
 
       <JobFiltersRestore profileId={profileId} />
 
-      <FiltersBar filters={filters} current={query} canFilterApplied={Boolean(profileId)} />
+      <FiltersBar
+        filters={filters}
+        current={query}
+        canFilterApplied={Boolean(profileId)}
+        // Board-wide "who else applied" is super-admin territory, same as the
+        // badge on the cards. The API enforces it too; this just stops offering
+        // a control that would come back unfiltered.
+        canFilterOthersApplied={session?.role === 'super_admin'}
+      />
 
       {error ? (
         <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">

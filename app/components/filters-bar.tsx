@@ -35,6 +35,8 @@ const FIELD_INPUTS: { key: TextKey; placeholder: string; label: string; width: s
 
 interface Props {
   filters: JobFilters;
+  /** Super admins only — see the render site for why. */
+  canFilterOthersApplied?: boolean;
   current: {
     company: string;
     title: string;
@@ -114,7 +116,7 @@ export function siteMeta(s: string) {
   );
 }
 
-export function FiltersBar({ filters, current, canFilterApplied }: Props) {
+export function FiltersBar({ filters, current, canFilterApplied, canFilterOthersApplied }: Props) {
   const router = useRouter();
 
   const { sites, remote, applied, othersApplied, discarded, interview, posted, postedFrom, postedTo } =
@@ -317,34 +319,43 @@ export function FiltersBar({ filters, current, canFilterApplied }: Props) {
         </div>
       )}
 
-      {/* Not gated on a selected profile: with none chosen it still answers
-          "has anybody applied to this", which is useful on its own. */}
-      <div
-        role="radiogroup"
-        aria-label="Applied by another candidate"
-        className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-0.5"
-      >
-        {OTHERS_APPLIED_TABS.map((t) => {
-          const on = othersApplied === t.value;
-          return (
-            <button
-              key={t.value}
-              type="button"
-              role="radio"
-              aria-checked={on}
-              title={t.hint}
-              onClick={() => selectOthersApplied(t.value)}
-              className={`rounded-md px-2.5 py-1.5 text-sm transition ${
-                on
-                  ? 'bg-[var(--primary)] font-medium text-white'
-                  : 'text-[var(--muted)] hover:text-[var(--text)]'
-              }`}
-            >
-              {t.label}
-            </button>
-          );
-        })}
-      </div>
+      {/* Super admins only, matching the "N profiles applied" badge. The
+          question spans every profile on the board, including ones the viewer
+          cannot see, so answering it for a bidder would tell them about other
+          people's activity through a control rather than a label. The server
+          applies the same rule, so this is the visible half of one gate and not
+          the whole of it.
+
+          Not gated on a selected profile, though: with none chosen it still
+          answers "has anybody applied to this", which is useful on its own. */}
+      {canFilterOthersApplied && (
+        <div
+          role="radiogroup"
+          aria-label="Applied by another candidate"
+          className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-0.5"
+        >
+          {OTHERS_APPLIED_TABS.map((t) => {
+            const on = othersApplied === t.value;
+            return (
+              <button
+                key={t.value}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                title={t.hint}
+                onClick={() => selectOthersApplied(t.value)}
+                className={`rounded-md px-2.5 py-1.5 text-sm transition ${
+                  on
+                    ? 'bg-[var(--primary)] font-medium text-white'
+                    : 'text-[var(--muted)] hover:text-[var(--text)]'
+                }`}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {canFilterApplied && (
         <div
