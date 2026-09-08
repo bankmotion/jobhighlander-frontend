@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { LogoutButton } from './logout-button';
 import { TimezonePicker } from './timezone-picker';
 import { ProviderSwitch } from './provider-switch';
+import { SaveLocation } from './save-location';
 import type { Session } from '@/lib/session';
 
 const ROLE_BADGE: Record<string, string> = {
@@ -116,6 +117,13 @@ export function AccountMenu({ session }: { session: Session }) {
               AI provider
             </span>
             <ProviderSwitch />
+          </div>
+
+          <div className="border-b border-[var(--border)] px-4 py-3">
+            <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
+              Downloads
+            </span>
+            <SaveLocation />
           </div>
 
           <div className="px-4 py-3">

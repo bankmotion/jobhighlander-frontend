@@ -31,6 +31,7 @@ import {
   type Run,
 } from '@/lib/resume-runs';
 import { stampLabel, type AiProvider } from '@/lib/ai-providers';
+import { saveBlob } from '@/lib/save-file';
 import { GenerateModal, ProviderBadge } from './generate-modal';
 import { Modal } from './modal';
 import { Toast, useToast } from './toast';
@@ -73,23 +74,6 @@ type ResumeDoc = Record<string, unknown>;
 export type ResumeFormat = 'pdf' | 'docx';
 
 const MIME_EXT: Record<ResumeFormat, string> = { pdf: 'pdf', docx: 'docx' };
-
-// Shared by the resume and the letter so the two files are saved the same way.
-function saveBlob(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  // Appended before clicking: a detached anchor is ignored by Firefox.
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  // Revoking on the next line cancels the save in Firefox and Safari, which
-  // read the blob asynchronously after the click. A plain timer, not an effect
-  // cleanup — a filter toggle unmounts this provider, and tearing the URL down
-  // there would kill a download in flight.
-  setTimeout(() => URL.revokeObjectURL(url), 60_000);
-}
 
 function fileNameFor(t: ResumeTarget): string {
   return (
@@ -500,6 +484,11 @@ export function ResumeListProvider({
   const download = useCallback(
     async (t: ResumeTarget, format: ResumeFormat = 'pdf') => {
       if (!profileId || downloadingRef.current.has(t.jobId)) return;
+
+      const base = fileNameFor(t);
+      const resumeName = `resume_${base}.${MIME_EXT[format]}`;
+      const letterName = `cover_${base}.${MIME_EXT[format]}`;
+
       markDownloading(t.jobId, true);
       try {
         const known = status[t.jobId] ?? getRun(profileId, t.jobId, Date.now())?.status;
@@ -533,7 +522,7 @@ export function ResumeListProvider({
           return;
         }
 
-        saveBlob(await res.blob(), `resume_${fileNameFor(t)}.${MIME_EXT[format]}`);
+        await saveBlob(await res.blob(), resumeName);
 
         // The cover letter follows in the same format, so one click yields the
         // pair that gets sent together.
@@ -556,7 +545,9 @@ export function ResumeListProvider({
           });
           const letterRes = await fetch(`/api/cover-letters/${format}?${qs}`);
           if (letterRes.ok && letterRes.status !== 204) {
-            saveBlob(await letterRes.blob(), `cover_${fileNameFor(t)}.${MIME_EXT[format]}`);
+            // Into the same folder as the resume, which is the point of the
+            // pair travelling together.
+            await saveBlob(await letterRes.blob(), letterName);
           } else if (letterRes.status !== 204) {
             const err = await letterRes.json().catch(() => null);
             show(
@@ -668,6 +659,19 @@ export function ResumeListProvider({
 
   const fileName = target ? fileNameFor(target) : 'resume';
 
+  // The preview already holds the rendered PDF, so this saves that blob rather
+  // than asking the server to render it again. A button, not an <a download>:
+  // an anchor cannot offer a Save As dialog, and the panel's download
+  // behaving differently from the card's is the inconsistency worth removing.
+  const savePreviewPdf = useCallback(async () => {
+    if (!pdfUrl) return;
+    try {
+      await saveBlob(await (await fetch(pdfUrl)).blob(), `resume_${fileName}.pdf`);
+    } catch {
+      show('Could not save the PDF.', 'error');
+    }
+  }, [fileName, pdfUrl, show]);
+
   return (
     <ResumeCtx.Provider value={ctx}>
       {children}
@@ -739,13 +743,13 @@ export function ResumeListProvider({
               </button>
             )}
             {pdfUrl && (
-              <a
-                href={pdfUrl}
-                download={`${fileName}.pdf`}
+              <button
+                type="button"
+                onClick={() => void savePreviewPdf()}
                 className="rounded-lg bg-[var(--primary)] px-3 py-1.5 text-sm font-medium text-white transition hover:bg-[var(--primary-hover)]"
               >
                 Download PDF
-              </a>
+              </button>
             )}
             {target && (
               <button
@@ -893,13 +897,13 @@ export function ResumeListProvider({
               />
               <p className="mt-2 text-xs text-[var(--muted)]">
                 Not showing?{' '}
-                <a
-                  href={pdfUrl}
-                  download={`${fileName}.pdf`}
+                <button
+                  type="button"
+                  onClick={() => void savePreviewPdf()}
                   className="underline hover:text-white"
                 >
                   Download the PDF instead.
-                </a>
+                </button>
                 {target && (
                   <>
                     {' · '}

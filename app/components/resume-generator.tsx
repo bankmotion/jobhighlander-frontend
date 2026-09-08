@@ -5,6 +5,7 @@ import type { ProfileSummary } from '@/lib/types';
 import type { Preset } from '@/lib/templates';
 import { stampLabel, type AiProvider, type ProviderStamp } from '@/lib/ai-providers';
 import { GenerateModal, ProviderBadge } from './generate-modal';
+import { saveBlob } from '@/lib/save-file';
 import { Toast, useToast } from './toast';
 
 interface Flagged {
@@ -299,18 +300,23 @@ export function ResumeGenerator({
         setError(data?.error ?? 'Could not render the Word file (' + res.status + ')');
         return;
       }
-      const url = URL.createObjectURL(await res.blob());
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = docxFileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
+      await saveBlob(await res.blob(), docxFileName);
     } catch {
       setError('Could not render the Word file.');
     } finally {
       setDocxLoading(false);
+    }
+  }
+
+  // Saves the blob the preview is already showing rather than re-rendering it.
+  // A button rather than an <a download>, because an anchor always goes to the
+  // browser's Downloads folder and cannot honour a chosen one.
+  async function downloadPdf() {
+    if (!pdfUrl) return;
+    try {
+      await saveBlob(await (await fetch(pdfUrl)).blob(), fileName);
+    } catch {
+      setError('Could not save the PDF.');
     }
   }
 
@@ -484,13 +490,13 @@ export function ResumeGenerator({
                 <iframe src={pdfUrl} title="Resume preview" className="block h-[560px] w-full" />
 
                 <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-end p-3 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
-                  <a
-                    href={pdfUrl}
-                    download={fileName}
+                  <button
+                    type="button"
+                    onClick={() => void downloadPdf()}
                     className="pointer-events-auto inline-flex items-center gap-1.5 rounded-lg bg-[var(--primary)] px-3 py-1.5 text-sm font-medium text-white shadow-lg transition hover:bg-[var(--primary-hover)] focus:opacity-100"
                   >
                     Download PDF <span aria-hidden>↓</span>
-                  </a>
+                  </button>
                   <button
                     type="button"
                     onClick={() => downloadDocx(resume, Number(profileId), savedTemplateKey ?? undefined)}
