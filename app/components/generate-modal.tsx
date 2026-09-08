@@ -5,6 +5,8 @@ import {
   loadProviders,
   type AiProvider,
   type ProviderInfo,
+  recommendProvider,
+  timesLabel,
 } from '@/lib/ai-providers';
 import {
   autoProvider,
@@ -134,6 +136,10 @@ export function GenerateModal({
   }
 
   const usable = (providers ?? []).filter((p) => p.enabled);
+  // Which provider to steer people to, and by how much — derived from the
+  // rates the server reports rather than hardcoded, so it stays true if the
+  // pricing or the markups change.
+  const tip = providers ? recommendProvider(providers) : null;
   const ready = chosen != null && !busy;
 
   function confirm() {
@@ -236,6 +242,7 @@ export function GenerateModal({
             <div className="grid gap-2 sm:grid-cols-2">
               {providers.map((p) => {
                 const selected = chosen === p.id;
+                const recommended = tip?.id === p.id;
                 return (
                   <button
                     key={p.id}
@@ -251,9 +258,29 @@ export function GenerateModal({
                     }`}
                   >
                     <span className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-white">{p.label}</span>
-                      {selected && <span className="text-xs text-[var(--primary)]">Selected</span>}
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <span className="font-semibold text-white">{p.label}</span>
+                        {recommended && (
+                          <span
+                            title={`About ${timesLabel(tip!.timesCheaper)} cheaper per generation than the alternative, at the rates you are billed`}
+                            className="shrink-0 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[11px] font-semibold text-emerald-300 ring-1 ring-inset ring-emerald-400/30"
+                          >
+                            Recommended
+                          </span>
+                        )}
+                      </span>
+                      {selected && (
+                        <span className="shrink-0 text-xs text-[var(--primary)]">Selected</span>
+                      )}
                     </span>
+                    {recommended && (
+                      // The REASON, not just the label: "recommended" with no
+                      // grounds is an instruction, and the reader is the one
+                      // paying for the call.
+                      <span className="mt-0.5 block text-xs text-emerald-300/80">
+                        ~{timesLabel(tip!.timesCheaper)} cheaper per generation
+                      </span>
+                    )}
                     {/* Neither the model id nor the per-token price is shown.
                         Both are implementation detail the reader did not choose
                         and cannot act on at this moment — the engine changes

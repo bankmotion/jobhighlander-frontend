@@ -98,6 +98,63 @@ export function priceHint(p: ProviderInfo): string | null {
 }
 
 /**
+ * The shape of a typical generation, used to compare providers.
+ *
+ * Taken from what real calls actually look like on this deployment — a resume
+ * plus cover letter runs roughly 6k tokens in and 3k out. It matters that
+ * OUTPUT is weighted heavily: output is where the vendors differ most, and
+ * comparing input rates alone would understate the gap by a wide margin.
+ */
+const TYPICAL_INPUT_TOKENS = 6_000;
+const TYPICAL_OUTPUT_TOKENS = 3_200;
+
+/** What one typical generation costs with this provider, or null if unpriced. */
+function typicalCost(p: ProviderInfo): number | null {
+  if (p.inputPerMTok == null || p.outputPerMTok == null) return null;
+  return (
+    (TYPICAL_INPUT_TOKENS * p.inputPerMTok + TYPICAL_OUTPUT_TOKENS * p.outputPerMTok) / 1_000_000
+  );
+}
+
+export interface Recommendation {
+  id: AiProvider;
+  /** How many times cheaper than the next-cheapest usable provider. */
+  timesCheaper: number;
+}
+
+/**
+ * Which provider to recommend, and by how much — worked out from the rates the
+ * server reports, never hardcoded.
+ *
+ * Those rates are what this deployment BILLS (list price times its markup), so
+ * the multiple is the one the reader actually pays, not the vendors' list-price
+ * difference. If the markups change so that Claude becomes the cheaper choice,
+ * this follows; a badge that always said "OpenAI" would quietly become a lie.
+ *
+ * Returns null when there is nothing useful to say: fewer than two usable
+ * providers, missing rates, or a gap too small to be worth a badge. Below that
+ * threshold the recommendation is noise, and noise on a paid action costs more
+ * attention than it saves money.
+ */
+export function recommendProvider(providers: ProviderInfo[]): Recommendation | null {
+  const priced = providers
+    .filter((p) => p.enabled)
+    .map((p) => ({ p, cost: typicalCost(p) }))
+    .filter((x): x is { p: ProviderInfo; cost: number } => x.cost != null && x.cost > 0)
+    .sort((a, b) => a.cost - b.cost);
+  if (priced.length < 2) return null;
+
+  const ratio = priced[1].cost / priced[0].cost;
+  if (ratio < 1.25) return null;
+  return { id: priced[0].p.id, timesCheaper: ratio };
+}
+
+/** "4x" / "1.5x" — trimmed so a whole multiple does not read as "4.0x". */
+export function timesLabel(times: number): string {
+  return `${times >= 10 ? Math.round(times) : Number(times.toFixed(1))}x`;
+}
+
+/**
  * The badge for an already-generated document: the PROVIDER only.
  *
  * The model id used to be appended ("OpenAI · gpt-5.6-luna"). It is deliberately
