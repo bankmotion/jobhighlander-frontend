@@ -531,11 +531,14 @@ export function ResumeListProvider({
         }
 
         const savedTo = await saveBlob(await res.blob(), resumeName);
-        // Silence here would be the worst outcome: the file exists, just not
-        // where it was asked to go, and nothing would ever say so. The reason
-        // is included because "it did not work" is not something anyone can act
-        // on, and the browser already knows exactly what went wrong.
-        if (savedTo.to === 'downloads' && saveDirConfigured()) {
+        // Both outcomes are announced, not just the failure. A folder write
+        // paints no browser download UI at all — no shelf, no tray — so a
+        // silent success is indistinguishable from nothing having happened.
+        if (savedTo.to === 'folder') {
+          show(`Resume saved to "${savedTo.folder}"`);
+        } else if (saveDirConfigured()) {
+          // The reason is included because "it did not work" is not something
+          // anyone can act on, and the browser knows exactly what went wrong.
           show(`Saved to Downloads — ${savedTo.error ?? 'the chosen folder was not writable'}`, 'error');
         }
 
@@ -563,7 +566,9 @@ export function ResumeListProvider({
             // Into the same folder as the resume, which is the point of the
             // pair travelling together.
             const letterTo = await saveBlob(await letterRes.blob(), letterName);
-            if (letterTo.to === 'downloads' && saveDirConfigured()) {
+            if (letterTo.to === 'folder') {
+              show(`Resume and cover letter saved to "${letterTo.folder}"`);
+            } else if (saveDirConfigured()) {
               show(
                 `Cover letter saved to Downloads — ${letterTo.error ?? 'the chosen folder was not writable'}`,
                 'error',
@@ -689,7 +694,9 @@ export function ResumeListProvider({
     await primeSaveDir();
     try {
       const out = await saveBlob(await (await fetch(pdfUrl)).blob(), `resume_${fileName}.pdf`);
-      if (out.to === 'downloads' && saveDirConfigured()) {
+      if (out.to === 'folder') {
+        show(`Resume saved to "${out.folder}"`);
+      } else if (saveDirConfigured()) {
         show(`Saved to Downloads — ${out.error ?? 'the chosen folder was not writable'}`, 'error');
       }
     } catch {

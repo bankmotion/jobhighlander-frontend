@@ -304,7 +304,8 @@ export function ResumeGenerator({
         return;
       }
       const out = await saveBlob(await res.blob(), docxFileName);
-      if (out.to === 'downloads' && out.error) setError(`Saved to Downloads — ${out.error}`);
+      if (out.to === 'folder') show(`Word file saved to "${out.folder}"`);
+      else if (out.error) setError(`Saved to Downloads — ${out.error}`);
     } catch {
       setError('Could not render the Word file.');
     } finally {
@@ -320,7 +321,8 @@ export function ResumeGenerator({
     await primeSaveDir();
     try {
       const out = await saveBlob(await (await fetch(pdfUrl)).blob(), fileName);
-      if (out.to === 'downloads' && out.error) setError(`Saved to Downloads — ${out.error}`);
+      if (out.to === 'folder') show(`PDF saved to "${out.folder}"`);
+      else if (out.error) setError(`Saved to Downloads — ${out.error}`);
     } catch {
       setError('Could not save the PDF.');
     }

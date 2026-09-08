@@ -8,6 +8,13 @@ export type SavedTo = 'folder' | 'downloads';
 export interface SaveOutcome {
   to: SavedTo;
   /**
+   * The chosen folder's name when the file went there. Callers put it in the
+   * success toast, because a folder write paints NO browser download UI — no
+   * shelf, no tray — so without the app saying so, a successful save is
+   * indistinguishable from nothing having happened.
+   */
+  folder?: string;
+  /**
    * Why the chosen folder was not used, verbatim from the browser.
    *
    * Carried rather than swallowed because this failure is otherwise invisible:
@@ -60,7 +67,7 @@ export async function saveBlob(blob: Blob, filename: string): Promise<SaveOutcom
   if (dir) {
     try {
       await writeInto(dir, filename, blob);
-      return { to: 'folder' };
+      return { to: 'folder', folder: dir.name };
     } catch (err) {
       // Named, then fall through and download. Which call failed matters:
       // getFileHandle rejects an unusable NAME, createWritable an unusable
@@ -76,7 +83,7 @@ export async function saveBlob(blob: Blob, filename: string): Promise<SaveOutcom
           const fresh = await writableSaveDir();
           if (fresh) {
             await writeInto(fresh, filename, blob);
-            return { to: 'folder' };
+            return { to: 'folder', folder: fresh.name };
           }
         } catch (retryErr) {
           error = `${error} (retry: ${describe(retryErr)})`;
