@@ -283,6 +283,11 @@ export function ResumeListProvider({
   // rather than state: nothing renders from it, and a re-render per request
   // would restart the effects below.
   const cancellersRef = useRef<Map<string, AbortController>>(new Map());
+
+  // Points at `download`, which is defined below because it depends on state
+  // declared there. Held in a ref so the generation path — which runs minutes
+  // after this render — calls the current one rather than a stale closure.
+  const downloadRef = useRef<((t: ResumeTarget, format?: ResumeFormat) => void) | null>(null);
   useEffect(() => {
     targetRef.current = target;
   }, [target]);
@@ -373,6 +378,19 @@ export function ResumeListProvider({
 
         finishRun(profileId, t.jobId, st);
         if (mountedRef.current) setStatus((prev) => ({ ...prev, [t.jobId]: st }));
+
+        // Save the pair as soon as they exist. Generating and then downloading
+        // was always two steps for one intention — nobody pays for a tailored
+        // resume in order to leave it on the server.
+        //
+        // Through a ref because `download` is defined below this and closes over
+        // state that moves; the ref is always the current one. Not awaited: the
+        // render round trip must not hold up showing the finished document, and
+        // `download` reports its own failures.
+        //
+        // PDF, matching the card's primary download button. Both files come out
+        // of one call — `download` fetches the cover letter itself.
+        void downloadRef.current?.(t);
 
         if (targetRef.current?.jobId === t.jobId) {
           await renderPdf(data as ResumeDoc, profileId, st.templateKey || undefined);
@@ -558,6 +576,13 @@ export function ResumeListProvider({
     },
     [loadDoc, markDownloading, profileId, show, status],
   );
+
+  // In an effect, not inline: writing a ref during render is what the rule
+  // about it warns against. Generation takes tens of seconds, so the effect has
+  // long since run by the time the ref is read.
+  useEffect(() => {
+    downloadRef.current = download;
+  }, [download]);
 
   const close = useCallback(() => {
     // Closing mid-generation cancels it. Waiting on a result nobody is going to
