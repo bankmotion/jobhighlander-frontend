@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { fetchSharedProfiles } from '@/lib/profiles';
 import { BiddersManager } from '@/app/components/bidders-manager';
+import { CreateBidder } from '@/app/components/create-bidder';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,11 @@ export default async function BiddersPage() {
         Invite someone by email to use one of your profiles — a bidder, another admin, or a super
         admin. They can view it and generate resumes from it; only you can edit it.
       </p>
+
+      {/* Creating an account and sharing a profile with them are two steps of
+          the same job, so they live on one page. Shown even with no profiles —
+          the account is useful before there is anything to share. */}
+      <CreateBidder />
 
       {profiles.length === 0 ? (
         <div className="rounded-xl border border-dashed border-[var(--border-strong)] p-10 text-center text-sm text-[var(--muted)]">
