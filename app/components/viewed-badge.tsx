@@ -17,10 +17,13 @@ function when(ms: number): string {
 /**
  * "Viewed" — this reader has already worked on this posting.
  *
- * Built to the same shape as `AppliedBadge` so the two read as one family, but
- * deliberately slate rather than emerald: applying is an achievement and having
- * already looked at something is not, so it gets the presence without the
- * celebration. Down a list of cards the hue is what separates them at a glance.
+ * Same family as `AppliedBadge` — gradient fill, inset ring, sheen on hover —
+ * but a single compact line rather than that badge's stacked two. Applying is
+ * an achievement and having already looked at something is not, so this one
+ * takes the styling without the footprint: slate instead of emerald, one row
+ * instead of two, and no minimum width. That floor exists on the applied badge
+ * to stop a column of them shifting width as names change length; here the
+ * content is always "Viewed" plus a short age, so there is nothing to steady.
  *
  * Purely local to this browser. It answers "have I read this", not "has anyone
  * applied" — which is what `AppliedCountBadge` is for, and why that one is
@@ -36,8 +39,8 @@ export function ViewedBadge({ jobId, size = 'sm' }: { jobId: number; size?: 'sm'
   return (
     <span
       title={`You last worked on this on ${new Date(at).toLocaleString()}`}
-      className={`jh-badge relative isolate inline-flex items-center overflow-hidden whitespace-nowrap rounded-full bg-gradient-to-br from-slate-500 via-slate-600 to-slate-700 text-white ring-1 ring-inset ring-white/25 shadow-[0_1px_0_0_rgba(255,255,255,0.25)_inset,0_4px_16px_-4px_rgba(100,116,139,0.7)] ${
-        lg ? 'min-w-[11rem] gap-3.5 py-2 pl-2.5 pr-6' : 'min-w-[9.5rem] gap-3 py-1.5 pl-2 pr-5'
+      className={`jh-badge relative isolate inline-flex items-center overflow-hidden whitespace-nowrap rounded-full bg-gradient-to-br from-slate-500 via-slate-600 to-slate-700 text-white ring-1 ring-inset ring-white/25 shadow-[0_1px_0_0_rgba(255,255,255,0.25)_inset,0_2px_8px_-3px_rgba(100,116,139,0.7)] ${
+        lg ? 'gap-1.5 px-2.5 py-1 text-xs' : 'gap-1 px-2 py-0.5 text-[11px]'
       }`}
     >
       <span
@@ -46,22 +49,13 @@ export function ViewedBadge({ jobId, size = 'sm' }: { jobId: number; size?: 'sm'
       />
 
       <ViewedSeal
-        className={`jh-badge-seal relative shrink-0 text-white drop-shadow-[0_1px_1px_rgba(15,23,42,0.45)] ${
-          lg ? 'h-9 w-9' : 'h-8 w-8'
-        }`}
+        className={`jh-badge-seal relative shrink-0 text-white ${lg ? 'h-4 w-4' : 'h-3.5 w-3.5'}`}
       />
 
-      {/* Two stacked lines, as on the applied badge: the label above its own
-          metadata is the reading order, and it fills the height honestly
-          rather than padding an empty pill. */}
-      <span className="relative flex flex-col leading-tight">
-        <span className={`font-extrabold uppercase tracking-wider ${lg ? 'text-sm' : 'text-[13px]'}`}>
-          Viewed
-        </span>
-        <span className={`font-medium text-white/85 ${lg ? 'text-xs' : 'text-[11px]'}`}>
-          {when(at)}
-        </span>
-      </span>
+      <span className="relative font-semibold">Viewed</span>
+      {/* The age sits inline and lighter: useful when scanning, but never the
+          part being read first. */}
+      <span className="relative font-medium text-white/70">{when(at)}</span>
     </span>
   );
 }
