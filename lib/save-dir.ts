@@ -147,6 +147,21 @@ export async function chooseSaveDir(): Promise<ChooseResult> {
     return { ok: false, reason: 'cancelled' };
   }
 
+  // A drive root reports an empty or separator-only name. On Windows, Chrome
+  // refuses to write to drive roots and system locations, and that refusal does
+  // not surface until a save is attempted — so it is caught here, where it can
+  // still be acted on, instead of every download quietly going elsewhere.
+  //
+  // Checked BEFORE anything is stored. Rejecting a folder after persisting it
+  // would leave the menu naming a folder the user was just told is unusable.
+  if (!handle.name || /^[\\/]+$/.test(handle.name) || /^[A-Za-z]:[\\/]?$/.test(handle.name)) {
+    return {
+      ok: false,
+      reason: 'failed',
+      detail: 'That is a drive root, and Chrome will not save there. Pick a folder inside it — D:/resume rather than D:/.',
+    };
+  }
+
   // Settle permission while the picker's own activation is live.
   if (!(await permitted(handle))) {
     return { ok: false, reason: 'failed', detail: 'Permission to write to that folder was refused.' };
@@ -168,20 +183,7 @@ export async function chooseSaveDir(): Promise<ChooseResult> {
   }
 
   cached = handle;
-  // A drive root reports an empty or separator-only name. Chromium restricts
-  // writing to drive roots and system locations, and the restriction does not
-  // show up until a save is attempted -- so say it here, where it can still be
-  // acted on, rather than letting every download quietly go elsewhere.
-  const looksLikeRoot = !handle.name || /^[\\/]+$/.test(handle.name) || /^[A-Za-z]:[\\/]?$/.test(handle.name);
-  saveDirNameStore.set(handle.name || 'drive root');
-  if (looksLikeRoot) {
-    return {
-      ok: false,
-      reason: 'failed',
-      detail:
-        'That looks like a drive root. Chrome does not allow saving there — pick a normal folder such as Documents/Resumes.',
-    };
-  }
+  saveDirNameStore.set(handle.name);
   return { ok: true, name: handle.name };
 }
 
