@@ -32,7 +32,12 @@ interface PermissionCapable {
 export interface DirHandle extends PermissionCapable {
   name: string;
   getFileHandle(name: string, opts?: { create?: boolean }): Promise<{
-    createWritable(): Promise<{ write(data: Blob): Promise<void>; close(): Promise<void> }>;
+    createWritable(): Promise<{
+      write(data: Blob): Promise<void>;
+      close(): Promise<void>;
+      /** Discards the swap file a failed write leaves behind. */
+      abort(): Promise<void>;
+    }>;
   }>;
 }
 

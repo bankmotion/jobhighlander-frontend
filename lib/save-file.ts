@@ -44,8 +44,23 @@ const isStale = (err: unknown): boolean =>
 async function writeInto(dir: DirHandle, filename: string, blob: Blob): Promise<void> {
   const file = await dir.getFileHandle(filename, { create: true });
   const writable = await file.createWritable();
-  await writable.write(blob);
-  await writable.close();
+  try {
+    await writable.write(blob);
+    await writable.close();
+  } catch (err) {
+    // Chromium writes into a `name.crswap` swap file and only swaps it into
+    // place on close(). Throwing between createWritable and close leaves that
+    // swap file ON DISK, in the user's own folder — which is how a failed save
+    // was littering visible .crswap junk next to their resumes. abort()
+    // discards it.
+    try {
+      await writable.abort();
+    } catch {
+      // Aborting a stream the error already closed throws; the swap is gone
+      // either way.
+    }
+    throw err;
+  }
 }
 
 /**
