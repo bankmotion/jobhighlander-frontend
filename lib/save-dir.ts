@@ -186,10 +186,15 @@ export async function clearSaveDir(): Promise<void> {
 /**
  * Resolved handle for this page's lifetime.
  *
- * `undefined` means "not looked yet", `null` means "looked and there is none".
- * Cached because permission only needs establishing once per page: re-asking on
- * every download would re-prompt, and re-reading IndexedDB would put an async
- * hop in front of every save for an answer that cannot have changed.
+ * `undefined` = not looked yet. `null` = there is genuinely no folder stored.
+ * A handle = usable, permission settled.
+ *
+ * Crucially, "the folder exists but permission could not be obtained just now"
+ * is NOT cached, because that answer expires. The automatic save after a
+ * generation runs with no user activation, so it cannot request permission —
+ * caching its failure as `null` disabled the chosen folder for the rest of the
+ * page, and every later click went to Downloads while the Test button, which
+ * does not read this cache, still reported success.
  */
 let cached: DirHandle | null | undefined;
 
@@ -229,10 +234,18 @@ export async function primeSaveDir(): Promise<void> {
   if (cached) return;
   const handle = await storedHandle();
   if (!handle) {
+    // Nothing stored. This one IS stable, so it is worth remembering.
     cached = null;
     return;
   }
-  cached = (await permitted(handle)) ? handle : null;
+  if (await permitted(handle)) {
+    cached = handle;
+    return;
+  }
+  // Left `undefined` on purpose: permission may well be grantable on the next
+  // attempt, which will be a click. Recording a refusal here would make one
+  // activation-less save poison every save after it.
+  cached = undefined;
 }
 
 /**
@@ -245,6 +258,16 @@ export async function writableSaveDir(): Promise<DirHandle | null> {
   if (cached !== undefined) return cached;
   await primeSaveDir();
   return cached ?? null;
+}
+
+/**
+ * Forget the resolved handle so the next call re-checks.
+ *
+ * For the case where the folder changed underneath us — chosen, cleared, or
+ * re-granted — and the cached answer is now the wrong one.
+ */
+export function resetSaveDirCache(): void {
+  cached = undefined;
 }
 
 /** True when a folder is configured, whether or not it is currently usable. */
@@ -263,13 +286,27 @@ export async function hasSaveDir(): Promise<boolean> {
  * Call from a click, so permission can still be requested if it has lapsed.
  */
 export async function testSaveDir(): Promise<{ ok: true; name: string } | { ok: false; detail: string }> {
-  const handle = await storedHandle();
-  if (!handle) return { ok: false, detail: 'No folder is stored — choose one again.' };
-  if (!(await permitted(handle))) {
-    return { ok: false, detail: 'The browser refused permission to write to that folder.' };
+  if (!(await storedHandle())) {
+    return { ok: false, detail: 'No folder is stored — choose one again.' };
   }
+  // Deliberately through the SAME route a download takes, cache included.
+  // Reading the handle directly made this probe pass while every download fell
+  // back, which is worse than having no probe: it confirmed the wrong thing.
+  cached = undefined;
+  await primeSaveDir();
+  const handle = await writableSaveDir();
+  if (!handle) {
+    return {
+      ok: false,
+      detail: 'The folder is stored but the browser would not grant write permission.',
+    };
+  }
+  // A filename shaped like a real one, not a dotfile: the name is part of what
+  // can fail, and a probe that writes something no download would write can
+  // pass while every download fails.
+  const probeName = 'resume_TestCompany-Test_Role-0.pdf';
   try {
-    const probe = await handle.getFileHandle('.jobhighlander-write-test', { create: true });
+    const probe = await handle.getFileHandle(probeName, { create: true });
     const writable = await probe.createWritable();
     await writable.write(new Blob(['ok']));
     await writable.close();
@@ -277,12 +314,11 @@ export async function testSaveDir(): Promise<{ ok: true; name: string } | { ok: 
     // far smaller problem than reporting a working folder as broken.
     try {
       await (handle as unknown as { removeEntry?: (n: string) => Promise<void> }).removeEntry?.(
-        '.jobhighlander-write-test',
+        probeName,
       );
     } catch {
       // Left behind; harmless.
     }
-    cached = handle;
     return { ok: true, name: handle.name };
   } catch (err) {
     return { ok: false, detail: err instanceof Error ? `${err.name}: ${err.message}` : String(err) };

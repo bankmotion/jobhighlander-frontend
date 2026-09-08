@@ -560,7 +560,10 @@ export function ResumeListProvider({
           if (letterRes.ok && letterRes.status !== 204) {
             // Into the same folder as the resume, which is the point of the
             // pair travelling together.
-            await saveBlob(await letterRes.blob(), letterName);
+            const letterTo = await saveBlob(await letterRes.blob(), letterName);
+            if (letterTo === 'downloads' && saveDirConfigured()) {
+              show('The cover letter went to Downloads — your folder was not writable.', 'error');
+            }
           } else if (letterRes.status !== 204) {
             const err = await letterRes.json().catch(() => null);
             show(

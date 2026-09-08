@@ -5,6 +5,7 @@ import {
   canChooseFolder,
   chooseSaveDir,
   clearSaveDir,
+  resetSaveDirCache,
   testSaveDir,
   useSaveDirName,
 } from '@/lib/save-dir';
@@ -38,6 +39,8 @@ export function SaveLocation() {
     setBusy('choose');
     setNote(null);
     try {
+      // Whatever was resolved before belongs to the previous folder.
+      resetSaveDirCache();
       const result = await chooseSaveDir();
       if (result.ok) {
         setNote({ ok: true, text: `Saving to ${result.name}.` });
