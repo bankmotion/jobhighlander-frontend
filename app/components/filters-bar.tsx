@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { JobFilters } from '@/lib/types';
 import type { AppliedFilter, OthersAppliedFilter } from '@/lib/applications';
@@ -129,6 +129,12 @@ export function siteMeta(s: string) {
 
 export function FiltersBar({ filters, current, canFilterApplied, canFilterOthersApplied }: Props) {
   const router = useRouter();
+  // A filtered list is re-fetched on the server, so between the click and the
+  // new rows there is a gap with nothing to show for it — long enough on a slow
+  // query that the click reads as having been missed, and gets repeated.
+  // `useTransition` is what surfaces that gap: `useLinkStatus` reports on a
+  // <Link>, and every control here navigates with `router.push`.
+  const [loading, startTransition] = useTransition();
 
   const {
     sites,
@@ -219,7 +225,7 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
     // Remembered for the next visit. `profile` is stripped on the way in — the
     // candidate is chosen elsewhere and must not be pinned by a filter store.
     saveJobFilters(s);
-    router.push(s ? `/?${s}` : '/');
+    startTransition(() => router.push(s ? `/?${s}` : '/'));
   }
 
   const selectApplied = (next: AppliedFilter) => navigate({ applied: next });
@@ -242,7 +248,7 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
     // restore on the next visit would put the filters straight back.
     saveJobFilters('');
     // Clearing FILTERS must not also reset the selected profile.
-    router.push(current.profile ? `/?profile=${current.profile}` : '/');
+    startTransition(() => router.push(current.profile ? `/?profile=${current.profile}` : '/'));
   }
 
   // "Filtered" = anything other than the default (remote-only, everything else off).
@@ -261,8 +267,21 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
   return (
     <form
       onSubmit={submit}
-      className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3"
+      // Announced rather than only drawn, so a screen reader is told the results
+      // are being replaced instead of silently reading stale ones.
+      aria-busy={loading}
+      className="relative mb-6 flex flex-wrap items-center gap-3 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3"
     >
+      {/* An indeterminate bar on the bar's own top edge. Indeterminate because
+          the wait is a server query of unknown length — a percentage would be
+          invented. Positioned here rather than over the results so the feedback
+          appears where the click did. */}
+      {loading && (
+        <span
+          aria-hidden
+          className="jh-filter-progress pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-[var(--primary)]"
+        />
+      )}
       {/* One box per column, AND-ed together. There is deliberately no
           search-everything box: it ORed across three columns, so a short word
           like "ai" matched "details" and "training" and returned 95% of the
@@ -482,9 +501,10 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
 
       <button
         type="submit"
-        className="rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--primary-hover)]"
+        className="inline-flex items-center gap-2 rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--primary-hover)]"
       >
-        Filter
+        {loading && <Spinner />}
+        {loading ? 'Loading…' : 'Filter'}
       </button>
       <button
         type="button"
@@ -498,3 +518,19 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
   );
 }
 
+/** Ring with one bright quarter, so the rotation is visible on a solid button. */
+function Spinner() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      aria-hidden="true"
+      className="jh-spin h-3.5 w-3.5 shrink-0"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+    >
+      <circle cx="12" cy="12" r="9" strokeOpacity="0.3" />
+      <path d="M21 12a9 9 0 0 0-9-9" strokeLinecap="round" />
+    </svg>
+  );
+}

@@ -855,3 +855,29 @@ body {
   }
 }
 
+/* Filter changes re-query the server. These two say so: a spinner in the
+   button that was clicked, and an indeterminate bar across the filter bar. */
+@keyframes jh-spin {
+  to { transform: rotate(360deg); }
+}
+.jh-spin {
+  animation: jh-spin 700ms linear infinite;
+  transform-origin: center;
+}
+
+/* Sweeps rather than fills: the wait is a query of unknown length, so a bar
+   that advanced would be claiming progress it cannot measure. */
+@keyframes jh-filter-progress {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+.jh-filter-progress {
+  animation: jh-filter-progress 1100ms ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jh-spin,
+  .jh-filter-progress {
+    animation: none;
+  }
+}
