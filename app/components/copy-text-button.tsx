@@ -20,11 +20,21 @@ type CopyState = 'idle' | 'copied' | 'failed';
 export function CopyTextButton({
   value,
   what = 'text',
+  withLabel = false,
   className = '',
 }: {
   value: string;
   /** Named in the tooltip and for screen readers: "Copy company name". */
   what?: string;
+  /**
+   * Show the wording beside the icon, in a bordered control.
+   *
+   * For a block of text rather than a word inside a line. A 20px icon reads as
+   * belonging to the thing it touches, which is right next to a company name
+   * and wrong under a paragraph — there it is just a mark floating in
+   * whitespace with nothing to attach itself to.
+   */
+  withLabel?: boolean;
   className?: string;
 }) {
   const [state, setState] = useState<CopyState>('idle');
@@ -68,17 +78,26 @@ export function CopyTextButton({
     <button
       type="button"
       onClick={copy}
-      title={state === 'idle' ? `${label} — “${value}”` : label}
-      aria-label={`${label}: ${value}`}
-      className={`inline-flex h-5 w-5 shrink-0 items-center justify-center rounded align-middle transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/60 ${
+      // The full value in the tooltip is useful for a name and absurd for a
+      // page of prose, so the labelled form names the kind of thing instead.
+      title={withLabel ? label : state === 'idle' ? `${label} — “${value}”` : label}
+      aria-label={withLabel ? label : `${label}: ${value}`}
+      className={`inline-flex shrink-0 items-center justify-center rounded align-middle transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/60 ${
+        withLabel
+          ? 'gap-1.5 rounded-lg border border-[var(--border)] px-2 py-1 text-xs'
+          : 'h-5 w-5'
+      } ${
         state === 'copied'
           ? 'text-emerald-300'
           : state === 'failed'
             ? 'text-red-300'
-            : 'text-[var(--muted)] opacity-60 hover:bg-white/5 hover:text-[var(--text)] hover:opacity-100'
+            : withLabel
+              ? 'text-[var(--muted)] hover:border-[var(--primary)] hover:text-white'
+              : 'text-[var(--muted)] opacity-60 hover:bg-white/5 hover:text-[var(--text)] hover:opacity-100'
       } ${className}`}
     >
       {state === 'copied' ? <IconCheck /> : state === 'failed' ? <IconWarn /> : <IconCopy />}
+      {withLabel && <span>{label}</span>}
       {/* Announced when the state changes; the icon swap alone is silent. */}
       <span role="status" aria-live="polite" className="sr-only">
         {state === 'idle' ? '' : label}

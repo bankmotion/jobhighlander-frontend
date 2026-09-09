@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { ConfirmModal } from './confirm-modal';
+import { CopyTextButton } from './copy-text-button';
 import { GenerateModal, ProviderBadge } from './generate-modal';
 import { stampLabel, type AiProvider } from '@/lib/ai-providers';
 import { useDisplayZone } from '@/lib/display-zone';
@@ -280,6 +281,13 @@ function QueryCard({
           <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--text)]/90">
             {row.answer}
           </p>
+          {/* The whole point of an application answer is that it goes into
+              someone else's form, so getting it onto the clipboard is the next
+              step every single time. Selecting a wrapped paragraph by hand
+              tends to grab the metadata line above it too. */}
+          <div className="mt-2 flex justify-end">
+            <CopyTextButton value={row.answer} what="answer" withLabel />
+          </div>
         </div>
       )}
     </div>

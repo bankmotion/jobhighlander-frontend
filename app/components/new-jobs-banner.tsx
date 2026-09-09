@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 
 const POLL_MS = 5 * 60 * 1000;
@@ -26,7 +26,14 @@ export function NewJobsBanner({
 }) {
   const router = useRouter();
   const [count, setCount] = useState(0);
-  const [loading, setLoading] = useState(false);
+  // Tied to the navigation itself, not to a prop arriving.
+  //
+  // This used to be a plain `loading` flag that only ever cleared in an effect
+  // keyed on `latestId` — so it depended on that prop CHANGING. It does not
+  // change when the refreshed list comes back identical, and the commonest way
+  // for that to happen is the new jobs being excluded by the filters already
+  // applied. The button then span forever on a navigation that had finished.
+  const [pending, startTransition] = useTransition();
 
   // In a ref so the interval is set up once; re-subscribing on every count
   // change would restart the five-minute clock each time.
@@ -69,7 +76,6 @@ export function NewJobsBanner({
   // A fresh render resets the baseline, so the banner clears itself.
   useEffect(() => {
     setCount(0);
-    setLoading(false);
   }, [latestId]);
 
   if (count < 1) return null;
@@ -78,16 +84,21 @@ export function NewJobsBanner({
     <div className="pointer-events-none fixed inset-x-0 bottom-6 z-40 flex justify-center px-4">
       <button
         type="button"
-        disabled={loading}
+        disabled={pending}
         onClick={() => {
-          setLoading(true);
           // Back to page 1: the list is newest-first, so the arrivals this
           // button counted are all on the first page. Refreshing in place would
           // leave someone on page 5 looking at the same rows they already had.
           const url = new URL(window.location.href);
           url.searchParams.delete('page');
-          router.push(`${url.pathname}${url.search}`, { scroll: true });
-          router.refresh();
+          startTransition(() => {
+            router.push(`${url.pathname}${url.search}`, { scroll: true });
+            router.refresh();
+          });
+          // Cleared here rather than waiting for a new `latestId`: the press
+          // has been acted on, and a count that outlives it invites a second
+          // press for jobs already being fetched.
+          setCount(0);
         }}
         className="jh-bob pointer-events-auto inline-flex items-center gap-2 rounded-full border border-[var(--border-strong)] bg-[var(--primary)] px-5 py-2.5 text-sm font-semibold text-white shadow-2xl transition hover:bg-[var(--primary-hover)] disabled:opacity-70"
       >
@@ -105,7 +116,7 @@ export function NewJobsBanner({
           <path d="M12 5v14" />
           <path d="M19 12l-7 7-7-7" />
         </svg>
-        {loading ? 'Loading…' : `Show ${count} new ${count === 1 ? 'job' : 'jobs'}`}
+        {pending ? 'Loading…' : `Show ${count} new ${count === 1 ? 'job' : 'jobs'}`}
       </button>
     </div>
   );
