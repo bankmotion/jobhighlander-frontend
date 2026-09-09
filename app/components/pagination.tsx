@@ -21,6 +21,7 @@ interface Props {
     discarded?: DiscardedFilter;
     interview?: InterviewFilter;
     resume?: ResumeFilter;
+    snapshotId?: number;
     posted?: PostedFilter;
     postedFrom?: string;
     postedTo?: string;
@@ -49,6 +50,10 @@ function href(page: number, query: Props['query']): string {
   // list, which read as page 2 containing jobs page 1 had excluded.
   if (query.interview && query.interview !== 'all') qs.set('interview', query.interview);
   if (query.resume && query.resume !== 'all') qs.set('resume', query.resume);
+  // Pins the set being paged. Without it, a job scraped while someone reads
+  // page 3 pushes the list down and page 4 repeats rows they have already seen
+  // — the deeper the page, the worse the drift.
+  if (query.snapshotId) qs.set('snapshotId', String(query.snapshotId));
   // Same reasoning as the filters above: paging must not widen the date window
   // back to every job ever posted.
   writePosted(qs, query.posted ?? 'all', query.postedFrom ?? '', query.postedTo ?? '');

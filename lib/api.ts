@@ -22,6 +22,7 @@ export interface JobQuery {
   discarded?: DiscardedFilter;
   interview?: InterviewFilter;
   resume?: ResumeFilter;
+  snapshotId?: number;
   profileId?: number | null;
   posted?: PostedFilter;
   postedFrom?: string;
@@ -52,6 +53,7 @@ export async function fetchJobs(query: JobQuery = {}): Promise<Paginated<Job>> {
   if (query.discarded && query.discarded !== 'all') qs.set('discarded', query.discarded);
   if (query.interview && query.interview !== 'all') qs.set('interview', query.interview);
   if (query.resume && query.resume !== 'all') qs.set('resume', query.resume);
+  if (query.snapshotId) qs.set('snapshotId', String(query.snapshotId));
   if (query.profileId) qs.set('profileId', String(query.profileId));
   // Posted-date window. 'custom' without either end is dropped by `writePosted`
   // rather than sent as a parameter the server would ignore.

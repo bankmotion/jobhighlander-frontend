@@ -91,6 +91,11 @@ export function NewJobsBanner({
           // leave someone on page 5 looking at the same rows they already had.
           const url = new URL(window.location.href);
           url.searchParams.delete('page');
+          // And drop the paging pin. Asking for the new jobs is precisely the
+          // request to stop looking at the frozen set — keeping it would show
+          // page 1 of the same old snapshot and look like the button did
+          // nothing.
+          url.searchParams.delete('snapshotId');
           startTransition(() => {
             router.push(`${url.pathname}${url.search}`, { scroll: true });
             router.refresh();

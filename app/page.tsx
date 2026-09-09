@@ -81,6 +81,12 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   // the board look like it had shrunk.
   const resumeParam = str(sp.resume);
   const resume: ResumeFilter = isResumeFilter(resumeParam) ? resumeParam : 'all';
+  // The id paging is pinned to. Absent on page 1, which always shows the
+  // freshest list; the pagination links add it, so the set freezes the moment
+  // someone starts paging and cannot shift beneath them afterwards.
+  const snapshotRaw = Number(str(sp.snapshotId));
+  const snapshotId =
+    Number.isInteger(snapshotRaw) && snapshotRaw > 0 ? snapshotRaw : undefined;
   // When the job was POSTED, not when it was scraped. Defaults to 'all': a list
   // that silently hid older jobs would look like the scrapers had stopped.
   const posted = parsePosted(str(sp.posted));
@@ -124,6 +130,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
     discarded,
     interview,
     resume,
+    snapshotId,
     posted,
     postedFrom,
     postedTo,
@@ -151,6 +158,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
       discarded,
       interview,
       resume,
+      snapshotId,
       posted,
       postedFrom,
       postedTo,
@@ -308,7 +316,14 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                     ...(profileId ? { profileId: String(profileId) } : {}),
                   }).toString()}
                 />
-                <Pagination pagination={data.pagination} query={query} />
+                {/* Page links pin to the newest id the reader can currently
+                    see. Page 1 stays unpinned so it always shows the freshest
+                    list; the pin is created by the act of leaving it, which is
+                    exactly when drift starts to matter. */}
+                <Pagination
+                  pagination={data.pagination}
+                  query={{ ...query, snapshotId: snapshotId ?? data.latestId ?? undefined }}
+                />
               </DiscardProvider>
             </CoverLetterProvider>
           </ResumeListProvider>
