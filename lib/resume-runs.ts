@@ -12,11 +12,19 @@ export interface Run {
   jobId: number;
   profileId: number;
   startedAt: number;
-  state: 'running' | 'done' | 'error';
+  /**
+   * `queued` is waiting for a concurrency slot — accepted, not yet costing
+   * anything. It exists so a press at capacity can be REMEMBERED rather than
+   * refused: being told to come back later leaves the person holding the task,
+   * which is the part that is tiring.
+   */
+  state: 'queued' | 'running' | 'done' | 'error';
   status?: ResumeStatus;
   error?: string;
   retryable?: boolean;
   attempts: number;
+  /** Ordering for the queue. FIFO, so the first press is the first served. */
+  queuedAt?: number;
 }
 
 export const RUN_TIMEOUT_MS = 180_000;
@@ -65,9 +73,49 @@ export function activeRunCount(at: number): number {
   return n;
 }
 
+/**
+ * Accept a generation that has nowhere to run yet.
+ *
+ * Returns false when this pairing is already queued or already running, which
+ * keeps the double-click guard honest: a second press must not buy a second
+ * place in the line for the same job.
+ */
+export function enqueueRun(profileId: number, jobId: number, at: number): boolean {
+  const k = runKey(profileId, jobId);
+  const existing = runs.get(k);
+  if (existing && (existing.state === 'queued' || isLive(existing, at))) return false;
+  runs.set(k, {
+    jobId,
+    profileId,
+    startedAt: at,
+    state: 'queued',
+    queuedAt: at,
+    attempts: existing?.attempts ?? 0,
+  });
+  emit();
+  return true;
+}
+
+/** Waiting runs for a profile, oldest first. */
+export function queuedRuns(profileId: number): Run[] {
+  const out: Run[] = [];
+  for (const r of runs.values()) {
+    if (r.profileId === profileId && r.state === 'queued') out.push(r);
+  }
+  return out.sort((a, b) => (a.queuedAt ?? 0) - (b.queuedAt ?? 0));
+}
+
+/** 1-based place in the line, or 0 when not waiting. Shown on the card. */
+export function queuePosition(profileId: number, jobId: number): number {
+  const i = queuedRuns(profileId).findIndex((r) => r.jobId === jobId);
+  return i < 0 ? 0 : i + 1;
+}
+
 export function startRun(profileId: number, jobId: number, at: number): boolean {
   const k = runKey(profileId, jobId);
   const existing = runs.get(k);
+  // A queued entry is not an obstacle — starting it is the whole point of
+  // having queued it. Only a live run blocks.
   if (existing && isLive(existing, at)) return false;
   runs.set(k, {
     jobId,
@@ -105,7 +153,9 @@ export function clearRun(profileId: number, jobId: number): void {
 export function drainSettled(profileId: number): Run[] {
   const out: Run[] = [];
   for (const r of runs.values()) {
-    if (r.profileId === profileId && r.state !== 'running') out.push(r);
+    // `queued` is excluded with `running`: neither has produced a result, and
+    // treating a waiting run as settled would report it as finished work.
+    if (r.profileId === profileId && r.state !== 'running' && r.state !== 'queued') out.push(r);
   }
   return out;
 }

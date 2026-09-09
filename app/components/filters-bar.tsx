@@ -270,17 +270,23 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
       // Announced rather than only drawn, so a screen reader is told the results
       // are being replaced instead of silently reading stale ones.
       aria-busy={loading}
-      className="relative mb-6 flex flex-wrap items-center gap-3 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3"
+      className="relative mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3"
     >
       {/* An indeterminate bar on the bar's own top edge. Indeterminate because
           the wait is a server query of unknown length — a percentage would be
           invented. Positioned here rather than over the results so the feedback
           appears where the click did. */}
       {loading && (
+        // The clip lives on this 2px strip, NOT on the form. `overflow-hidden`
+        // on the form cut off the source dropdown, which is absolutely
+        // positioned inside it — a progress bar is not worth breaking a filter
+        // over. Scoped here, the sweep is still bounded by the rounded corner.
         <span
           aria-hidden
-          className="jh-filter-progress pointer-events-none absolute inset-x-0 top-0 h-0.5 bg-[var(--primary)]"
-        />
+          className="pointer-events-none absolute inset-x-0 top-0 h-0.5 overflow-hidden rounded-t-xl"
+        >
+          <span className="jh-filter-progress absolute inset-y-0 left-0 w-1/3 bg-[var(--primary)]" />
+        </span>
       )}
       {/* One box per column, AND-ed together. There is deliberately no
           search-everything box: it ORed across three columns, so a short word

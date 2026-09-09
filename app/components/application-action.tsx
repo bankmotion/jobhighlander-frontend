@@ -139,7 +139,7 @@ function Spinner() {
 }
 
 export function ApplicationAction({ jobId, title, company }: ResumeTarget) {
-  const { profileId, statusOf, runOf, generateQuiet, view, download, isDownloading } =
+  const { profileId, statusOf, runOf, generateQuiet, view, download, isDownloading, queuePlace, unqueue } =
     useResumeList();
   const { hasLetter, noteLetterWritten, copyLetter, isCopying } = useCoverLetters();
 
@@ -172,6 +172,31 @@ export function ApplicationAction({ jobId, title, company }: ResumeTarget) {
       >
         <IconSparkle />
         Generate
+      </span>
+    );
+  }
+
+  if (run?.state === 'queued') {
+    const place = queuePlace(jobId);
+    return (
+      <span
+        data-resume-trigger={jobId}
+        role="status"
+        aria-label={`Queued for generation${place > 1 ? `, ${place} in line` : ''} for ${where}`}
+        className={`${BOX} ${TONE.busy}`}
+      >
+        {/* No spinner: nothing is happening yet, and a spinner would claim
+            work is under way. The place in line is the honest progress. */}
+        <span aria-hidden>{place > 1 ? `Queued · ${place}` : 'Queued'}</span>
+        <button
+          type="button"
+          onClick={() => unqueue(jobId)}
+          title="Take this out of the queue"
+          aria-label={`Remove the queued resume for ${where}`}
+          className="ml-1 rounded px-1 text-xs opacity-70 transition hover:bg-white/10 hover:opacity-100"
+        >
+          ×
+        </button>
       </span>
     );
   }

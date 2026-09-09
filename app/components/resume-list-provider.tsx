@@ -18,11 +18,14 @@ import {
   cacheDoc,
   clearRun,
   drainSettled,
+  enqueueRun,
   evictDoc,
   failRun,
   finishRun,
   getDoc,
   getRun,
+  queuePosition,
+  queuedRuns,
   runKey,
   runsServerVersion,
   runsVersion,
@@ -60,6 +63,10 @@ interface Ctx {
   view: (t: ResumeTarget) => void;
   download: (t: ResumeTarget, format?: ResumeFormat) => void;
   isDownloading: (jobId: number) => boolean;
+  /** 1-based place in the queue, or 0 when this job is not waiting. */
+  queuePlace: (jobId: number) => number;
+  /** Take a waiting job back out of the line. Nothing has been paid for yet. */
+  unqueue: (jobId: number) => void;
 }
 
 const ResumeCtx = createContext<Ctx | null>(null);
@@ -269,6 +276,22 @@ export function ResumeListProvider({
   // would restart the effects below.
   const cancellersRef = useRef<Map<string, AbortController>>(new Map());
 
+  // What each waiting job should be generated WITH. The run store tracks that a
+  // job is queued so the card can say so; it does not know which provider was
+  // chosen, and re-asking on the way out of the queue would be a second dialog
+  // for a decision already made.
+  //
+  // A ref, not state: it is read when a slot frees, never rendered. It dies
+  // with the provider, which remounts on profile change — correct, because a
+  // queue of generations for the previous candidate is not work anyone wants
+  // resumed.
+  const queuedWithRef = useRef<Map<number, AiProvider>>(new Map());
+  const queuedTargetsRef = useRef<Map<number, ResumeTarget>>(new Map());
+
+  // Set below, once `runGeneration` exists. Called from that function's own
+  // cleanup, so the two would otherwise have to be declared before each other.
+  const startNextRef = useRef<(() => void) | null>(null);
+
   // Points at `download`, which is defined below because it depends on state
   // declared there. Held in a ref so the generation path — which runs minutes
   // after this render — calls the current one rather than a stale closure.
@@ -283,9 +306,19 @@ export function ResumeListProvider({
 
       const at = Date.now();
       if (activeRunCount(at) >= MAX_CONCURRENT) {
+        // Remembered, not refused. The cap exists to bound concurrent paid
+        // calls, and holding the request achieves that just as well as turning
+        // it away — while turning it away hands the job back to the person to
+        // remember and re-press, which is the actual cost of the old wording.
+        if (!enqueueRun(profileId, t.jobId, at)) return;
+        queuedWithRef.current.set(t.jobId, provider);
+        queuedTargetsRef.current.set(t.jobId, t);
+        setNow(at);
+        const place = queuedRuns(profileId).length;
         show(
-          `${MAX_CONCURRENT} resumes are already being written. Wait for one to finish.`,
-          'error',
+          place === 1
+            ? `Queued — starts as soon as one of the ${MAX_CONCURRENT} finishes`
+            : `Queued — ${place} waiting`,
         );
         return;
       }
@@ -401,10 +434,61 @@ export function ResumeListProvider({
         show(msg, 'error');
       } finally {
         cancellersRef.current.delete(runKey(profileId, t.jobId));
+        // This slot is free now, whatever the outcome. Draining on failure and
+        // cancellation too, or one error would strand the whole queue.
+        startNextRef.current?.();
       }
     },
     [profileId, refreshStatus, renderPdf, show],
   );
+
+  /**
+   * Start as many waiting generations as there is room for.
+   *
+   * A loop rather than a single start: several slots can free at once when a
+   * burst finishes together, and taking one job per completion would leave the
+   * queue draining more slowly than the work allows.
+   */
+  const unqueue = useCallback(
+    (jobId: number) => {
+      if (!profileId) return;
+      queuedWithRef.current.delete(jobId);
+      queuedTargetsRef.current.delete(jobId);
+      // `clearRun`, not `failRun`: leaving nothing behind is right, because
+      // nothing happened. A queued run has cost no tokens and produced no
+      // error, so an error banner would be reporting a failure that never was.
+      clearRun(profileId, jobId);
+      setNow(Date.now());
+    },
+    [profileId],
+  );
+
+  const startNextQueued = useCallback(() => {
+    if (!profileId) return;
+    for (;;) {
+      const at = Date.now();
+      if (activeRunCount(at) >= MAX_CONCURRENT) return;
+      const next = queuedRuns(profileId)[0];
+      if (!next) return;
+      const provider = queuedWithRef.current.get(next.jobId);
+      const t = queuedTargetsRef.current.get(next.jobId);
+      // Both are held together, so a missing one means the queue entry outlived
+      // its context (a remount). Dropping it beats generating with a guess.
+      if (!provider || !t) {
+        clearRun(profileId, next.jobId);
+        queuedWithRef.current.delete(next.jobId);
+        queuedTargetsRef.current.delete(next.jobId);
+        continue;
+      }
+      queuedWithRef.current.delete(next.jobId);
+      queuedTargetsRef.current.delete(next.jobId);
+      void runGeneration(t, provider);
+    }
+  }, [profileId, runGeneration]);
+
+  useEffect(() => {
+    startNextRef.current = startNextQueued;
+  }, [startNextQueued]);
 
   const openFor = useCallback(
     (t: ResumeTarget) => {
@@ -669,10 +753,16 @@ export function ResumeListProvider({
     view,
     download: (t, format) => void download(t, format),
     isDownloading: (jobId) => downloadingIds.includes(jobId),
+    queuePlace: (jobId) => (profileId ? queuePosition(profileId, jobId) : 0),
+    unqueue,
   };
 
   const run = target && profileId ? getRun(profileId, target.jobId, now || 0) : undefined;
   const generating = run?.state === 'running';
+  // Waiting for a slot. Distinct from `generating` — nothing is being written
+  // yet — but it must suppress the Generate button all the same, or the panel
+  // offers an action whose only effect is to be silently ignored as a duplicate.
+  const queued = run?.state === 'queued';
   // Resolved inline rather than through ctx.statusOf: calling that closure
   // during render trips the refs lint rule, and this is the same lookup.
   const st = target
@@ -728,6 +818,8 @@ export function ResumeListProvider({
             {target?.company && <span aria-hidden>·</span>}
             {generating ? (
               <span>Writing…</span>
+            ) : queued ? (
+              <span>Queued — starts when a slot frees</span>
             ) : failed ? (
               <span>Generation failed</span>
             ) : st ? (
@@ -765,7 +857,7 @@ export function ResumeListProvider({
                 Open full editor ↗
               </Link>
             )}
-            {!generating && (st || pdfError || failed) && !exhausted && (
+            {!generating && !queued && (st || pdfError || failed) && !exhausted && (
               <button
                 type="button"
                 onClick={() => target && setPending({ t: target, quiet: false })}
