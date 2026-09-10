@@ -44,6 +44,25 @@ export async function fetchUpcoming(days = 7): Promise<UpcomingPanel[]> {
   return authed<UpcomingPanel[]>(`/api/interviews/upcoming?days=${days}`, []);
 }
 
+/**
+ * How many sittings start within the next `hours`. Drives the Calendar badge.
+ *
+ * Asks the endpoint for 2 days and narrows here. It counts whole days from
+ * today, so a 1-day request drops an interview at 09:00 tomorrow — exactly the
+ * one this is for.
+ */
+export async function fetchInterviewsSoon(hours = 24): Promise<number> {
+  const upcoming = await fetchUpcoming(2).catch(() => [] as UpcomingPanel[]);
+  const now = Date.now();
+  const cutoff = now + hours * 60 * 60 * 1000;
+  return upcoming.filter((p) => {
+    const at = new Date(p.scheduledAt).getTime();
+    // Already-started sittings are dropped: a badge counting a call from this
+    // morning tells you to hurry to something you have missed or are in.
+    return Number.isFinite(at) && at >= now && at <= cutoff;
+  }).length;
+}
+
 export async function fetchInterviewStatus(
   profileId: number,
   jobIds: number[],

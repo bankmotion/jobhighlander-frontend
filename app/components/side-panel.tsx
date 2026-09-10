@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import { useMounted } from '@/lib/use-mounted';
 
 export function SidePanel({
   open,
@@ -20,6 +22,17 @@ export function SidePanel({
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
+
+  // Rendered into <body>, not where it sits in the tree.
+  //
+  // `.jh-page` animates opacity with fill-mode `both`, which makes it a
+  // stacking context — so a z-50 inside it is only z-50 AMONG ITS SIBLINGS, and
+  // the whole subtree still paints below the sticky topbar's z-10 in the outer
+  // context. That is why the drawer's header was appearing underneath the
+  // topbar: not a z-index that was too low, but one being compared against the
+  // wrong things. A portal takes the panel out of that context entirely, which
+  // is what an overlay wants regardless.
+  const mounted = useMounted();
 
   // In a ref so the key listener binds once rather than re-subscribing on every
   // parent render — the calendar re-renders this on each selection change.
@@ -58,7 +71,11 @@ export function SidePanel({
     };
   }, [open]);
 
-  return (
+  // Nothing on the server: an overlay has no meaningful pre-hydration markup,
+  // and `document` does not exist to portal into.
+  if (!mounted) return null;
+
+  return createPortal(
     <>
       <div
         aria-hidden
@@ -106,6 +123,7 @@ export function SidePanel({
           </div>
         )}
       </aside>
-    </>
+    </>,
+    document.body,
   );
 }

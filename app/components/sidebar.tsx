@@ -14,11 +14,14 @@ export function Sidebar({
   role,
   profiles,
   pendingPayments = 0,
+  interviewsSoon = 0,
 }: {
   role: Role;
   profiles: ProfileSummary[];
   /** Deposit claims waiting on a decision. Drives the badge on Payments. */
   pendingPayments?: number;
+  /** Interviews starting within 24 hours. Drives the badge on Calendar. */
+  interviewsSoon?: number;
 }) {
   const pathname = usePathname();
   const params = useSearchParams();
@@ -129,6 +132,9 @@ export function Sidebar({
 
         <Link href="/calendar" className={linkCls(pathname.startsWith('/calendar'))}>
           <span className="text-base">📅</span> Calendar
+          {/* Only when there IS one. A permanent "0" trains the eye to skip the
+              spot, which is the one place this needs to be noticed. */}
+          {interviewsSoon > 0 && <SoonBadge count={interviewsSoon} />}
         </Link>
 
         <Link href="/profiles" className={linkCls(pathname.startsWith('/profiles'))}>
@@ -333,6 +339,26 @@ function NavGroup({
  * kind that triggers vestibular symptoms, and the count still reads fine
  * standing still.
  */
+/**
+ * "N interviews in the next 24 hours."
+ *
+ * Amber rather than the review badge's colour, and no attention ring: this is
+ * a heads-up about your own calendar, not a queue waiting on you. Nothing is
+ * blocked by it and nothing is overdue — the point is that you should not be
+ * surprised tomorrow morning.
+ */
+function SoonBadge({ count }: { count: number }) {
+  return (
+    <span
+      className="ml-auto rounded-full bg-amber-500/20 px-2 py-0.5 text-[11px] font-bold text-amber-300 ring-1 ring-inset ring-amber-400/30"
+      aria-label={`${count} interview${count === 1 ? '' : 's'} in the next 24 hours`}
+      title={`${count} interview${count === 1 ? '' : 's'} starting within 24 hours`}
+    >
+      {count > 99 ? '99+' : count}
+    </span>
+  );
+}
+
 function PendingBadge({ count }: { count: number }) {
   return (
     <span className="relative ml-auto flex items-center" aria-label={`${count} awaiting review`}>

@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import { useMounted } from '@/lib/use-mounted';
 
 const SIZES = {
   sm: 'max-w-sm',
@@ -46,6 +48,13 @@ export function Modal({
   children: ReactNode;
 }) {
   const titleId = useId();
+
+  // Into <body>, for the reason `SidePanel` documents: `.jh-page` animates
+  // opacity and so forms a stacking context, which traps any z-index set
+  // inside it below the sticky topbar. This dialog gets away with it today
+  // only because it is centred and clears the topbar's height — a tall one
+  // would be clipped exactly as the drawer was.
+  const mounted = useMounted();
   const panelRef = useRef<HTMLDivElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
 
@@ -156,9 +165,9 @@ export function Modal({
     };
   }, [open]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  return createPortal(
     <div
       className="jh-backdrop fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
       onMouseDown={(e) => {
@@ -202,6 +211,7 @@ export function Modal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

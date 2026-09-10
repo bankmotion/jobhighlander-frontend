@@ -13,6 +13,7 @@ import {
   type CalendarView,
 } from '@/lib/calendar';
 import { CalendarViews } from '@/app/components/calendar-views';
+import { CalendarPrefsRestore } from '@/app/components/calendar-prefs-restore';
 import { CalendarProfilePicker } from '@/app/components/calendar-profile-picker';
 
 export const dynamic = 'force-dynamic';
@@ -60,6 +61,11 @@ export default async function CalendarPage({
 
   return (
     <div>
+      {/* Remembers the view and profile filter, and restores them on the next
+          visit. Reads and writes the URL, which is where this page already
+          keeps that state. */}
+      <CalendarPrefsRestore />
+
       <div className="mb-5">
         <h1 className="mb-1 text-2xl font-bold tracking-tight text-white">Calendar</h1>
         <p className="text-sm text-[var(--muted)]">
