@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Modal } from './modal';
 import { useRejection } from './rejection-provider';
+import { useApplied } from './applied-provider';
 
 function when(iso: string): string {
   const d = new Date(iso);
@@ -28,12 +29,22 @@ const BASE =
  */
 export function RejectAction({ jobId, where }: { jobId: number; where: string }) {
   const { profileId, rejectedOn, isBusy, reject } = useRejection();
+  const { appliedOn } = useApplied();
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState('');
 
   if (!profileId) return null;
   const status = rejectedOn(jobId);
   const busy = isBusy(jobId);
+
+  // Not applied: nothing to be rejected from. "They said no" needs a "they",
+  // and until an application goes in there is nobody to have said it. The pair
+  // of controls now splits cleanly on that line — Discard before applying,
+  // Reject after — so neither is offered where it cannot mean anything.
+  //
+  // The badge below is unaffected: a rejection recorded earlier keeps showing
+  // even if the application is later un-marked, so no state disappears.
+  if (!appliedOn(jobId)) return null;
 
   // Already rejected: the badge carries the state and the reason, and a second
   // control beside it would only offer to do what is done. Undo lives on the
