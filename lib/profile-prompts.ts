@@ -8,7 +8,12 @@
  */
 
 /** How the application prompt treats one instruction the admin wrote. */
-export type PromptFindingEffect = 'ignored' | 'weakened' | 'reinterpreted';
+export type PromptFindingEffect =
+  | 'ignored'
+  | 'weakened'
+  | 'reinterpreted'
+  /** Allowed, but the profile has nothing for it to act on. */
+  | 'inapplicable';
 
 export interface PromptCheckFinding {
   quote: string;
@@ -52,4 +57,5 @@ export const EFFECT_LABEL: Record<string, string> = {
   ignored: 'Ignored',
   weakened: 'Weakened',
   reinterpreted: 'Reinterpreted',
+  inapplicable: 'Does not apply',
 };

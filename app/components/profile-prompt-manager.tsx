@@ -22,6 +22,9 @@ const EFFECT_STYLE: Record<string, string> = {
   ignored: 'bg-red-500/15 text-red-300',
   weakened: 'bg-amber-500/15 text-amber-300',
   reinterpreted: 'bg-sky-500/15 text-sky-300',
+  // Violet, not red: nothing is broken, the instruction is just aimed at a
+  // career this profile does not have.
+  inapplicable: 'bg-violet-500/15 text-violet-300',
 };
 
 /** What the tab strip shows next to a profile name at a glance. */
