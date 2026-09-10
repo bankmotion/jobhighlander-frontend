@@ -2,6 +2,7 @@ import type { AppliedFilter, OthersAppliedFilter } from '@/lib/applications';
 import type { DiscardedFilter } from '@/lib/discards';
 import type { InterviewFilter } from '@/lib/interviews';
 import type { ResumeFilter } from '@/lib/resumes';
+import type { RejectedFilter } from '@/lib/rejections';
 import Link from 'next/link';
 import type { Pagination as PaginationInfo } from '@/lib/types';
 import { writePosted, type PostedFilter } from '@/lib/posted';
@@ -19,6 +20,7 @@ interface Props {
     applied?: AppliedFilter;
     othersApplied?: OthersAppliedFilter;
     discarded?: DiscardedFilter;
+    rejected?: RejectedFilter;
     interview?: InterviewFilter;
     resume?: ResumeFilter;
     snapshotId?: number;
@@ -46,6 +48,9 @@ function href(page: number, query: Props['query']): string {
   if (query.othersApplied && query.othersApplied !== 'all')
     qs.set('othersApplied', query.othersApplied);
   if (query.discarded && query.discarded !== 'all') qs.set('discarded', query.discarded);
+  // Same reasoning as the filters above: paging must not quietly widen the list
+  // back to jobs this filter excluded.
+  if (query.rejected && query.rejected !== 'all') qs.set('rejected', query.rejected);
   // Was missing: paging used to drop the interview filter and quietly widen the
   // list, which read as page 2 containing jobs page 1 had excluded.
   if (query.interview && query.interview !== 'all') qs.set('interview', query.interview);

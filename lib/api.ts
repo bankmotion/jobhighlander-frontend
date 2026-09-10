@@ -3,6 +3,7 @@ import type { AppliedFilter, OthersAppliedFilter } from './applications';
 import type { DiscardedFilter } from './discards';
 import type { InterviewFilter } from './interviews';
 import type { ResumeFilter } from './resumes';
+import type { RejectedFilter } from './rejections';
 import { getToken } from './auth';
 import { writePosted, type PostedFilter } from './posted';
 import { displayZone } from './zone.server';
@@ -20,6 +21,7 @@ export interface JobQuery {
   applied?: AppliedFilter;
   othersApplied?: OthersAppliedFilter;
   discarded?: DiscardedFilter;
+  rejected?: RejectedFilter;
   interview?: InterviewFilter;
   resume?: ResumeFilter;
   snapshotId?: number;
@@ -51,6 +53,7 @@ export async function fetchJobs(query: JobQuery = {}): Promise<Paginated<Job>> {
   if (query.othersApplied && query.othersApplied !== 'all')
     qs.set('othersApplied', query.othersApplied);
   if (query.discarded && query.discarded !== 'all') qs.set('discarded', query.discarded);
+  if (query.rejected && query.rejected !== 'all') qs.set('rejected', query.rejected);
   if (query.interview && query.interview !== 'all') qs.set('interview', query.interview);
   if (query.resume && query.resume !== 'all') qs.set('resume', query.resume);
   if (query.snapshotId) qs.set('snapshotId', String(query.snapshotId));

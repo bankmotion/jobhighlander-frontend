@@ -7,6 +7,7 @@ import type { AppliedFilter, OthersAppliedFilter } from '@/lib/applications';
 import type { DiscardedFilter } from '@/lib/discards';
 import type { InterviewFilter } from '@/lib/interviews';
 import type { ResumeFilter } from '@/lib/resumes';
+import type { RejectedFilter } from '@/lib/rejections';
 import { MultiSelect } from './multi-select';
 import { PostedFilterControl } from './posted-filter';
 import { postedActive, writePosted, type PostedFilter } from '@/lib/posted';
@@ -49,6 +50,7 @@ interface Props {
     applied: AppliedFilter;
     othersApplied: OthersAppliedFilter;
     discarded: DiscardedFilter;
+    rejected: RejectedFilter;
     interview: InterviewFilter;
     resume: ResumeFilter;
     posted: PostedFilter;
@@ -62,6 +64,15 @@ const DISCARDED_TABS: { value: DiscardedFilter; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'undiscarded', label: 'Kept' },
   { value: 'discarded', label: 'Discarded' },
+];
+
+//: Whether the EMPLOYER said no — the other half of the pair above, and not the
+//: same question. Discarded is this profile passing on a posting; rejected is
+//: the posting passing on this profile. A job can be neither, either or both.
+const REJECTED_TABS: { value: RejectedFilter; label: string; hint: string }[] = [
+  { value: 'all', label: 'All', hint: 'Every job, rejected or not' },
+  { value: 'notrejected', label: 'Live', hint: 'Only jobs that have not been rejected' },
+  { value: 'rejected', label: 'Rejected', hint: 'Only jobs the employer said no to' },
 ];
 
 //: A select, not tabs. The other filters have three options and fit in a
@@ -157,6 +168,7 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
     applied,
     othersApplied,
     discarded,
+    rejected,
     interview,
     resume,
     posted,
@@ -198,6 +210,7 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
     applied?: AppliedFilter;
     othersApplied?: OthersAppliedFilter;
     discarded?: DiscardedFilter;
+    rejected?: RejectedFilter;
     interview?: InterviewFilter;
     resume?: ResumeFilter;
     posted?: PostedFilter;
@@ -219,6 +232,8 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
     if (nextOthers !== 'all') qs.set('othersApplied', nextOthers);
     const nextDiscarded = next.discarded ?? discarded;
     if (nextDiscarded !== 'all') qs.set('discarded', nextDiscarded); // all is the default
+    const nextRejected = next.rejected ?? rejected;
+    if (nextRejected !== 'all') qs.set('rejected', nextRejected); // all is the default
     const nextInterview = next.interview ?? interview;
     if (nextInterview !== 'all') qs.set('interview', nextInterview); // all is the default
     const nextResume = next.resume ?? resume;
@@ -246,6 +261,7 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
   const selectApplied = (next: AppliedFilter) => navigate({ applied: next });
   const selectOthersApplied = (next: OthersAppliedFilter) => navigate({ othersApplied: next });
   const selectDiscarded = (next: DiscardedFilter) => navigate({ discarded: next });
+  const selectRejected = (next: RejectedFilter) => navigate({ rejected: next });
   const selectInterview = (next: InterviewFilter) => navigate({ interview: next });
   const selectResume = (next: ResumeFilter) => navigate({ resume: next });
   const toggleRemote = () => navigate({ remote: !remote });
@@ -274,6 +290,7 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
       applied !== 'all' ||
       othersApplied !== 'all' ||
       discarded !== 'all' ||
+      rejected !== 'all' ||
       interview !== 'all' ||
       resume !== 'all' ||
       postedActive(posted, postedFrom, postedTo),
@@ -438,6 +455,39 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
                 role="radio"
                 aria-checked={on}
                 onClick={() => selectDiscarded(t.value)}
+                className={`rounded-md px-2.5 py-1.5 text-sm transition ${
+                  on
+                    ? 'bg-[var(--primary)] font-medium text-white'
+                    : 'text-[var(--muted)] hover:text-[var(--text)]'
+                }`}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Beside Discarded, because they are the two halves of one question and
+          reading them apart is how you end up thinking a rejection was your
+          own decision. Gated on a profile like the rest — a rejection belongs
+          to the profile that was rejected. */}
+      {canFilterApplied && (
+        <div
+          role="radiogroup"
+          aria-label="Rejected"
+          className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-0.5"
+        >
+          {REJECTED_TABS.map((t) => {
+            const on = rejected === t.value;
+            return (
+              <button
+                key={t.value}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                title={t.hint}
+                onClick={() => selectRejected(t.value)}
                 className={`rounded-md px-2.5 py-1.5 text-sm transition ${
                   on
                     ? 'bg-[var(--primary)] font-medium text-white'

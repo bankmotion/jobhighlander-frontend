@@ -15,3 +15,9 @@ export interface RejectionStatus {
 }
 
 export type RejectionStatusMap = Record<number, RejectionStatus>;
+
+/** Whether the employer rejected this profile's application. */
+export type RejectedFilter = 'all' | 'rejected' | 'notrejected';
+
+export const isRejectedFilter = (v: string): v is RejectedFilter =>
+  v === 'all' || v === 'rejected' || v === 'notrejected';

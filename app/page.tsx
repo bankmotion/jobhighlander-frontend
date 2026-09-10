@@ -38,6 +38,7 @@ import { ResumeListProvider } from '@/app/components/resume-list-provider';
 import { ResumeProfileNotice } from '@/app/components/resume-action';
 import { ResumeProfilePicker } from '@/app/components/resume-profile-picker';
 import { fetchRejectionStatus } from '@/lib/rejections.server';
+import { isRejectedFilter, type RejectedFilter } from '@/lib/rejections';
 import { getSession } from '@/lib/auth';
 import { isAdminRole } from '@/lib/session';
 import { parseDate, parsePosted } from '@/lib/posted';
@@ -81,6 +82,11 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   // Defaults to 'all' for the same reason as the rest: a job you have already
   // written a resume for is still a job, and hiding it by default would make
   // the board look like it had shrunk.
+  // Defaults to 'all', like every other filter: a rejected application is still
+  // a record worth seeing, and hiding it by default would make the board look
+  // like it had shrunk.
+  const rejectedParam = str(sp.rejected);
+  const rejected: RejectedFilter = isRejectedFilter(rejectedParam) ? rejectedParam : 'all';
   const resumeParam = str(sp.resume);
   const resume: ResumeFilter = isResumeFilter(resumeParam) ? resumeParam : 'all';
   // The id paging is pinned to. Absent on page 1, which always shows the
@@ -130,6 +136,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
     applied,
     othersApplied,
     discarded,
+    rejected,
     interview,
     resume,
     snapshotId,
@@ -158,6 +165,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
       applied,
       othersApplied,
       discarded,
+      rejected,
       interview,
       resume,
       snapshotId,
