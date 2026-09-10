@@ -91,13 +91,18 @@ export async function middleware(req: NextRequest) {
   // following one lands on the page instead of being bounced to the dashboard.
   // The query string survives the clone, which is what keeps a link like
   // /admin/scrape-runs?site=ziprecruiter pointing at the same filtered view.
+  //
+  // /admin/prompts is NOT in this list, though it moved with the others. The
+  // path was reused: it is now the admin-level per-profile custom prompt
+  // screen, and redirecting it would make that page unreachable. A super admin
+  // who bookmarked the old main-prompt editor lands on the new page instead of
+  // a 404, which is the better of the two wrong answers available.
   const MOVED = [
     '/admin/ai-usage',
     '/admin/bid-performance',
     '/admin/keywords',
     '/admin/payments',
     '/admin/profiles',
-    '/admin/prompts',
     '/admin/scrape-runs',
     '/admin/scraper-settings',
     '/admin/stage-types',

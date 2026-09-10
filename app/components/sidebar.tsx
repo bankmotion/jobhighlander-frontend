@@ -178,7 +178,8 @@ export function Sidebar({
             label="Admin"
             active={
               pathname.startsWith('/admin/bidders') ||
-              pathname.startsWith('/admin/templates')
+              pathname.startsWith('/admin/templates') ||
+              pathname.startsWith('/admin/prompts')
             }
           >
             <Link href="/admin/bidders" className={linkCls(pathname.startsWith('/admin/bidders'))}>
@@ -189,6 +190,12 @@ export function Sidebar({
               className={linkCls(pathname.startsWith('/admin/templates'))}
             >
               <span className="text-base">📄</span> Resume Templates
+            </Link>
+            <Link
+              href="/admin/prompts"
+              className={linkCls(pathname.startsWith('/admin/prompts'))}
+            >
+              <span className="text-base">✍️</span> Custom Prompts
             </Link>
           </NavGroup>
         )}

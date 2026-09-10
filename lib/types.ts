@@ -128,6 +128,9 @@ export interface ProfileSummary {
   lastName: string | null;
   location: string | null;
   updatedAt: string;
+  /// This profile's HOUSE STYLE ADDENDUM, or null. Prefilled into the Resume
+  /// tab so a generation starts from it without a second request.
+  customPrompt: string | null;
   _count: { workExperiences: number; educations: number };
   /// Everyone invited to this profile, excluding declined. The OWNER is not in
   /// here — they are `owner`, and they are a member by definition.

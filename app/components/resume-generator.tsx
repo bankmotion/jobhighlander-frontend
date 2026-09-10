@@ -56,21 +56,35 @@ function Inferred({ on, children }: { on: boolean; children: React.ReactNode }) 
   );
 }
 
+/**
+ * Generate a tailored resume for the posting, for the profile the PAGE is on.
+ *
+ * The profile is a prop, not a local choice. It used to be a select inside this
+ * component while every sibling tab took the page's single `profileId`, so the
+ * resume could be generated for one profile while the cover letter, the applied
+ * marker and the Ask AI history all still belonged to another — and the Cover
+ * Letter tab would go on saying "Resume first" about a resume that existed.
+ * Switching profiles is the sidebar's job, and the page remounts this when it
+ * happens.
+ */
 export function ResumeGenerator({
   jobId,
-  profiles,
+  profileId,
+  profile,
   presets,
-  initialProfileId,
 }: {
   jobId: number;
-  profiles: ProfileSummary[];
+  profileId: number | null;
+  profile: ProfileSummary | null;
   presets: Preset[];
-  initialProfileId?: number | null;
 }) {
-  const [profileId, setProfileId] = useState<number | ''>(
-    initialProfileId ?? profiles[0]?.id ?? '',
-  );
   const [notes, setNotes] = useState('');
+  // Prefilled from the profile, then owned by this component. Edits apply to
+  // THIS generation only and are frozen onto the saved document; writing them
+  // back to the profile would let a tweak for one posting silently change every
+  // future one. The admin screen is where the profile's own copy is edited.
+  const [customPrompt, setCustomPrompt] = useState(profile?.customPrompt ?? '');
+  const [promptOpen, setPromptOpen] = useState(Boolean(profile?.customPrompt?.trim()));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resume, setResume] = useState<TailoredResume | null>(null);
@@ -177,7 +191,7 @@ export function ResumeGenerator({
       const res = await fetch('/api/resumes/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId, profileId, notes, provider }),
+        body: JSON.stringify({ jobId, profileId, notes, provider, customPrompt }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -332,7 +346,7 @@ export function ResumeGenerator({
     ((resume?.headline || 'resume').replace(/[^\w.-]+/g, '_').slice(0, 60) || 'resume') + '.pdf';
   const docxFileName = fileName.slice(0, -4) + '.docx';
 
-  if (profiles.length === 0) {
+  if (!profileId) {
     return (
       <div>
         <h2 className="text-sm font-semibold text-white">Generate a tailored resume</h2>
@@ -342,6 +356,12 @@ export function ResumeGenerator({
       </div>
     );
   }
+
+  // Open when the profile supplies one, or once the user asks for it. Not state
+  // derived in an effect: the profile cannot change without this component
+  // remounting, so the initial value is the whole story.
+  const profilePrompt = profile?.customPrompt ?? '';
+  const promptEdited = customPrompt !== profilePrompt;
 
   const inferredCount = resume
     ? resume.skills.filter((s) => s.inferred).length +
@@ -359,48 +379,79 @@ export function ResumeGenerator({
         employment history and the posting alone.
       </p>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-[220px_1fr]">
-        <label className="block">
-          <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-            Profile
+      <label className="mt-4 block">
+        <span className="mb-1.5 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+          <span>
+            Your experience <span className="font-normal normal-case">— optional</span>
           </span>
-          <select
-            value={profileId}
-            onChange={(e) => setProfileId(Number(e.target.value))}
-            className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text)]"
+          <button
+            type="button"
+            onClick={loadSaved}
+            className="font-normal normal-case tracking-normal text-[var(--muted)] underline transition hover:text-white"
           >
-            {profiles.map((p) => (
-              <option key={p.id} value={p.id}>
-                {[p.firstName, p.lastName].filter(Boolean).join(' ') ||
-                  p.email ||
-                  'Profile #' + p.id}
-              </option>
-            ))}
-          </select>
-        </label>
+            load last used
+          </button>
+        </span>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={6}
+          placeholder="Anything you add here is treated as fact and outranks the AI's guesses. Leave it blank and everything is drafted for you to review."
+          className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm leading-relaxed text-[var(--text)] placeholder:text-[var(--muted)]/60"
+        />
+      </label>
 
-        <label className="block">
-          <span className="mb-1.5 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-            <span>
-              Your experience <span className="font-normal normal-case">— optional</span>
+      {/* Collapsed until asked for when the profile carries nothing, so the
+          field stays out of the way for anyone not using it, and open by
+          default when there IS something to see — a prompt that silently
+          shapes the output should not be hidden behind a disclosure. */}
+      {promptOpen ? (
+        <label className="mt-4 block">
+          <span className="mb-1.5 flex flex-wrap items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+            <span className="flex items-center gap-2">
+              Custom prompt
+              <span
+                className={`rounded px-1.5 py-0.5 text-[10px] font-medium normal-case tracking-normal ${
+                  promptEdited
+                    ? 'bg-amber-500/15 text-amber-300'
+                    : 'bg-white/5 text-[var(--muted)]'
+                }`}
+              >
+                {promptEdited ? 'edited for this generation' : 'from profile'}
+              </span>
             </span>
-            <button
-              type="button"
-              onClick={loadSaved}
-              className="font-normal normal-case tracking-normal text-[var(--muted)] underline transition hover:text-white"
-            >
-              load last used
-            </button>
+            {promptEdited && (
+              <button
+                type="button"
+                onClick={() => setCustomPrompt(profile?.customPrompt ?? '')}
+                className="font-normal normal-case tracking-normal text-[var(--muted)] underline transition hover:text-white"
+              >
+                reset
+              </button>
+            )}
           </span>
           <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={6}
-            placeholder="Anything you add here is treated as fact and outranks the AI's guesses. Leave it blank and everything is drafted for you to review."
-            className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm leading-relaxed text-[var(--text)] placeholder:text-[var(--muted)]/60"
+            value={customPrompt}
+            onChange={(e) => setCustomPrompt(e.target.value)}
+            rows={4}
+            spellCheck={false}
+            placeholder="Extra drafting guidance — tone, emphasis, which experience to lead with. Steers the draft; it cannot change the employers, dates or output format."
+            className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 font-mono text-[13px] leading-relaxed text-[var(--text)] placeholder:text-[var(--muted)]/60"
           />
+          <span className="mt-1 block text-xs text-[var(--muted)]">
+            Applies to this generation only. Edit the profile’s own copy under Admin › Custom
+            Prompts.
+          </span>
         </label>
-      </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setPromptOpen(true)}
+          className="mt-3 text-xs text-[var(--muted)] underline transition hover:text-white"
+        >
+          Add a custom prompt for this generation
+        </button>
+      )}
 
       <div className="mt-4 flex items-center gap-3">
         <button

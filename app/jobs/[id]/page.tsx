@@ -217,10 +217,15 @@ export default async function JobDetail({
               label: 'Tailored Resume',
               content: (
                 <ResumeGenerator
+                  // Keyed like its siblings: the profile now arrives as a prop,
+                  // so switching in the sidebar has to reset the draft on
+                  // screen rather than leave one profile's resume under
+                  // another's heading.
+                  key={profileId ?? 'none'}
                   jobId={job.id}
-                  profiles={profiles}
+                  profileId={profileId}
+                  profile={activeProfile ?? null}
                   presets={presets}
-                  initialProfileId={profileId}
                 />
               ),
             },

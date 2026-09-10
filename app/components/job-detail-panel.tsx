@@ -264,10 +264,11 @@ export function JobDetailPanelProvider({
                     label: 'Tailored Resume',
                     content: (
                       <ResumeGenerator
+                        key={profileId ?? 'none'}
                         jobId={job.id}
-                        profiles={profiles}
+                        profileId={profileId}
+                        profile={activeProfile ?? null}
                         presets={presets}
-                        initialProfileId={profileId}
                       />
                     ),
                   },
