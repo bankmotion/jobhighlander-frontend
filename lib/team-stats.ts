@@ -17,10 +17,11 @@ export interface ProfileMemberStats {
   offers: number;
   accepted: number;
   rejected: number;
+  rejectedBids: number;
   discarded: number;
   companies: number;
   activeInterviews: number;
-  rates: { interview: number; offer: number; accepted: number };
+  rates: { interview: number; offer: number; accepted: number; rejected: number };
   lastBidAt: string | null;
 }
 
@@ -36,11 +37,13 @@ export interface ProfileBidRow {
     offers: number;
     accepted: number;
     rejected: number;
+    /** Bids the employer turned down — including those rejected with no interview. */
+    rejectedBids: number;
     discarded: number;
     companies: number;
     activeInterviews: number;
   };
-  rates: { interview: number; offer: number; accepted: number };
+  rates: { interview: number; offer: number; accepted: number; rejected: number };
   lastBidAt: string | null;
   members: ProfileMemberStats[];
 }
@@ -55,7 +58,8 @@ export interface TeamBidder {
   interviews: number;
   offers: number;
   accepted: number;
-  rates: { interview: number; offer: number; accepted: number };
+  rejectedBids: number;
+  rates: { interview: number; offer: number; accepted: number; rejected: number };
 }
 
 export interface TeamBidPerformance {
@@ -69,11 +73,13 @@ export interface TeamBidPerformance {
     offers: number;
     accepted: number;
     rejected: number;
+    /** Bids the employer turned down — including those rejected with no interview. */
+    rejectedBids: number;
     discarded: number;
     companies: number;
     activeInterviews: number;
   };
-  rates: { interview: number; offer: number; accepted: number };
+  rates: { interview: number; offer: number; accepted: number; rejected: number };
   daily: { date: string; applications: number; interviews: number }[];
   bySite: { site: string; applications: number; interviews: number; rate: number }[];
   byBidder: TeamBidder[];

@@ -263,10 +263,18 @@ export function TeamBidPerformanceDashboard({
           hint={`${pctText(data.rates.interview)} conversion`}
         />
       </div>
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Stat label="Live interviews" value={data.totals.activeInterviews} hint="In progress now" />
         <Stat label="Offers" value={data.totals.offers} hint={`${pctText(data.rates.offer)} of bids`} />
         <Stat label="Accepted" value={data.totals.accepted} hint={`${pctText(data.rates.accepted)} of bids`} />
+        {/* Beside Discarded on purpose: the two are easy to conflate and mean
+            opposite things. Discarded is the team passing on a posting;
+            Rejected is the employer passing on the team. */}
+        <Stat
+          label="Rejected"
+          value={data.totals.rejectedBids}
+          hint={`${pctText(data.rates.rejected)} of bids`}
+        />
         <Stat label="Discarded" value={data.totals.discarded} hint="Postings dismissed in range" />
       </div>
 
@@ -440,6 +448,7 @@ function ProfileCard({
         <div className="flex items-center gap-5">
           <MiniStat label="Bids" value={profile.totals.applications} />
           <MiniStat label="Interviews" value={profile.totals.interviews} />
+          <MiniStat label="Rejected" value={profile.totals.rejectedBids} />
           <MiniStat label="Rate" value={pctText(profile.rates.interview)} />
           <MiniStat label="Live" value={profile.totals.activeInterviews} />
           <MiniStat label="Discards" value={profile.totals.discarded} />

@@ -9,11 +9,13 @@ export interface BidPerformance {
     offers: number;
     accepted: number;
     rejected: number;
+    /** Bids the employer turned down — including those rejected with no interview. */
+    rejectedBids: number;
     discarded: number;
     companies: number;
     activeInterviews: number;
   };
-  rates: { interview: number; offer: number; accepted: number };
+  rates: { interview: number; offer: number; accepted: number; rejected: number };
   daily: { date: string; applications: number; interviews: number }[];
   funnel: { stage: FunnelStage; label: string; count: number }[];
   bySite: { site: string; applications: number; interviews: number; rate: number }[];

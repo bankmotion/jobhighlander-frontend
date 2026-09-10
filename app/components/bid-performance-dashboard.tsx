@@ -221,7 +221,7 @@ export function BidPerformanceDashboard({
         )}
       </div>
 
-      <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat label="Applications" value={data.totals.applications} hint={`${data.totals.companies} companies`} />
         <Stat
           label="Interview rate"
@@ -229,6 +229,16 @@ export function BidPerformanceDashboard({
           hint={`${data.totals.interviews} of ${data.totals.applications} reached an interview`}
         />
         <Stat label="Offers" value={data.totals.offers} hint={`${pctText(data.rates.offer)} of applications`} />
+        {/* Counts every bid the employer turned down, INCLUDING the ones
+            rejected before any interview — which is most of them, and which
+            nothing on this page showed before. Without it the board reads far
+            healthier than it is: a bid that failed months ago is otherwise
+            indistinguishable from one still in play. */}
+        <Stat
+          label="Rejected"
+          value={data.totals.rejectedBids}
+          hint={`${pctText(data.rates.rejected)} of applications`}
+        />
         <Stat label="Live interviews" value={data.totals.activeInterviews} hint="Currently in progress" />
       </div>
 
