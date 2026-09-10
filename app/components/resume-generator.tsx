@@ -42,8 +42,6 @@ interface SavedResume extends ProviderStamp {
 /** `/preview` returns the draft with the model that wrote it stamped on. */
 type GeneratedResume = TailoredResume & ProviderStamp;
 
-const NOTES_KEY = 'jh:resume-notes';
-
 function Inferred({ on, children }: { on: boolean; children: React.ReactNode }) {
   if (!on) return <>{children}</>;
   return (
@@ -78,7 +76,6 @@ export function ResumeGenerator({
   profile: ProfileSummary | null;
   presets: Preset[];
 }) {
-  const [notes, setNotes] = useState('');
   // Prefilled from the profile, then owned by this component. Edits apply to
   // THIS generation only and are frozen onto the saved document; writing them
   // back to the profile would let a tweak for one posting silently change every
@@ -172,12 +169,6 @@ export function ResumeGenerator({
     });
   }
 
-  // The notes are the one thing the user has to type, and they are the same for
-  // every posting — losing them on navigation would make this unusable.
-  function loadSaved() {
-    setNotes(localStorage.getItem(NOTES_KEY) ?? '');
-  }
-
   async function generate(provider: AiProvider) {
     if (!profileId) return;
     setPicking(false);
@@ -187,11 +178,10 @@ export function ResumeGenerator({
     setResume(null);
     setStamp(null);
     try {
-      if (notes.trim()) localStorage.setItem(NOTES_KEY, notes);
       const res = await fetch('/api/resumes/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId, profileId, notes, provider, customPrompt }),
+        body: JSON.stringify({ jobId, profileId, provider, customPrompt }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -375,31 +365,8 @@ export function ResumeGenerator({
     <div>
       <h2 className="text-sm font-semibold text-white">Generate a tailored resume</h2>
       <p className="mt-1 text-sm text-[var(--muted)]">
-        Written against this posting. Leave the notes empty and the draft is built from your
-        employment history and the posting alone.
+        Written against this posting, from your employment history and the posting itself.
       </p>
-
-      <label className="mt-4 block">
-        <span className="mb-1.5 flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-          <span>
-            Your experience <span className="font-normal normal-case">— optional</span>
-          </span>
-          <button
-            type="button"
-            onClick={loadSaved}
-            className="font-normal normal-case tracking-normal text-[var(--muted)] underline transition hover:text-white"
-          >
-            load last used
-          </button>
-        </span>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          rows={6}
-          placeholder="Anything you add here is treated as fact and outranks the AI's guesses. Leave it blank and everything is drafted for you to review."
-          className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm leading-relaxed text-[var(--text)] placeholder:text-[var(--muted)]/60"
-        />
-      </label>
 
       {/* Collapsed until asked for when the profile carries nothing, so the
           field stays out of the way for anyone not using it, and open by

@@ -40,7 +40,6 @@ import { GenerateModal, ProviderBadge } from './generate-modal';
 import { Modal } from './modal';
 import { Toast, useToast } from './toast';
 
-const NOTES_KEY = 'jh:resume-notes';
 
 const MAX_CONCURRENT = 3;
 
@@ -327,14 +326,6 @@ export function ResumeListProvider({
       if (!startRun(profileId, t.jobId, at)) return;
       setNow(at);
 
-      // The list has no notes field, but the detail page saves what the user
-      // typed. Reusing it means a rewrite is at least as grounded as the
-      // original instead of silently discarding their own words.
-      let notes = '';
-      try {
-        notes = localStorage.getItem(NOTES_KEY) ?? '';
-      } catch {}
-
       // Two ways this request can end early, and they need telling apart: the
       // timeout below, and the user closing the panel. `AbortSignal.any`
       // settles on whichever fires first, and the controller is kept so `close`
@@ -346,7 +337,7 @@ export function ResumeListProvider({
         const res = await fetch('/api/resumes/preview', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ jobId: t.jobId, profileId, notes, provider }),
+          body: JSON.stringify({ jobId: t.jobId, profileId, provider }),
           // Without the timeout a hung request never settles, the run stays
           // 'running' forever, and it holds a concurrency slot for the session.
           signal: AbortSignal.any([canceller.signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS)]),
