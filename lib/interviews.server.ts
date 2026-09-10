@@ -47,7 +47,9 @@ export async function fetchUpcoming(days = 7): Promise<UpcomingPanel[]> {
 export async function fetchInterviewStatus(
   profileId: number,
   jobIds: number[],
-): Promise<Record<number, { interviewId: number; status: InterviewStatus; steps: number }>> {
+): Promise<
+  Record<number, { interviewId: number; status: InterviewStatus; steps: number; note: string | null }>
+> {
   if (!profileId || jobIds.length === 0) return {};
   const qs = new URLSearchParams({ profileId: String(profileId), jobIds: jobIds.join(',') });
   return authed(`/api/interviews/status?${qs}`, {});

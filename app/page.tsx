@@ -33,9 +33,11 @@ import { Pagination } from '@/app/components/pagination';
 import { AppliedProvider } from '@/app/components/applied-provider';
 import { CoverLetterProvider } from '@/app/components/cover-letter-provider';
 import { DiscardProvider } from '@/app/components/discard-provider';
+import { RejectionProvider } from '@/app/components/rejection-provider';
 import { ResumeListProvider } from '@/app/components/resume-list-provider';
 import { ResumeProfileNotice } from '@/app/components/resume-action';
 import { ResumeProfilePicker } from '@/app/components/resume-profile-picker';
+import { fetchRejectionStatus } from '@/lib/rejections.server';
 import { getSession } from '@/lib/auth';
 import { isAdminRole } from '@/lib/session';
 import { parseDate, parsePosted } from '@/lib/posted';
@@ -182,6 +184,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
     queryCounts,
     companyHistory,
     discardCompanyHistory,
+    rejectionStatus,
   ] = profileId
     ? await Promise.all([
         fetchResumeStatus(profileId, jobIds),
@@ -192,8 +195,9 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
         fetchJobQueryCounts(profileId, jobIds),
         fetchCompanyHistory(profileId, jobIds),
         fetchDiscardCompanyHistory(profileId, jobIds),
+        fetchRejectionStatus(profileId, jobIds),
       ])
-    : [{}, {}, {}, {}, {}, {}, {}, {}];
+    : [{}, {}, {}, {}, {}, {}, {}, {}, {}];
 
   return (
     <div>
@@ -275,6 +279,10 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                 companyHistory={discardCompanyHistory}
                 viewerEmail={session?.email ?? null}
               >
+                {/* Its own provider beside the discard one, not inside it: a
+                    posting can be discarded, rejected, both or neither, and the
+                    two are set by different people for different reasons. */}
+                <RejectionProvider key={profileId ?? 'none'} profileId={profileId} initial={rejectionStatus}>
                 <JobDetailPanelProvider
                   keywords={keywords}
                   profileId={profileId}
@@ -295,6 +303,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                   ))}
                 </ul>
                 </JobDetailPanelProvider>
+                </RejectionProvider>
 
                 <NewJobsBanner
                   latestId={data.latestId ?? 0}

@@ -1,9 +1,22 @@
 // Whether a job's interview timeline has been opened for the selected
 // profile. Per profile, like applied and discarded.
-export type InterviewFilter = 'all' | 'started' | 'notstarted';
+export type InterviewFilter = 'all' | 'started' | 'notstarted' | InterviewStatus;
+
+const INTERVIEW_FILTERS: readonly string[] = [
+  'all',
+  'started',
+  'notstarted',
+  'active',
+  'offer',
+  'accepted',
+  'rejected',
+  'withdrawn',
+  'ghosted',
+  'on_hold',
+];
 
 export const isInterviewFilter = (v: string): v is InterviewFilter =>
-  v === 'all' || v === 'started' || v === 'notstarted';
+  INTERVIEW_FILTERS.includes(v);
 
 export type InterviewStatus =
   | 'active'
@@ -52,6 +65,8 @@ export interface InterviewDetail {
   jobTitle: string;
   jobCompany: string | null;
   status: InterviewStatus;
+  /** Optional memo per status, keyed by status value. */
+  statusNotes?: Record<string, string>;
   lastActivityAt: string;
   openedBy: string;
   steps: InterviewStep[];

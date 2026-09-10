@@ -64,10 +64,25 @@ const DISCARDED_TABS: { value: DiscardedFilter; label: string }[] = [
   { value: 'discarded', label: 'Discarded' },
 ];
 
-const INTERVIEW_TABS: { value: InterviewFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
+//: A select, not tabs. The other filters have three options and fit in a
+//: segmented control; this one has ten, and a ten-wide strip would push every
+//: control after it off the row. The two coarse answers stay at the top, above
+//: a separator, because "any interview at all" is the commoner question and
+//: should not be buried among the specific statuses.
+const INTERVIEW_OPTIONS: { value: InterviewFilter; label: string }[] = [
+  { value: 'all', label: 'Interview: any' },
   { value: 'started', label: 'Interviewing' },
   { value: 'notstarted', label: 'No interview' },
+];
+
+const INTERVIEW_STATUS_OPTIONS: { value: InterviewFilter; label: string }[] = [
+  { value: 'active', label: 'Active' },
+  { value: 'offer', label: 'Offer' },
+  { value: 'accepted', label: 'Accepted' },
+  { value: 'rejected', label: 'Rejected' },
+  { value: 'withdrawn', label: 'Withdrawn' },
+  { value: 'ghosted', label: 'Ghosted' },
+  { value: 'on_hold', label: 'On hold' },
 ];
 
 //: "Have I already written a resume for this?" Per profile, like the tabs
@@ -437,31 +452,31 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
       )}
 
       {canFilterApplied && (
-        <div
-          role="radiogroup"
-          aria-label="Interview"
-          className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-0.5"
+        <select
+          aria-label="Interview status"
+          value={interview}
+          onChange={(e) => selectInterview(e.target.value as InterviewFilter)}
+          className={`rounded-lg border bg-[var(--surface-2)] px-3 py-2 text-sm outline-none transition focus:border-[var(--primary)] ${
+            interview === 'all'
+              ? 'border-[var(--border)] text-[var(--muted)]'
+              : // Reads as active, like the segmented controls beside it do
+                // when they are off their default.
+                'border-[var(--primary)] font-medium text-white'
+          }`}
         >
-          {INTERVIEW_TABS.map((t) => {
-            const on = interview === t.value;
-            return (
-              <button
-                key={t.value}
-                type="button"
-                role="radio"
-                aria-checked={on}
-                onClick={() => selectInterview(t.value)}
-                className={`rounded-md px-2.5 py-1.5 text-sm transition ${
-                  on
-                    ? 'bg-[var(--primary)] font-medium text-white'
-                    : 'text-[var(--muted)] hover:text-[var(--text)]'
-                }`}
-              >
-                {t.label}
-              </button>
-            );
-          })}
-        </div>
+          {INTERVIEW_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+          <optgroup label="Status">
+            {INTERVIEW_STATUS_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </optgroup>
+        </select>
       )}
 
       {/* Gated on a profile, like the tabs above: a resume is generated FROM a

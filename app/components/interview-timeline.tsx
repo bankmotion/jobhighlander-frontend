@@ -131,8 +131,35 @@ export function InterviewTimeline({
 
   async function setStatus(status: InterviewStatus) {
     if (!interview) return;
+    // No `note` in the body: changing the status must not touch the memo, and
+    // each status keeps its own, so switching reveals that status's note rather
+    // than carrying the previous one across.
     apply(await call(`/api/interviews/${interview.id}`, { method: 'PATCH', body: { status } }));
   }
+
+  async function saveNote() {
+    if (!interview) return;
+    apply(
+      await call(`/api/interviews/${interview.id}`, {
+        method: 'PATCH',
+        // The status is required by the endpoint and is deliberately the
+        // CURRENT one: this saves a memo, it does not move the process.
+        body: { status: interview.status, note: noteDraft },
+      }),
+    );
+  }
+
+  // Seeded from the selected status, and reset whenever that changes — the memo
+  // belongs to the status, so showing the previous one's text against a new
+  // status would invite saving it to the wrong place.
+  const savedNote = interview ? (interview.statusNotes?.[interview.status] ?? '') : '';
+  const [noteDraft, setNoteDraft] = useState(savedNote);
+  const [noteFor, setNoteFor] = useState<string | null>(interview?.status ?? null);
+  if (interview && noteFor !== interview.status) {
+    setNoteFor(interview.status);
+    setNoteDraft(savedNote);
+  }
+  const noteDirty = noteDraft !== savedNote;
 
   async function deleteInterview() {
     if (!interview) return;
@@ -216,6 +243,44 @@ export function InterviewTimeline({
           </button>
         </div>
       </header>
+
+      {/* One memo per status, not one per interview. The label names the status
+          it belongs to, because the field's contents change when the dropdown
+          above does and nothing else on screen would explain why. */}
+      <div className="-mt-2 mb-6">
+        <label
+          htmlFor="interview-status-note"
+          className="mb-1.5 block text-xs text-[var(--muted)]"
+        >
+          Note for &ldquo;{INTERVIEW_STATUS_LABELS[interview.status]}&rdquo;
+          <span className="ml-1.5 opacity-70">optional — shown when hovering the badge in the job list</span>
+        </label>
+        <div className="flex flex-wrap items-start gap-2">
+          <input
+            id="interview-status-note"
+            type="text"
+            value={noteDraft}
+            onChange={(e) => setNoteDraft(e.target.value)}
+            // Enter saves. The field is one line and the only action beside it
+            // is Save, so making them reach for the mouse buys nothing.
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && noteDirty && !busy) void saveNote();
+            }}
+            disabled={busy}
+            maxLength={2000}
+            placeholder="Why this status — e.g. no reply after the final round"
+            className="min-w-0 flex-1 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--muted)]/60 focus:border-[var(--primary)] disabled:opacity-60"
+          />
+          <button
+            type="button"
+            onClick={() => void saveNote()}
+            disabled={busy || !noteDirty}
+            className="shrink-0 rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--text)] transition hover:border-[var(--primary)] disabled:opacity-40"
+          >
+            {noteDirty ? 'Save' : 'Saved'}
+          </button>
+        </div>
+      </div>
 
       {error && <p className="mb-4 text-sm text-red-400">{error}</p>}
 

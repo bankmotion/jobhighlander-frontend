@@ -8,6 +8,7 @@ import { AppliedCountBadge } from './applied-count-badge';
 import { BlacklistBadge } from './blacklist-badge';
 import { JobDescription } from './job-description';
 import { DiscardAction, DiscardedBadge, PreviouslyDiscardedBadge } from './discard-action';
+import { RejectAction, RejectedBadge } from './rejection-action';
 import { CopyLinkButton } from './copy-link-button';
 import { CopyTextButton } from './copy-text-button';
 import { InterviewAction, InterviewBadge, type InterviewCardStatus } from './interview-action';
@@ -59,6 +60,9 @@ export function JobCard({
             <PreviouslyDiscardedBadge jobId={job.id} />
             <InterviewBadge jobId={job.id} profileId={profileId} interview={interview} />
             <DiscardedBadge jobId={job.id} />
+            {/* Beside the discarded badge, not inside the interview one: a
+                rejection can land before any interview exists. */}
+            <RejectedBadge jobId={job.id} />
             {/* Last in the row: the least urgent thing about a posting. */}
             <ViewedBadge jobId={job.id} />
           </div>
@@ -130,6 +134,7 @@ export function JobCard({
           {/* The same href the button opens, so what is pasted is what Apply
               would have gone to. */}
           <CopyLinkButton url={applyHref} jobId={job.id} />
+          <RejectAction jobId={job.id} where={`${job.title}${job.company ? ` at ${job.company}` : ''}`} />
           <DiscardAction jobId={job.id} />
         </div>
       </div>

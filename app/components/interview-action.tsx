@@ -8,6 +8,8 @@ export interface InterviewCardStatus {
   interviewId: number;
   status: InterviewStatus;
   steps: number;
+  /** Memo for the CURRENT status, shown on hover. Null when none was written. */
+  note?: string | null;
 }
 
 const timelineHref = (jobId: number, profileId: number | null) =>
@@ -38,9 +40,17 @@ export function InterviewBadge({
       href={timelineHref(jobId, profileId)}
       target="_blank"
       rel="noopener noreferrer"
-      title={`${INTERVIEW_STATUS_LABELS[interview.status]} — ${interview.steps} step${
-        interview.steps === 1 ? '' : 's'
-      }. Opens the timeline.`}
+      // The memo leads when there is one. Someone hovering a "Rejected" badge
+      // wants to know why, not to be told again that it is rejected — the
+      // colour and the label beside the cursor already said that.
+      title={[
+        interview.note,
+        `${INTERVIEW_STATUS_LABELS[interview.status]} — ${interview.steps} step${
+          interview.steps === 1 ? '' : 's'
+        }. Opens the timeline.`,
+      ]
+        .filter(Boolean)
+        .join('\n\n')}
       className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-semibold transition hover:brightness-125 ${
         BADGE[interview.status]
       }`}
