@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
-// Super-admin only. The path is under /admin, so middleware has already
+// Super-admin only. The path is under /superadmin, so middleware has already
 // enforced that; the backend enforces it again on the endpoint, which is what
 // actually protects the data — a route gate only decides what renders.
 export default async function TeamBidPerformancePage({
@@ -51,7 +51,7 @@ export default async function TeamBidPerformancePage({
 
   return (
     <div>
-      <QueryPrefsRestore prefs={teamBidPrefs} path="/admin/bid-performance" />
+      <QueryPrefsRestore prefs={teamBidPrefs} path="/superadmin/bid-performance" />
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-white">Team bid performance</h1>
       <p className="mb-5 text-sm text-[var(--muted)]">
         Every profile in the system, who works on it, and what each of them sent. Unlike My

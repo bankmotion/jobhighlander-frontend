@@ -25,7 +25,7 @@ export function ScrapeRunsFilters({
     (next.sites ?? current.sites).forEach((s) => qs.append('site', s));
     (next.statuses ?? current.statuses).forEach((s) => qs.append('status', s));
     const s = qs.toString();
-    router.push(s ? `/admin/scrape-runs?${s}` : '/admin/scrape-runs');
+    router.push(s ? `/superadmin/scrape-runs?${s}` : '/superadmin/scrape-runs');
   }
 
   const filtered = current.sites.length > 0 || current.statuses.length > 0;
@@ -46,7 +46,7 @@ export function ScrapeRunsFilters({
       />
       <button
         type="button"
-        onClick={() => router.push('/admin/scrape-runs')}
+        onClick={() => router.push('/superadmin/scrape-runs')}
         disabled={!filtered}
         className="text-sm text-[var(--muted)] transition hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-[var(--muted)]"
       >

@@ -46,15 +46,16 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // /profiles and /inbox are deliberately NOT under /admin — every signed-in
-  // role reaches them, and what they may do there is decided per profile by the
-  // backend, not by this path check. /billing is the exception, gated below:
-  // bidders do not pay, so there is nothing there for them.
+  // /profiles and /inbox are deliberately NOT under /admin or /superadmin —
+  // every signed-in role reaches them, and what they may do there is decided
+  // per profile by the backend, not by this path check. /billing is the
+  // exception, gated below: bidders do not pay, so there is nothing there for
+  // them.
   //
-  // Re-checked on EVERY gated page, not just /admin.
+  // Re-checked on EVERY gated page, not just the admin trees.
   //
   // The role is inside the token, so a demoted user carries a session that
-  // still asserts the old one. Checking only under /admin meant they were
+  // still asserts the old one. Checking only the admin trees meant they were
   // bounced off those pages but kept a valid-looking session everywhere else —
   // admin links still in the sidebar, every request behind them failing. The
   // API now rejects a token whose role has changed, so this turns any role
@@ -85,14 +86,34 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // /admin/bidders and /admin/templates are open to admins (and super admins):
-  // one shares their own profiles, the other shapes their resume output. The
-  // rest of /admin (users, keywords, scraper config) stays super_admin only.
-  if (pathname.startsWith('/admin')) {
-    const ADMIN_LEVEL = ['/admin/bidders', '/admin/templates'];
-    const allowed = ADMIN_LEVEL.some((p) => pathname.startsWith(p))
-      ? isAdminRole(role)
-      : isSuperAdmin(role);
+  // An old bookmark or a pasted link still points at /admin/<super-admin page>.
+  // Redirected rather than 404'd, and BEFORE the gate below, so a super admin
+  // following one lands on the page instead of being bounced to the dashboard.
+  // The query string survives the clone, which is what keeps a link like
+  // /admin/scrape-runs?site=ziprecruiter pointing at the same filtered view.
+  const MOVED = [
+    '/admin/ai-usage',
+    '/admin/bid-performance',
+    '/admin/keywords',
+    '/admin/payments',
+    '/admin/profiles',
+    '/admin/prompts',
+    '/admin/scrape-runs',
+    '/admin/scraper-settings',
+    '/admin/stage-types',
+  ];
+  if (pathname === '/admin' || MOVED.some((p) => pathname === p || pathname.startsWith(p + '/'))) {
+    const url = req.nextUrl.clone();
+    url.pathname = '/superadmin' + pathname.slice('/admin'.length);
+    return NextResponse.redirect(url);
+  }
+
+  // The URL now carries the access level, so the gate is a prefix test rather
+  // than a list of exceptions: /superadmin/* is super_admin only, and what is
+  // left under /admin/* (bidders, resume templates) is open to admins too —
+  // one shares their own profiles, the other shapes their resume output.
+  if (pathname.startsWith('/superadmin') || pathname.startsWith('/admin')) {
+    const allowed = pathname.startsWith('/superadmin') ? isSuperAdmin(role) : isAdminRole(role);
     if (!allowed) {
       const url = req.nextUrl.clone();
       url.pathname = '/';

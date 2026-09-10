@@ -32,7 +32,7 @@ export default async function ScrapeRunsPage({
     statuses.forEach((s) => qs.append('status', s));
     if (p > 1) qs.set('page', String(p));
     const s = qs.toString();
-    return s ? `/admin/scrape-runs?${s}` : '/admin/scrape-runs';
+    return s ? `/superadmin/scrape-runs?${s}` : '/superadmin/scrape-runs';
   };
 
   return (

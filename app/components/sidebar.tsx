@@ -198,16 +198,16 @@ export function Sidebar({
             icon="🛡️"
             label="Super Admin"
             active={
-              pathname === '/admin' ||
-              pathname.startsWith('/admin/profiles') ||
-              pathname.startsWith('/admin/bid-performance') ||
-              pathname.startsWith('/admin/ai-usage') ||
-              pathname.startsWith('/admin/payments') ||
-              pathname.startsWith('/admin/prompts') ||
-              pathname.startsWith('/admin/keywords') ||
-              pathname.startsWith('/admin/stage-types') ||
-              pathname.startsWith('/admin/scrape-runs') ||
-              pathname.startsWith('/admin/scraper-settings')
+              pathname === '/superadmin' ||
+              pathname.startsWith('/superadmin/profiles') ||
+              pathname.startsWith('/superadmin/bid-performance') ||
+              pathname.startsWith('/superadmin/ai-usage') ||
+              pathname.startsWith('/superadmin/payments') ||
+              pathname.startsWith('/superadmin/prompts') ||
+              pathname.startsWith('/superadmin/keywords') ||
+              pathname.startsWith('/superadmin/stage-types') ||
+              pathname.startsWith('/superadmin/scrape-runs') ||
+              pathname.startsWith('/superadmin/scraper-settings')
             }
             // Ten entries at ~40px each. The group is `overflow-hidden` with
             // no scrollbar, so anything past this height is not merely cut off
@@ -215,52 +215,52 @@ export function Sidebar({
             // whenever a link is added.
             maxHeight={470}
           >
-            <Link href="/admin" className={linkCls(pathname === '/admin')}>
+            <Link href="/superadmin" className={linkCls(pathname === '/superadmin')}>
               <span className="text-base">👥</span> Users
             </Link>
             <Link
-              href="/admin/profiles"
-              className={linkCls(pathname.startsWith('/admin/profiles'))}
+              href="/superadmin/profiles"
+              className={linkCls(pathname.startsWith('/superadmin/profiles'))}
             >
               <span className="text-base">🗂️</span> Profiles
             </Link>
             <Link
-              href="/admin/bid-performance"
-              className={linkCls(pathname.startsWith('/admin/bid-performance'))}
+              href="/superadmin/bid-performance"
+              className={linkCls(pathname.startsWith('/superadmin/bid-performance'))}
             >
               <span className="text-base">📈</span> Bid Performance (all)
             </Link>
             <Link
-              href="/admin/ai-usage"
-              className={linkCls(pathname.startsWith('/admin/ai-usage'))}
+              href="/superadmin/ai-usage"
+              className={linkCls(pathname.startsWith('/superadmin/ai-usage'))}
             >
               <span className="text-base">💸</span> AI Usage (all)
             </Link>
             <Link
-              href="/admin/payments"
-              className={linkCls(pathname.startsWith('/admin/payments'))}
+              href="/superadmin/payments"
+              className={linkCls(pathname.startsWith('/superadmin/payments'))}
             >
               <span className="text-base">💳</span> Payments
               {pendingPayments > 0 && <PendingBadge count={pendingPayments} />}
             </Link>
-            <Link href="/admin/prompts" className={linkCls(pathname.startsWith('/admin/prompts'))}>
+            <Link href="/superadmin/prompts" className={linkCls(pathname.startsWith('/superadmin/prompts'))}>
               <span className="text-base">🗣</span> Prompts
             </Link>
-            <Link href="/admin/keywords" className={linkCls(pathname.startsWith('/admin/keywords'))}>
+            <Link href="/superadmin/keywords" className={linkCls(pathname.startsWith('/superadmin/keywords'))}>
               <span className="text-base">🏷️</span> Keywords
             </Link>
             <Link
-              href="/admin/stage-types"
-              className={linkCls(pathname.startsWith('/admin/stage-types'))}
+              href="/superadmin/stage-types"
+              className={linkCls(pathname.startsWith('/superadmin/stage-types'))}
             >
               <span className="text-base">🪜</span> Interview Stages
             </Link>
-            <Link href="/admin/scrape-runs" className={linkCls(pathname.startsWith('/admin/scrape-runs'))}>
+            <Link href="/superadmin/scrape-runs" className={linkCls(pathname.startsWith('/superadmin/scrape-runs'))}>
               <span className="text-base">📊</span> Scrape Status
             </Link>
             <Link
-              href="/admin/scraper-settings"
-              className={linkCls(pathname.startsWith('/admin/scraper-settings'))}
+              href="/superadmin/scraper-settings"
+              className={linkCls(pathname.startsWith('/superadmin/scraper-settings'))}
             >
               <span className="text-base">⚙️</span> Scraper Settings
             </Link>
