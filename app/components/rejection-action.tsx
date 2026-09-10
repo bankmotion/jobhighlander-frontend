@@ -11,6 +11,9 @@ function when(iso: string): string {
     : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+/** Blank line between the reason and the provenance. */
+const SEP = '\n\n';
+
 const BASE =
   'inline-flex h-8 w-8 items-center justify-center rounded-lg border text-sm transition disabled:opacity-50';
 
@@ -18,15 +21,15 @@ const BASE =
  * Mark a posting as rejected by the employer.
  *
  * A modal rather than a one-click toggle, which is the opposite of how Discard
- * works next to it — and deliberately. The reason is mandatory here, so there is
- * something to collect before the state can exist at all. It also makes the two
- * controls hard to confuse: one dismisses instantly, the other stops and asks.
+ * works next to it — and deliberately. There is something worth collecting, and
+ * it makes the two controls hard to confuse: one dismisses instantly, the other
+ * stops and asks. The reason is optional, so the dialog can also be dismissed
+ * straight through when there is nothing to say.
  */
 export function RejectAction({ jobId, where }: { jobId: number; where: string }) {
   const { profileId, rejectedOn, isBusy, reject } = useRejection();
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState('');
-  const [error, setError] = useState<string | null>(null);
 
   if (!profileId) return null;
   const status = rejectedOn(jobId);
@@ -37,17 +40,11 @@ export function RejectAction({ jobId, where }: { jobId: number; where: string })
   // badge, where the state it undoes is visible.
   if (status) return null;
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!note.trim()) {
-      setError('A reason is required.');
-      return;
-    }
+  async function submit() {
     const ok = await reject(jobId, note);
     if (ok) {
       setOpen(false);
       setNote('');
-      setError(null);
     }
   }
 
@@ -58,58 +55,60 @@ export function RejectAction({ jobId, where }: { jobId: number; where: string })
         onClick={() => setOpen(true)}
         disabled={busy}
         aria-label={`Mark ${where} as rejected`}
-        title="They said no — record the rejection and why"
+        title="They said no — record it, with a reason if there is one"
         className={`${BASE} border-[var(--border)] bg-[var(--surface-2)] text-[var(--muted)] hover:border-rose-500/50 hover:bg-rose-500/10 hover:text-rose-300`}
       >
         <IconSlash />
       </button>
 
-      <Modal open={open} onClose={() => setOpen(false)} title="Mark as rejected">
-        <form onSubmit={submit}>
-          <p className="mb-3 text-sm text-[var(--muted)]">
-            Records that the employer said no to this application. This is separate from
-            discarding, which is you deciding a posting is not a fit.
-          </p>
-          <label className="mb-1.5 block text-xs text-[var(--muted)]" htmlFor="reject-note">
-            Reason
-          </label>
-          <textarea
-            id="reject-note"
-            value={note}
-            onChange={(e) => {
-              setNote(e.target.value);
-              if (error) setError(null);
-            }}
-            rows={4}
-            autoFocus
-            maxLength={2000}
-            placeholder="e.g. no reply after the take-home, or rejected at screening — too few years in Go"
-            className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--muted)]/60 focus:border-[var(--primary)]"
-          />
-          {/* Said plainly rather than enforced by a disabled button: a control
-              that does nothing and does not say why is the worse of the two. */}
-          <p className="mt-1.5 text-xs text-[var(--muted)]">
-            Required — it is what makes the record worth keeping.
-          </p>
-          {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
-
-          <div className="mt-4 flex justify-end gap-2">
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Mark as rejected"
+        subtitle="The employer said no. Separate from discarding, which is you deciding a posting is not a fit."
+        busy={busy}
+        footer={
+          <>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm text-[var(--muted)] transition hover:text-white"
+              disabled={busy}
+              className="rounded-lg px-3 py-2 text-sm text-[var(--muted)] transition hover:text-white disabled:opacity-50"
             >
               Cancel
             </button>
             <button
-              type="submit"
+              type="button"
+              onClick={() => void submit()}
               disabled={busy}
-              className="jh-cta rounded-lg px-4 py-2 text-sm font-semibold text-white transition disabled:opacity-60"
+              className="rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--primary-hover)] disabled:opacity-60"
             >
               {busy ? 'Saving…' : 'Mark rejected'}
             </button>
-          </div>
-        </form>
+          </>
+        }
+      >
+        <div className="px-5 py-4">
+          <label
+            className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--muted)]"
+            htmlFor="reject-note"
+          >
+            Reason <span className="normal-case text-[var(--muted)]/70">(optional)</span>
+          </label>
+          <textarea
+            id="reject-note"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={3}
+            autoFocus
+            maxLength={2000}
+            placeholder="e.g. no reply after the take-home"
+            className="w-full resize-none rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3 text-sm text-[var(--text)] outline-none transition placeholder:text-[var(--muted)]/60 focus:border-[var(--primary)]"
+          />
+          <p className="mt-1.5 text-xs text-[var(--muted)]">
+            Shown when hovering the badge in the job list.
+          </p>
+        </div>
       </Modal>
     </>
   );
@@ -136,7 +135,7 @@ export function RejectedBadge({ jobId }: { jobId: number }) {
       // why, not to be told again that it is rejected.
       title={[status.note, `Rejected${stamp ? ` ${stamp}` : ''} · marked by ${status.rejectedBy}`]
         .filter(Boolean)
-        .join('\n\n')}
+        .join(SEP)}
       className="inline-flex items-center gap-1.5 rounded-md border border-rose-500/40 bg-rose-500/15 px-2 py-0.5 text-xs font-semibold text-rose-300"
     >
       <IconSlash className="h-3 w-3" />

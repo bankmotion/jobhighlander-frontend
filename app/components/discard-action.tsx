@@ -1,6 +1,7 @@
 'use client';
 
 import { useDiscard } from './discard-provider';
+import { useApplied } from './applied-provider';
 
 function IconX({ className = 'h-4 w-4' }: { className?: string }) {
   return (
@@ -31,8 +32,15 @@ export function DiscardAction({ jobId }: { jobId: number }) {
   // `viewerEmail` is not read here: the discarded state renders nothing, and
   // the badge that does render it pulls its own.
   const { profileId, discardedOn, isBusy, toggle } = useDiscard();
+  const { appliedOn } = useApplied();
   const status = discardedOn(jobId);
   const busy = isBusy(jobId);
+
+  // Applied: no discard control. Discarding means "not a fit, take it off my
+  // list", and that decision is already spent once the application is in — the
+  // question afterwards is how it went, which is what Reject and the interview
+  // timeline answer. Offering it here invites hiding a live application.
+  if (appliedOn(jobId)) return null;
 
   const base =
     'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/60 disabled:opacity-60';

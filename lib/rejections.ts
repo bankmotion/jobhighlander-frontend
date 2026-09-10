@@ -8,8 +8,8 @@
  */
 export interface RejectionStatus {
   jobId: number;
-  /** Why. Always present — the reason is the reason the record exists. */
-  note: string;
+  /** Why, when a reason was given. Null is a normal outcome, not a gap. */
+  note: string | null;
   rejectedAt: string;
   rejectedBy: string;
 }
