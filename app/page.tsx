@@ -37,7 +37,7 @@ import { RejectionProvider } from '@/app/components/rejection-provider';
 import { ResumeListProvider } from '@/app/components/resume-list-provider';
 import { ResumeProfileNotice } from '@/app/components/resume-action';
 import { ResumeProfilePicker } from '@/app/components/resume-profile-picker';
-import { fetchRejectionStatus } from '@/lib/rejections.server';
+import { fetchJobStatuses } from '@/lib/job-statuses.server';
 import { isRejectedFilter, type RejectedFilter } from '@/lib/rejections';
 import { getSession } from '@/lib/auth';
 import { isAdminRole } from '@/lib/session';
@@ -188,29 +188,23 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   // Both resolved on the server: fetching either from the client would paint
   // every card as "no resume, not applied" first and then correct itself.
   const jobIds = (data?.items ?? []).map((j) => j.id);
-  const [
-    resumeStatus,
-    appliedStatus,
-    coverLetterStatus,
-    discardStatus,
-    interviewStatus,
+  // ONE request for all nine per-job status maps.
+  //
+  // These were nine separate fetches asking the same question — these job ids,
+  // this profile — of nine endpoints. The database work was never the cost:
+  // inside the backend each is a few milliseconds. Nine HTTP round trips were,
+  // and the page waited on the slowest of them.
+  const {
+    resume: resumeStatus,
+    applied: appliedStatus,
+    coverLetter: coverLetterStatus,
+    discard: discardStatus,
+    interview: interviewStatus,
+    rejection: rejectionStatus,
     queryCounts,
     companyHistory,
     discardCompanyHistory,
-    rejectionStatus,
-  ] = profileId
-    ? await Promise.all([
-        fetchResumeStatus(profileId, jobIds),
-        fetchAppliedStatus(profileId, jobIds),
-        fetchCoverLetterStatus(profileId, jobIds),
-        fetchDiscardStatus(profileId, jobIds),
-        fetchInterviewStatus(profileId, jobIds),
-        fetchJobQueryCounts(profileId, jobIds),
-        fetchCompanyHistory(profileId, jobIds),
-        fetchDiscardCompanyHistory(profileId, jobIds),
-        fetchRejectionStatus(profileId, jobIds),
-      ])
-    : [{}, {}, {}, {}, {}, {}, {}, {}, {}];
+  } = await fetchJobStatuses(profileId, jobIds);
 
   return (
     <div>
