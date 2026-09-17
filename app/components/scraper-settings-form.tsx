@@ -344,6 +344,48 @@ const GROUPS: Group[] = [
       { key: 'ziprecruiter_delay_s', label: 'Delay between jobs (s)', type: 'number', step: '0.5' },
     ],
   },
+  {
+    title: 'Remote Rocketship',
+    fields: [
+      {
+        key: 'enable_remoterocketship',
+        label: 'Enabled',
+        type: 'bool',
+        hint: 'its jobs are also gated per profile — approve one under Approvals before anyone sees them',
+      },
+      {
+        key: 'remoterocketship_use_proxy',
+        label: 'Use proxy',
+        type: 'bool',
+        hint: 'required: Cloudflare returns a block page to our own address, verified directly',
+      },
+      {
+        key: 'remoterocketship_search_url',
+        label: 'Search URL',
+        type: 'text',
+        link: true,
+        hint: 'paste a remoterocketship.com search link; paging is applied by the scraper',
+      },
+      {
+        key: 'remoterocketship_role_regex',
+        label: 'Role regex',
+        type: 'text',
+        hint: 'empty = keep every role the listing returns',
+      },
+      {
+        key: 'remoterocketship_max_age_days',
+        label: 'Max age (days)',
+        type: 'number',
+        hint: 'the listing is sorted newest-first, so this mostly bounds a deep run',
+      },
+      {
+        key: 'remoterocketship_delay_s',
+        label: 'Delay between jobs (s)',
+        type: 'number',
+        step: '0.5',
+      },
+    ],
+  },
 ];
 
 export function ScraperSettingsForm({ initial }: { initial: ScraperSetting[] }) {

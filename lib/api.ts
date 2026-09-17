@@ -85,8 +85,16 @@ export async function fetchJob(id: number): Promise<Job | null> {
   return res.json();
 }
 
-export async function fetchFilters(): Promise<JobFilters> {
-  const res = await fetch(`${API_URL}/api/jobs/filters`, {
+/**
+ * The values worth offering in the filter bar.
+ *
+ * Takes the profile because gated sources are only offerable to a profile that
+ * has been granted them — otherwise an unapproved reader would be shown a paid
+ * source by name and given a filter that returns nothing.
+ */
+export async function fetchFilters(profileId?: number | null): Promise<JobFilters> {
+  const qs = profileId ? `?profileId=${profileId}` : '';
+  const res = await fetch(`${API_URL}/api/jobs/filters${qs}`, {
     cache: 'no-store',
     headers: await authHeaders(),
   });

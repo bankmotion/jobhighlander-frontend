@@ -101,8 +101,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   const postedFrom = parseDate(str(sp.postedFrom));
   const postedTo = parseDate(str(sp.postedTo));
 
-  const [filters, profiles, presets, session, keywords, stageTypes] = await Promise.all([
-    fetchFilters().catch(() => ({ sites: [], locations: [] })),
+  const [profiles, presets, session, keywords, stageTypes] = await Promise.all([
     fetchProfiles().catch(() => []),
     fetchPresets().catch(() => []),
     getSession(),
@@ -149,6 +148,12 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   // Everyone can now reach /profiles, so the only thing the role decides is
   // whether the empty-state offers "create one" or "ask to be invited".
   const canManageProfiles = isAdminRole(session?.role);
+
+  // Fetched here rather than in the batch above, because it needs `profileId`:
+  // gated sources are only offerable to a profile that has been granted them,
+  // and naming a paid source to someone who cannot read it is the leak the job
+  // query already closes.
+  const filters = await fetchFilters(profileId).catch(() => ({ sites: [], locations: [] }));
 
   let data;
   let error: string | null = null;
