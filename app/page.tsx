@@ -242,7 +242,10 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
         // Board-wide "who else applied" is super-admin territory, same as the
         // badge on the cards. The API enforces it too; this just stops offering
         // a control that would come back unfiltered.
-        canFilterOthersApplied={session?.role === 'super_admin'}
+        // The server's answer, not a second copy of the rule. It already
+        // decided this for the badge; asking the role again here is what let
+        // the two drift apart.
+        canFilterOthersApplied={Boolean(data?.canSeeAppliedCount)}
       />
 
       {error ? (

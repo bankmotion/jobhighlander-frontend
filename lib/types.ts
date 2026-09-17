@@ -50,6 +50,14 @@ export interface Paginated<T> {
   // list polls against it for new arrivals; the highest id on the page being
   // read is lower on anything past page 1 and would report the wrong count.
   latestId?: number;
+  /**
+   * Whether this reader may know how many OTHER profiles applied.
+   *
+   * Decided by the server — a role or a super-admin grant — and reported rather
+   * than re-derived here. Working it out a second time in the client is how the
+   * badge and the filter came to disagree.
+   */
+  canSeeAppliedCount?: boolean;
 }
 
 export interface JobFilters {
