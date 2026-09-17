@@ -6,6 +6,16 @@ export interface MultiOption {
   value: string;
   label: string;
   dot?: string;
+  /**
+   * A short tag after the label — "Premium" for a paid source.
+   *
+   * Part of the option rather than baked into `label`, so the two can be styled
+   * apart: a tag rendered as text would sort and truncate with the name, and a
+   * reader scanning the list would read "Remote Rocketship Premium" as the
+   * source's name.
+   */
+  tag?: string;
+  tagTitle?: string;
 }
 
 const inputCls =
@@ -163,6 +173,14 @@ export function MultiSelect({
                     style={{ background: o.dot ?? 'var(--primary)' }}
                   />
                   <span className="flex-1 text-left">{o.label}</span>
+                  {o.tag && (
+                    <span
+                      title={o.tagTitle}
+                      className="shrink-0 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-300 ring-1 ring-inset ring-amber-400/30"
+                    >
+                      {o.tag}
+                    </span>
+                  )}
                   {on && (
                     <svg
                       viewBox="0 0 24 24"

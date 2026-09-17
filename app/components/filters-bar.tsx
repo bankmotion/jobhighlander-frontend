@@ -145,6 +145,15 @@ export const SITE_META: Record<string, { label: string; dot: string }> = {
   // rather than a brand's.
   other: { label: 'Added manually', dot: 'var(--primary)' },
 };
+/**
+ * Sources that cost money and are only visible to an approved profile.
+ *
+ * Listed here so the filter can say so. Seeing a source in this list at all
+ * already means the profile was approved for it — the server withholds the rest
+ * — so the tag is a reminder of WHY it is special, not a lock.
+ */
+const PREMIUM_SITES = new Set(['remoterocketship']);
+
 export function siteMeta(s: string) {
   return (
     SITE_META[s] ?? {
@@ -339,7 +348,16 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
 
       <MultiSelect
         placeholder="All sources"
-        options={filters.sites.map((x) => ({ value: x, ...siteMeta(x) }))}
+        options={filters.sites.map((x) => ({
+          value: x,
+          ...siteMeta(x),
+          ...(PREMIUM_SITES.has(x)
+            ? {
+                tag: 'Premium',
+                tagTitle: 'A paid subscription — only profiles approved by a super admin see these postings',
+              }
+            : {}),
+        }))}
         selected={sites}
         onChange={(next) => navigate({ sites: next })}
       />
