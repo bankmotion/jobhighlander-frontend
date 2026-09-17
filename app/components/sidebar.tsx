@@ -238,6 +238,12 @@ export function Sidebar({
               <span className="text-base">🗂️</span> Profiles
             </Link>
             <Link
+              href="/superadmin/approvals"
+              className={linkCls(pathname.startsWith('/superadmin/approvals'))}
+            >
+              <span className="text-base">✅</span> Approvals
+            </Link>
+            <Link
               href="/superadmin/bid-performance"
               className={linkCls(pathname.startsWith('/superadmin/bid-performance'))}
             >

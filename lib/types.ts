@@ -12,6 +12,15 @@ export interface Job {
   companyUrl: string | null;
   jobType: string | null;
   remote: boolean;
+  /**
+   * Whether the posting is ALSO on LinkedIn.
+   *
+   * Three states, and the null matters: true and false are answers, null is
+   * "this source does not say". Only Remote Rocketship reports it, so the badge
+   * renders for those postings and nothing else — a `false` shown for a site
+   * that never checked would be an invented fact.
+   */
+  onLinkedin?: boolean | null;
   location: string | null;
   salary: string | null;
   postedAt: string | null;

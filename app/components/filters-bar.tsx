@@ -140,6 +140,7 @@ export const SITE_META: Record<string, { label: string; dot: string }> = {
   linkedin: { label: 'LinkedIn', dot: '#0a66c2' },
   dice: { label: 'Dice', dot: '#e11d48' },
   ziprecruiter: { label: 'ZipRecruiter', dot: '#0b6b3a' },
+  remoterocketship: { label: 'Remote Rocketship', dot: '#f43f5e' },
   // Not a site. Jobs someone added by hand, so the dot is the app's own colour
   // rather than a brand's.
   other: { label: 'Added manually', dot: 'var(--primary)' },

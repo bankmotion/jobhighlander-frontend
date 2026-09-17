@@ -9,6 +9,7 @@ import { BlacklistBadge } from './blacklist-badge';
 import { JobDescription } from './job-description';
 import { DiscardAction, DiscardedBadge, PreviouslyDiscardedBadge } from './discard-action';
 import { RejectAction, RejectedBadge } from './rejection-action';
+import { LinkedInBadge } from './linkedin-badge';
 import { CopyLinkButton } from './copy-link-button';
 import { CopyTextButton } from './copy-text-button';
 import { InterviewAction, InterviewBadge, type InterviewCardStatus } from './interview-action';
@@ -54,6 +55,10 @@ export function JobCard({
             {/* First in the row: if this employer is ruled out, that is
                 the thing to know before reading anything else. */}
             <BlacklistBadge on={job.blacklisted} />
+            {/* Renders only where the source reports it, which today is Remote
+                Rocketship alone. Early in the row: "nobody else has seen this"
+                changes whether the posting is worth reading at all. */}
+            <LinkedInBadge onLinkedin={job.onLinkedin} />
             <AppliedBadge jobId={job.id} />
             <AppliedCountBadge count={job.appliedCount} />
             <PreviouslyAppliedBadge jobId={job.id} />
