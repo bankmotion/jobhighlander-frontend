@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { Profile, ProfileSummary } from '@/lib/types';
 import { Modal } from './modal';
+import { formatMonthYear } from './month-year-picker';
 
 const fullName = (p: {
   firstName: string | null;
@@ -20,13 +21,14 @@ function when(iso: string | null): string {
 
 /** Month-year range for an experience or education row. */
 function period(from: string | null, to: string | null): string {
-  const fmt = (v: string | null) => {
-    if (!v) return '';
-    const d = new Date(v);
-    return Number.isNaN(d.getTime())
-      ? v
-      : d.toLocaleDateString(undefined, { year: 'numeric', month: 'short' });
-  };
+  // Formatted from the STRING, never through `new Date(...).toLocaleDateString`.
+  //
+  // These are calendar dates, not instants: the column is DATE and the value
+  // arrives as midnight UTC. Parsing that into a Date and rendering it in local
+  // time moves it backwards for anyone west of UTC — "June 2026" became
+  // "May 2026" in Los Angeles while showing correctly in Seoul, from the same
+  // stored row. A month somebody typed is not a moment to be converted.
+  const fmt = (v: string | null) => (v ? formatMonthYear(v) : '');
   const a = fmt(from);
   // An open end date is an ongoing role, which is what the editor stores for
   // one — there is no separate "current" flag to read.
