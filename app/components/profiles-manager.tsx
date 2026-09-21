@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { Profile, ProfileSummary, ReceivedInvitation } from '@/lib/types';
 import { invitationProfileName, respondToInvitation } from '@/lib/invitations';
 import { ProfileEditor, type ProfilePayload } from './profile-editor';
@@ -26,6 +26,8 @@ export function ProfilesManager({
   canCreate: boolean;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
   const [profiles, setProfiles] = useState<ProfileSummary[]>(initial);
   const [pending, setPending] = useState<ReceivedInvitation[]>(
     invitations.filter((i) => i.status === 'pending'),
@@ -49,6 +51,31 @@ export function ProfilesManager({
     if (res.ok) setProfiles(await res.json());
   }
 
+  // Open whatever `?profile=` names, once per arrival.
+  //
+  // Runs after `openProfile` is defined — a function declaration, so it is
+  // hoisted and callable here. The guard matters because the effect re-runs
+  // when the params change, and opening a profile is itself a param change.
+  const restored = useRef(false);
+  useEffect(() => {
+    if (restored.current) return;
+    restored.current = true;
+    const wanted = Number(params.get('profile'));
+    if (Number.isInteger(wanted) && wanted > 0) void openProfile(wanted);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params]);
+
+  /** Reflect the open profile in the URL without adding history entries. */
+  function syncUrl(id: number | null) {
+    const next = new URLSearchParams(params.toString());
+    if (id) next.set('profile', String(id));
+    else next.delete('profile');
+    const qs = next.toString();
+    // `replace`, not `push`: opening and closing an editor should not make the
+    // back button walk through every profile the reader looked at.
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  }
+
   async function openProfile(id: number) {
     setLoadingId(id);
     setError(null);
@@ -57,6 +84,7 @@ export function ProfilesManager({
       if (!res.ok) throw new Error();
       setEditing(await res.json());
       setView({ mode: 'edit', id });
+      syncUrl(id);
     } catch {
       setError('Could not load that profile.');
     } finally {
@@ -68,11 +96,15 @@ export function ProfilesManager({
     setEditing(null);
     setError(null);
     setView({ mode: 'new' });
+    // A new profile has no id yet, so nothing to name in the URL.
+    syncUrl(null);
   }
 
   async function backToList() {
     setView({ mode: 'list' });
     setEditing(null);
+    // The URL follows the view, so a refresh from the list shows the list.
+    syncUrl(null);
     await refresh();
   }
 
