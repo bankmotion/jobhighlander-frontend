@@ -20,6 +20,8 @@ interface Draft {
   postedOn: string;
   description: string;
   remote: boolean;
+  /** true = this profile only; false = the shared board. */
+  privateToProfile: boolean;
 }
 
 const EMPTY: Draft = {
@@ -32,6 +34,9 @@ const EMPTY: Draft = {
   postedOn: '',
   description: '',
   remote: false,
+  // The shared board by default — the behaviour before this choice existed, so
+  // nobody who ignores the control gets a different outcome than they used to.
+  privateToProfile: false,
 };
 
 // Mirrors the backend's `manualJobSchema`. Checked here too so a typo is caught
@@ -53,11 +58,19 @@ export function AddJobModal({
   open,
   onClose,
   todayInZone,
+  profileId,
+  profileName,
 }: {
   open: boolean;
   onClose: () => void;
   /** Today on the VIEWER's calendar, so the date cannot be set to their tomorrow. */
   todayInZone: string;
+  /**
+   * The profile in context. Without one there is nothing to keep the posting
+   * private TO, so the choice is hidden rather than shown and disabled.
+   */
+  profileId?: number | null;
+  profileName?: string | null;
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState<Draft>(EMPTY);
@@ -103,6 +116,9 @@ export function AddJobModal({
           postedOn: draft.postedOn || '',
           description: draft.description.trim(),
           remote: draft.remote,
+          // Omitted for the shared board, so the server stores NULL rather than
+          // a profile id that would then need interpreting as "everyone".
+          ...(draft.privateToProfile && profileId ? { visibleToProfileId: profileId } : {}),
         }),
       });
 
@@ -286,6 +302,56 @@ export function AddJobModal({
               Remote
             </label>
           </div>
+
+          {/* Who can see it. Only offered when there is a profile to keep it
+              private TO — with none selected there is no meaningful choice, and
+              a disabled control would just raise a question it cannot answer. */}
+          {profileId && (
+            <div className="sm:col-span-2">
+              <span className={labelCls}>Who can see it</span>
+              <div
+                role="radiogroup"
+                aria-label="Who can see this job"
+                className="flex flex-wrap gap-2"
+              >
+                {[
+                  {
+                    value: false,
+                    label: 'Everyone',
+                    hint: 'On the shared board, like a scraped job',
+                  },
+                  {
+                    value: true,
+                    label: profileName ? `Only ${profileName}` : 'Only this profile',
+                    hint: 'Nobody else sees it — not in the list, not by link',
+                  },
+                ].map((o) => {
+                  const on = draft.privateToProfile === o.value;
+                  return (
+                    <button
+                      key={String(o.value)}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      onClick={() => set('privateToProfile', o.value)}
+                      className={`flex-1 rounded-lg border px-3 py-2 text-left transition ${
+                        on
+                          ? 'border-[var(--primary)] bg-[var(--primary)]/10'
+                          : 'border-[var(--border)] bg-[var(--surface-2)] hover:border-[var(--border-strong)]'
+                      }`}
+                    >
+                      <span
+                        className={`block text-sm font-medium ${on ? 'text-white' : 'text-[var(--text)]'}`}
+                      >
+                        {o.label}
+                      </span>
+                      <span className="mt-0.5 block text-[11px] text-[var(--muted)]">{o.hint}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="sm:col-span-2">
             <label className={labelCls} htmlFor="mj-description">

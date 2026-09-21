@@ -219,7 +219,16 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
           {/* Beside the profile picker rather than in the filter bar: adding a
               job changes what the list CONTAINS, where every control in that bar
               changes what it SHOWS. */}
-          <AddJobButton />
+          <AddJobButton
+            profileId={profileId}
+            profileName={
+              profile
+                ? [profile.firstName, profile.lastName].filter(Boolean).join(' ') ||
+                  profile.email ||
+                  `Profile ${profile.id}`
+                : null
+            }
+          />
           {profiles.length > 1 && profile && (
             <ResumeProfilePicker profiles={profiles} selectedId={profile.id} />
           )}

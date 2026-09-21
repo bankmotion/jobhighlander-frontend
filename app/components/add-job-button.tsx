@@ -10,7 +10,14 @@ import { useDisplayZone } from '@/lib/display-zone';
  * Split from the modal so the dialog's markup is not parsed and mounted on
  * every page load for a control most visits never touch.
  */
-export function AddJobButton() {
+export function AddJobButton({
+  profileId,
+  profileName,
+}: {
+  /** The profile in context, so a posting can be kept private to it. */
+  profileId?: number | null;
+  profileName?: string | null;
+}) {
   const [open, setOpen] = useState(false);
   const zone = useDisplayZone();
 
@@ -37,7 +44,13 @@ export function AddJobButton() {
         Add a job
       </button>
 
-      <AddJobModal open={open} onClose={() => setOpen(false)} todayInZone={today} />
+      <AddJobModal
+        open={open}
+        onClose={() => setOpen(false)}
+        todayInZone={today}
+        profileId={profileId}
+        profileName={profileName}
+      />
     </>
   );
 }
