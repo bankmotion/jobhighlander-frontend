@@ -78,7 +78,22 @@ export function ProfilesManager({
 
   async function save(data: ProfilePayload): Promise<boolean> {
     const isNew = view.mode === 'new';
-    const url = isNew ? '/api/profiles' : `/api/profiles/${(view as { id: number }).id}`;
+    const targetId = isNew ? null : (view as { id: number }).id;
+
+    // Refuse a save whose content came from a DIFFERENT profile.
+    //
+    // The payload replaces the profile wholesale, so a stale form is
+    // indistinguishable from a deliberate rewrite — the server cannot tell, and
+    // the damage is silent and total. Checking here costs nothing and turns the
+    // worst outcome into a message.
+    if (targetId !== null && data.seededFromProfileId !== targetId) {
+      setError(
+        'This form was loaded from a different profile. Nothing was saved — reopen the profile and try again.',
+      );
+      return false;
+    }
+
+    const url = isNew ? '/api/profiles' : `/api/profiles/${targetId}`;
     const res = await fetch(url, {
       method: isNew ? 'POST' : 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -138,6 +153,12 @@ export function ProfilesManager({
     return (
       <>
         <ProfileEditor
+          // A FRESH editor per profile. Every field is seeded with
+          // `useState(profile?.x)`, which runs only on mount — so reusing one
+          // instance for a second profile leaves the form holding the first
+          // one's values, and saving writes them over the second. The key makes
+          // React build a new instance instead of reusing this one.
+          key={view.mode === 'new' ? 'new' : `edit-${(view as { id: number }).id}`}
           profile={editing}
           onSave={save}
           onCancel={backToList}

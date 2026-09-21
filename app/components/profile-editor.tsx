@@ -47,6 +47,17 @@ interface EduRow {
 }
 
 export interface ProfilePayload {
+  /**
+   * The profile this form was populated from, or null for a new one.
+   *
+   * Sent so the caller can refuse a save that would land somewhere else. The
+   * form state is seeded once at mount; if the component is ever reused for a
+   * different profile without remounting, every field still holds the previous
+   * one's values and a save writes them over the new id — silently, because a
+   * full-replacement payload is indistinguishable from a deliberate edit.
+   * That is not hypothetical: it overwrote a real profile.
+   */
+  seededFromProfileId: number | null;
   email: string;
   firstName: string;
   lastName: string;
@@ -145,6 +156,7 @@ export function ProfileEditor({
         endDate: e.present ? null : e.endDate,
         datePrecision: e.precision,
       })),
+      seededFromProfileId: profile?.id ?? null,
     };
     await onSave(payload);
     setBusy(false);
