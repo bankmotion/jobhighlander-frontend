@@ -45,7 +45,12 @@ export interface ProfilePromptView {
   check: PromptCheckView | null;
 }
 
-export const CUSTOM_PROMPT_MAX = 4_000;
+/**
+ * Mirrors `CUSTOM_PROMPT_MAX` on the API, which is the authority — this copy
+ * exists so the editor can count characters without a round trip. The two must
+ * move together, or the counter promises room the server will refuse.
+ */
+export const CUSTOM_PROMPT_MAX = 8_000;
 
 export const VERDICT_LABEL: Record<string, string> = {
   clean: 'Clean',
