@@ -50,7 +50,7 @@ export interface ProfilePromptView {
  * exists so the editor can count characters without a round trip. The two must
  * move together, or the counter promises room the server will refuse.
  */
-export const CUSTOM_PROMPT_MAX = 8_000;
+export const CUSTOM_PROMPT_MAX = 10_000;
 
 export const VERDICT_LABEL: Record<string, string> = {
   clean: 'Clean',
