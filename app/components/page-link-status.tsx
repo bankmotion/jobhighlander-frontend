@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useLinkStatus } from 'next/link';
 import { setNavPending } from '@/lib/nav-pending';
+import { Spinner } from './loading';
 
 /**
  * A spinner over the pagination control that was just clicked.
@@ -40,7 +41,7 @@ export function PageLinkStatus() {
       aria-hidden
       className="absolute inset-0 flex items-center justify-center rounded-lg bg-[var(--surface-2)]"
     >
-      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--muted)] border-t-[var(--primary)]" />
+      <Spinner className="h-3.5 w-3.5" />
     </span>
   );
 }

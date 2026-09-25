@@ -39,6 +39,7 @@ import { primeSaveDir, saveDirConfigured } from '@/lib/save-dir';
 import { GenerateModal, ProviderBadge } from './generate-modal';
 import { Modal } from './modal';
 import { Toast, useToast } from './toast';
+import { Spinner } from './loading';
 
 
 const MAX_CONCURRENT = 3;
@@ -885,10 +886,7 @@ export function ResumeListProvider({
               aria-busy="true"
               className="flex h-[60vh] flex-col items-center justify-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-center"
             >
-              <span
-                aria-hidden
-                className="h-6 w-6 animate-spin rounded-full border-2 border-[var(--border-strong)] border-t-[var(--primary)] motion-reduce:animate-none"
-              />
+              <Spinner className="h-6 w-6" />
               <span className="sr-only">Writing a resume. This takes 20 to 60 seconds.</span>
               <p aria-hidden className="text-sm font-medium text-[var(--text)]">
                 Writing a resume for this posting… {formatElapsed(elapsedSince(run, now))}

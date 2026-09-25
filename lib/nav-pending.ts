@@ -19,8 +19,26 @@ const listeners = new Set<() => void>();
 
 const emit = () => listeners.forEach((l) => l());
 
+let timer: ReturnType<typeof setTimeout> | null = null;
+
+/** A navigation that never commits must not strand the overlay. */
+const STUCK_MS = 15_000;
+
 export function setNavPending(pending: boolean): void {
   count = Math.max(0, count + (pending ? 1 : -1));
+  if (timer) clearTimeout(timer);
+  timer = count > 0 ? setTimeout(resetNavPending, STUCK_MS) : null;
+  emit();
+}
+
+/** Arrived (or gave up): drop the veil regardless of how it was raised. */
+export function resetNavPending(): void {
+  if (timer) {
+    clearTimeout(timer);
+    timer = null;
+  }
+  if (count === 0) return;
+  count = 0;
   emit();
 }
 

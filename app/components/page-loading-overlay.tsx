@@ -1,6 +1,7 @@
 'use client';
 
 import { useSyncExternalStore } from 'react';
+import { LoadingBadge } from './loading';
 import {
   subscribeNavPending,
   getNavPending,
@@ -30,13 +31,12 @@ export function PageLoadingOverlay() {
     <div
       role="status"
       aria-live="polite"
-      aria-label="Loading jobs"
+      aria-label="Loading"
       className="fixed inset-0 z-40 flex items-start justify-center bg-[var(--bg)]/55 backdrop-blur-[1px]"
     >
-      <span className="mt-32 inline-flex items-center gap-3 rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] px-5 py-3 text-sm text-[var(--text)] shadow-2xl">
-        <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--muted)] border-t-[var(--primary)]" />
-        Loading jobs…
-      </span>
+      <div className="mt-32">
+        <LoadingBadge />
+      </div>
     </div>
   );
 }

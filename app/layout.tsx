@@ -12,6 +12,8 @@ import { RefreshButton } from '@/app/components/refresh-button';
 import { THEME_INIT_SCRIPT } from '@/lib/theme-init';
 import { NAV_INIT_SCRIPT } from '@/lib/nav-init';
 import { ZONE_INIT_SCRIPT } from '@/lib/zone-init';
+import { NavProgress } from '@/app/components/nav-progress';
+import { PageLoadingOverlay } from '@/app/components/page-loading-overlay';
 
 export const metadata: Metadata = {
   title: 'JobHighLander',
@@ -37,6 +39,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <script dangerouslySetInnerHTML={{ __html: ZONE_INIT_SCRIPT }} />
       </head>
       <body className="min-h-screen">
+        {/* App-wide navigation feedback. `loading.tsx` only fires when a route
+            SEGMENT changes, so it misses every search-param navigation --
+            paging, filtering, sorting. These two cover both cases with one
+            look. Inside Suspense because NavProgress reads useSearchParams,
+            which would otherwise opt the whole tree into client rendering. */}
+        <Suspense fallback={null}>
+          <NavProgress />
+        </Suspense>
+        <PageLoadingOverlay />
         {session ? (
           <div className="flex min-h-screen">
             <Suspense fallback={<SidebarSkeleton />}>

@@ -1,5 +1,5 @@
-import { LoadingView } from '@/app/components/loading-view';
+import { LoadingCard } from '@/app/components/loading';
 
 export default function Loading() {
-  return <LoadingView variant="table" rows={6} />;
+  return <LoadingCard />;
 }

@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useResumeList, type ResumeTarget } from './resume-list-provider';
 import { useCoverLetters } from './cover-letter-provider';
 import { BOX, ICON_BOX, TONE } from './resume-action';
+import { Spinner } from './loading';
 
 function IconSparkle() {
   return (
@@ -129,14 +130,6 @@ function IconAlert() {
   );
 }
 
-function Spinner() {
-  return (
-    <span
-      aria-hidden
-      className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--border-strong)] border-t-[var(--primary)] motion-reduce:animate-none"
-    />
-  );
-}
 
 export function ApplicationAction({ jobId, title, company }: ResumeTarget) {
   const { profileId, statusOf, runOf, generateQuiet, view, download, isDownloading, queuePlace, unqueue } =
@@ -209,7 +202,7 @@ export function ApplicationAction({ jobId, title, company }: ResumeTarget) {
         aria-label={`Writing the resume and cover letter for ${where}`}
         className={`${BOX} ${TONE.busy}`}
       >
-        <Spinner />
+        <Spinner className="h-3.5 w-3.5" />
         <span aria-hidden>Generating…</span>
       </span>
     );
@@ -266,7 +259,7 @@ export function ApplicationAction({ jobId, title, company }: ResumeTarget) {
           }
           className={ICON_BOX}
         >
-          {saving ? <Spinner /> : <IconDownload />}
+          {saving ? <Spinner className="h-3.5 w-3.5" /> : <IconDownload />}
         </button>
 
         <button
@@ -281,7 +274,7 @@ export function ApplicationAction({ jobId, title, company }: ResumeTarget) {
           }
           className={ICON_BOX}
         >
-          {saving ? <Spinner /> : <IconWord />}
+          {saving ? <Spinner className="h-3.5 w-3.5" /> : <IconWord />}
         </button>
 
         <button
@@ -298,7 +291,7 @@ export function ApplicationAction({ jobId, title, company }: ResumeTarget) {
           aria-label={`Copy the cover letter for ${where} to the clipboard`}
           className={ICON_BOX}
         >
-          {copying ? <Spinner /> : <IconClipboard />}
+          {copying ? <Spinner className="h-3.5 w-3.5" /> : <IconClipboard />}
         </button>
       </span>
     );
