@@ -3,6 +3,15 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ProfileSummary } from '@/lib/types';
 import type { Preset } from '@/lib/templates';
+import {
+  fetchBackgrounds,
+  loadBackground,
+  saveBackground,
+  CATEGORY_ORDER,
+  CATEGORY_LABEL,
+  NO_BACKGROUND,
+  type ResumeBackground,
+} from '@/lib/resume-backgrounds';
 import { stampLabel, type AiProvider, type ProviderStamp } from '@/lib/ai-providers';
 import { GenerateModal, ProviderBadge } from './generate-modal';
 import { saveBlob } from '@/lib/save-file';
@@ -92,6 +101,11 @@ export function ResumeGenerator({
   // changes on every pick, `savedTemplateKey` is what the database holds. The
   // gap between them is exactly what the Apply button offers to close.
   const [templateKey, setTemplateKey] = useState<string>('');
+  // The background list comes from the server; the CHOICE is remembered in
+  // this browser. Seeded from storage on mount rather than in the initializer
+  // so the server and the first client render agree.
+  const [backgrounds, setBackgrounds] = useState<ResumeBackground[]>([]);
+  const [background, setBackground] = useState<string>(NO_BACKGROUND);
   const [savedTemplateKey, setSavedTemplateKey] = useState<string>('');
   const [applying, setApplying] = useState(false);
   // Which vendor wrote the resume currently on screen. Read from the saved row
@@ -103,6 +117,11 @@ export function ResumeGenerator({
 
   // Object URLs are leaked memory until revoked, and the iframe still needs the
   // current one — so revoke only when it's replaced, and once on unmount.
+  useEffect(() => {
+    setBackground(loadBackground());
+    void fetchBackgrounds().then(setBackgrounds);
+  }, []);
+
   const pdfUrlRef = useRef<string | null>(null);
   useEffect(() => {
     pdfUrlRef.current = pdfUrl;
@@ -259,7 +278,24 @@ export function ResumeGenerator({
     }
   }
 
-  async function renderPdf(forResume: TailoredResume, forProfileId: number, forTemplate?: string) {
+  /** Pick a background: remember it, and re-render the preview to show it. */
+  function selectBackground(key: string) {
+    setBackground(key);
+    saveBackground(key);
+    if (resume && profileId) {
+      void renderPdf(resume, Number(profileId), templateKey || undefined, key);
+    }
+  }
+
+  async function renderPdf(
+    forResume: TailoredResume,
+    forProfileId: number,
+    forTemplate?: string,
+    // Passed explicitly when the picker changes. The handler runs before the
+    // state update lands, so reading `background` here would render the
+    // PREVIOUS choice -- the same trap `forTemplate` exists to avoid.
+    forBackground?: string,
+  ) {
     setPdfLoading(true);
     try {
       const res = await fetch('/api/resumes/pdf', {
@@ -269,6 +305,7 @@ export function ResumeGenerator({
           resume: forResume,
           profileId: forProfileId,
           pageSize: 'letter',
+          background: forBackground ?? background,
           ...(forTemplate ? { templateKey: forTemplate } : {}),
         }),
       });
@@ -457,8 +494,9 @@ export function ResumeGenerator({
 
       {resume && (
         <div ref={resultRef} className="mt-6 scroll-mt-6 border-t border-[var(--border)] pt-5">
-          {presets.length > 0 && (
+          {(presets.length > 0 || backgrounds.length > 0) && (
             <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2">
+              {presets.length > 0 && (
               <label className="flex items-center gap-2 text-sm">
                 <span className="text-[var(--muted)]">Template</span>
                 <select
@@ -474,8 +512,40 @@ export function ResumeGenerator({
                   ))}
                 </select>
               </label>
+              )}
 
-              {templateKey !== savedTemplateKey ? (
+              {/* A select rather than thumbnails: there are two dozen of
+                  these, grouped, and a grid of near-identical grey swatches
+                  is harder to scan than a named list. The description rides
+                  along as the option's tooltip. */}
+              {backgrounds.length > 0 && (
+                <label className="flex items-center gap-2 text-sm">
+                  <span className="text-[var(--muted)]">Background</span>
+                  <select
+                    value={background}
+                    onChange={(e) => selectBackground(e.target.value)}
+                    disabled={pdfLoading}
+                    title={backgrounds.find((b) => b.key === background)?.description ?? ''}
+                    className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1.5 text-sm text-[var(--text)] disabled:opacity-50"
+                  >
+                    {CATEGORY_ORDER.map((cat) => {
+                      const items = backgrounds.filter((b) => b.category === cat);
+                      if (!items.length) return null;
+                      return (
+                        <optgroup key={cat} label={CATEGORY_LABEL[cat]}>
+                          {items.map((b) => (
+                            <option key={b.key} value={b.key} title={b.description}>
+                              {b.name}
+                            </option>
+                          ))}
+                        </optgroup>
+                      );
+                    })}
+                  </select>
+                </label>
+              )}
+
+              {presets.length > 0 && templateKey !== savedTemplateKey ? (
                 <button
                   type="button"
                   onClick={applyTemplate}
@@ -484,9 +554,9 @@ export function ResumeGenerator({
                 >
                   {applying ? 'Applying…' : 'Apply'}
                 </button>
-              ) : (
+              ) : presets.length > 0 ? (
                 <span className="text-xs text-[var(--muted)]">Saved</span>
-              )}
+              ) : null}
             </div>
           )}
 
