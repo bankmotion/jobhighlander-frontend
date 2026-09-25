@@ -5,8 +5,6 @@ import type { ProfileSummary } from '@/lib/types';
 import type { Preset } from '@/lib/templates';
 import {
   fetchBackgrounds,
-  loadBackground,
-  saveBackground,
   CATEGORY_ORDER,
   CATEGORY_LABEL,
   NO_BACKGROUND,
@@ -118,9 +116,29 @@ export function ResumeGenerator({
   // Object URLs are leaked memory until revoked, and the iframe still needs the
   // current one — so revoke only when it's replaced, and once on unmount.
   useEffect(() => {
-    setBackground(loadBackground());
     void fetchBackgrounds().then(setBackgrounds);
   }, []);
+
+  // Seed the picker from the PROFILE's saved default, not from this browser.
+  //
+  // The server already falls back to that default when a render names no
+  // background, so seeding from localStorage would show one thing in the
+  // dropdown while rendering another. The admin templates screen owns the
+  // default; this control is a per-resume override on top of it, exactly as
+  // the template selector is.
+  useEffect(() => {
+    if (!profileId) return;
+    let live = true;
+    void fetch(`/api/profiles/${profileId}`, { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((p) => {
+        if (live && p) setBackground(p.defaultBackground ?? NO_BACKGROUND);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [profileId]);
 
   const pdfUrlRef = useRef<string | null>(null);
   useEffect(() => {
@@ -278,10 +296,9 @@ export function ResumeGenerator({
     }
   }
 
-  /** Pick a background: remember it, and re-render the preview to show it. */
+  /** Override the background for THIS resume and re-render the preview. */
   function selectBackground(key: string) {
     setBackground(key);
-    saveBackground(key);
     if (resume && profileId) {
       void renderPdf(resume, Number(profileId), templateKey || undefined, key);
     }

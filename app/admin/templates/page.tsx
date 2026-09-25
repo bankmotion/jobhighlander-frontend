@@ -1,12 +1,16 @@
 import Link from 'next/link';
-import { fetchPresets } from '@/lib/templates';
+import { fetchPresets, fetchBackgroundDefs } from '@/lib/templates';
 import { fetchProfiles, fetchProfile } from '@/lib/profiles';
 import { TemplatePicker } from '@/app/components/template-picker';
 
 export const dynamic = 'force-dynamic';
 
 export default async function TemplatesPage() {
-  const [presets, usable] = await Promise.all([fetchPresets(), fetchProfiles()]);
+  const [presets, backgrounds, usable] = await Promise.all([
+    fetchPresets(),
+    fetchBackgroundDefs(),
+    fetchProfiles(),
+  ]);
 
   const profiles = usable.filter((p) => p.canEdit);
   const sharedCount = usable.length - profiles.length;
@@ -15,16 +19,19 @@ export default async function TemplatesPage() {
   // fetched in full. Fine at this scale — a handful of profiles per admin.
   const full = await Promise.all(profiles.map((p) => fetchProfile(p.id)));
   const defaults: Record<number, string | null> = {};
+  const backgroundDefaults: Record<number, string | null> = {};
   full.forEach((p) => {
-    if (p) defaults[p.id] = (p as { defaultTemplateKey?: string | null }).defaultTemplateKey ?? null;
+    if (!p) return;
+    defaults[p.id] = (p as { defaultTemplateKey?: string | null }).defaultTemplateKey ?? null;
+    backgroundDefaults[p.id] = (p as { defaultBackground?: string | null }).defaultBackground ?? null;
   });
 
   return (
     <div>
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-white">Resume templates</h1>
       <p className="mb-6 text-sm text-[var(--muted)]">
-        Pick the default design for each profile you own. Every preview shows the same sample
-        candidate, so what differs between them is the design.
+        Pick the default design and page background for each profile you own. Every preview shows the
+        same sample candidate, so what differs between them is the design.
       </p>
 
       {sharedCount > 0 && (
@@ -44,7 +51,13 @@ export default async function TemplatesPage() {
           to set its default template.
         </div>
       ) : (
-        <TemplatePicker presets={presets} profiles={profiles} defaults={defaults} />
+        <TemplatePicker
+          presets={presets}
+          profiles={profiles}
+          defaults={defaults}
+          backgrounds={backgrounds}
+          backgroundDefaults={backgroundDefaults}
+        />
       )}
     </div>
   );

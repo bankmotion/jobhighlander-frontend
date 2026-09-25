@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
-import type { Preset } from '@/lib/templates';
+import type { Preset, BackgroundDef } from '@/lib/templates';
 import type { ProfileSummary } from '@/lib/types';
 import { Toast, useToast } from './toast';
 
@@ -21,22 +21,40 @@ const FONT_LABEL: Record<string, string> = {
   'slab-sans': 'Palatino / Helvetica',
 };
 
+/** Plain first, loudest last -- the same order the generator's picker uses. */
+const BG_GROUPS = ['plain', 'lines', 'dots', 'geometric', 'accent'] as const;
+const BG_LABEL: Record<string, string> = {
+  plain: 'Plain',
+  lines: 'Lines',
+  dots: 'Dots',
+  geometric: 'Geometric',
+  accent: 'Accents',
+};
+
 export function TemplatePicker({
   presets,
   profiles,
   defaults,
+  backgrounds,
+  backgroundDefaults,
 }: {
   presets: Preset[];
   profiles: ProfileSummary[];
   defaults: Record<number, string | null>;
+  backgrounds: BackgroundDef[];
+  backgroundDefaults: Record<number, string | null>;
 }) {
   const [profileId, setProfileId] = useState<number | ''>(profiles[0]?.id ?? '');
   const [selected, setSelected] = useState<Record<number, string | null>>(defaults);
+  const [selectedBg, setSelectedBg] = useState<Record<number, string | null>>(backgroundDefaults);
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState<Preset | null>(null);
   const { toast, show, dismiss } = useToast();
 
   const current = profileId ? selected[profileId] : null;
+  // Null means the profile never chose one, which renders plain -- so the
+  // control shows 'none' without writing that choice until someone picks.
+  const currentBg = profileId ? selectedBg[profileId] : null;
 
   // Escape closes the preview — expected of any modal, and the only way out
   // for someone not using a mouse.
@@ -59,6 +77,39 @@ export function TemplatePicker({
     const p = profiles.find((x) => x.id === id);
     if (!p) return 'this profile';
     return [p.firstName, p.lastName].filter(Boolean).join(' ') || p.email || `Profile #${p.id}`;
+  }
+
+  /**
+   * Save this profile's default background.
+   *
+   * No preview alongside it, unlike the template grid: a background is a wash
+   * behind the text, and it is the template thumbnails that show what a resume
+   * actually looks like. The per-resume picker in the generator previews the
+   * real thing against real content, which is the place that judgement is
+   * better made.
+   */
+  async function setDefaultBackground(key: string) {
+    if (!profileId) return;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/resumes/backgrounds/default', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileId, background: key }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => null);
+        show(d?.error ?? `Could not save (${res.status})`, 'error');
+        return;
+      }
+      setSelectedBg((prev) => ({ ...prev, [profileId]: key }));
+      const name = backgrounds.find((b) => b.key === key)?.name ?? key;
+      show(`${name} is now the background for ${profileName(profileId)}`);
+    } catch {
+      show('Could not reach the server.', 'error');
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function setDefault(key: string) {
@@ -118,6 +169,40 @@ export function TemplatePicker({
             ))}
           </select>
         </label>
+
+        {/* Sits beside the profile selector, not in the thumbnail grid: it
+            applies to whichever profile is selected above, exactly as the
+            template default does. Saves on change -- there is nothing to
+            confirm, and the per-resume picker can still override it. */}
+        {backgrounds.length > 0 && (
+          <label className="block">
+            <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
+              Page background
+            </span>
+            <select
+              value={currentBg ?? 'none'}
+              onChange={(e) => void setDefaultBackground(e.target.value)}
+              disabled={saving || !profileId}
+              title={backgrounds.find((b) => b.key === (currentBg ?? 'none'))?.description ?? ''}
+              className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text)] disabled:opacity-50"
+            >
+              {BG_GROUPS.map((cat) => {
+                const items = backgrounds.filter((b) => b.category === cat);
+                if (!items.length) return null;
+                return (
+                  <optgroup key={cat} label={BG_LABEL[cat]}>
+                    {items.map((b) => (
+                      <option key={b.key} value={b.key} title={b.description}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                );
+              })}
+            </select>
+          </label>
+        )}
+
         {current && (
           <p className="pb-2 text-sm text-[var(--muted)]">
             Currently{' '}
