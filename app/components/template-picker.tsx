@@ -49,6 +49,10 @@ export function TemplatePicker({
   const [selectedBg, setSelectedBg] = useState<Record<number, string | null>>(backgroundDefaults);
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState<Preset | null>(null);
+  // Two grids of page-shaped thumbnails would be indistinguishable side by
+  // side, and stacking them buries whichever comes second. Tabs keep one
+  // decision on screen at a time, sharing the profile selector above.
+  const [tab, setTab] = useState<'templates' | 'backgrounds'>('templates');
   const { toast, show, dismiss } = useToast();
 
   const current = profileId ? selected[profileId] : null;
@@ -170,50 +174,40 @@ export function TemplatePicker({
           </select>
         </label>
 
-        {/* Sits beside the profile selector, not in the thumbnail grid: it
-            applies to whichever profile is selected above, exactly as the
-            template default does. Saves on change -- there is nothing to
-            confirm, and the per-resume picker can still override it. */}
-        {backgrounds.length > 0 && (
-          <label className="block">
-            <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">
-              Page background
-            </span>
-            <select
-              value={currentBg ?? 'none'}
-              onChange={(e) => void setDefaultBackground(e.target.value)}
-              disabled={saving || !profileId}
-              title={backgrounds.find((b) => b.key === (currentBg ?? 'none'))?.description ?? ''}
-              className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text)] disabled:opacity-50"
-            >
-              {BG_GROUPS.map((cat) => {
-                const items = backgrounds.filter((b) => b.category === cat);
-                if (!items.length) return null;
-                return (
-                  <optgroup key={cat} label={BG_LABEL[cat]}>
-                    {items.map((b) => (
-                      <option key={b.key} value={b.key} title={b.description}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                );
-              })}
-            </select>
-          </label>
-        )}
-
-        {current && (
-          <p className="pb-2 text-sm text-[var(--muted)]">
-            Currently{' '}
-            <span className="font-medium text-[var(--text)]">
-              {presets.find((p) => p.key === current)?.name ?? current}
-            </span>
-          </p>
-        )}
+        {/* Follows the tab, so it always names the thing being chosen below
+            rather than the other one. */}
+        <p className="pb-2 text-sm text-[var(--muted)]">
+          Currently{' '}
+          <span className="font-medium text-[var(--text)]">
+            {tab === 'templates'
+              ? (presets.find((p) => p.key === current)?.name ?? current ?? 'the default template')
+              : (backgrounds.find((b) => b.key === (currentBg ?? 'none'))?.name ?? 'No Background')}
+          </span>
+        </p>
       </div>
 
-      {Object.entries(byCategory).map(([category, items]) => (
+      <div className="mb-6 flex gap-1 border-b border-[var(--border)]">
+        {(['templates', 'backgrounds'] as const).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium capitalize transition ${
+              tab === t
+                ? 'border-[var(--primary)] text-white'
+                : 'border-transparent text-[var(--muted)] hover:text-[var(--text)]'
+            }`}
+          >
+            {t}
+            <span className="ml-2 font-normal text-[var(--muted)]">
+              {t === 'templates' ? presets.length : backgrounds.length}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {tab === 'templates' &&
+        Object.entries(byCategory).map(([category, items]) => (
         <section key={category} className="mb-8">
           <h2 className="mb-3 text-sm font-semibold text-white">
             {CATEGORY_LABEL[category] ?? category}
@@ -280,6 +274,77 @@ export function TemplatePicker({
           </div>
         </section>
       ))}
+
+      {tab === 'backgrounds' && (
+        <div>
+          <p className="mb-4 text-sm text-[var(--muted)]">
+            Every preview below uses the SAME template, so what differs between them is the
+            background alone. Choosing one saves it for this profile; an individual resume can
+            still override it when you generate.
+          </p>
+          {BG_GROUPS.map((cat) => {
+            const items = backgrounds.filter((b) => b.category === cat);
+            if (!items.length) return null;
+            return (
+              <section key={cat} className="mb-8">
+                <h2 className="mb-3 text-sm font-semibold text-white">
+                  {BG_LABEL[cat]}
+                  <span className="ml-2 font-normal text-[var(--muted)]">{items.length}</span>
+                </h2>
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                  {items.map((b) => {
+                    const isCurrent = (currentBg ?? 'none') === b.key;
+                    return (
+                      <button
+                        key={b.key}
+                        type="button"
+                        onClick={() => void setDefaultBackground(b.key)}
+                        disabled={saving || !profileId}
+                        title={b.description}
+                        className={`group overflow-hidden rounded-xl border text-left transition disabled:opacity-50 ${
+                          isCurrent
+                            ? 'border-[var(--primary)] ring-2 ring-[var(--primary)]/40'
+                            : 'border-[var(--border)] hover:border-[var(--border-strong)]'
+                        }`}
+                      >
+                        <div className="relative aspect-[816/1056] bg-white">
+                          <Image
+                            src={`/background-thumbs/${b.key}.webp`}
+                            alt={`${b.name} background preview`}
+                            fill
+                            sizes="(max-width: 640px) 50vw, (max-width: 1280px) 25vw, 20vw"
+                            className="object-cover object-top"
+                          />
+                          {!isCurrent && (
+                            <span className="absolute inset-0 flex items-center justify-center bg-black/45 text-sm font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                              Use this
+                            </span>
+                          )}
+                          {isCurrent && (
+                            <span
+                              title="Default background for this profile"
+                              className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-[var(--primary)] text-sm font-bold text-white shadow-lg ring-2 ring-white/70"
+                            >
+                              <span aria-hidden>✓</span>
+                              <span className="sr-only">Default background</span>
+                            </span>
+                          )}
+                        </div>
+                        <div className="bg-[var(--surface)] px-3 py-2">
+                          <span className="block truncate text-sm font-medium text-white">{b.name}</span>
+                          <span className="block truncate text-xs text-[var(--muted)]">
+                            {isCurrent ? 'Current default' : b.description}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+      )}
 
       {preview && (
         <div
