@@ -21,6 +21,15 @@ const FONT_LABEL: Record<string, string> = {
   'slab-sans': 'Palatino / Helvetica',
 };
 
+function IconCheck() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"
+      strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden>
+      <path d="M20 6 L9 17 L4 12" />
+    </svg>
+  );
+}
+
 /** Plain first, loudest last -- the same order the generator's picker uses. */
 const BG_GROUPS = ['plain', 'lines', 'dots', 'geometric', 'accent'] as const;
 const BG_LABEL: Record<string, string> = {
@@ -53,6 +62,7 @@ export function TemplatePicker({
   // side, and stacking them buries whichever comes second. Tabs keep one
   // decision on screen at a time, sharing the profile selector above.
   const [tab, setTab] = useState<'templates' | 'backgrounds'>('templates');
+  const [bgPreview, setBgPreview] = useState<BackgroundDef | null>(null);
   const { toast, show, dismiss } = useToast();
 
   const current = profileId ? selected[profileId] : null;
@@ -65,7 +75,10 @@ export function TemplatePicker({
   useEffect(() => {
     if (!preview) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setPreview(null);
+      if (e.key === 'Escape') {
+        setPreview(null);
+        setBgPreview(null);
+      }
     };
     window.addEventListener('keydown', onKey);
     // Stop the page behind the modal scrolling under it.
@@ -298,8 +311,7 @@ export function TemplatePicker({
                       <button
                         key={b.key}
                         type="button"
-                        onClick={() => void setDefaultBackground(b.key)}
-                        disabled={saving || !profileId}
+                        onClick={() => setBgPreview(b)}
                         title={b.description}
                         className={`group overflow-hidden rounded-xl border text-left transition disabled:opacity-50 ${
                           isCurrent
@@ -315,9 +327,33 @@ export function TemplatePicker({
                             sizes="(max-width: 640px) 50vw, (max-width: 1280px) 25vw, 20vw"
                             className="object-cover object-top"
                           />
+                          <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/45 text-sm font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                            Preview
+                          </span>
+
+                          {/* Picking lives on its own control, not on the card.
+                              The card is a preview -- one click should not
+                              quietly change the profile's default while
+                              someone is still looking through the options. */}
                           {!isCurrent && (
-                            <span className="absolute inset-0 flex items-center justify-center bg-black/45 text-sm font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-                              Use this
+                            <span
+                              role="button"
+                              tabIndex={0}
+                              aria-label={`Use ${b.name} for this profile`}
+                              title={`Use ${b.name} for this profile`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!saving && profileId) void setDefaultBackground(b.key);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key !== 'Enter' && e.key !== ' ') return;
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (!saving && profileId) void setDefaultBackground(b.key);
+                              }}
+                              className="absolute bottom-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border-strong)] bg-[var(--surface)]/95 text-[var(--muted)] shadow-lg transition hover:scale-110 hover:border-[var(--primary)] hover:bg-[var(--primary)] hover:text-white"
+                            >
+                              <IconCheck />
                             </span>
                           )}
                           {isCurrent && (
@@ -343,6 +379,76 @@ export function TemplatePicker({
               </section>
             );
           })}
+        </div>
+      )}
+
+      {bgPreview && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`${bgPreview.name} preview`}
+          onClick={() => setBgPreview(null)}
+          className="fixed inset-0 z-50 flex overflow-y-auto bg-black/70 p-4 backdrop-blur-sm"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="my-auto w-full max-w-4xl overflow-hidden rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] shadow-2xl"
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] px-5 py-4">
+              <div className="min-w-0">
+                <h3 className="text-lg font-bold text-white">{bgPreview.name}</h3>
+                <p className="mt-1 text-xs text-[var(--muted)]">{bgPreview.description}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBgPreview(null)}
+                aria-label="Close preview"
+                className="rounded-lg px-2 py-1 text-xl leading-none text-[var(--muted)] transition hover:text-white"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="max-h-[70vh] overflow-y-auto bg-[var(--surface-2)] p-4">
+              {/* Unoptimised and at natural size: these are fine textures, and
+                  Next's resizing softens exactly the detail being judged. */}
+              <Image
+                src={`/background-thumbs/${bgPreview.key}.webp`}
+                alt={`${bgPreview.name} background, full page`}
+                width={816}
+                height={1056}
+                // Deliberately unoptimised: these are fine textures, and the
+                // resampling softens exactly the detail being judged here.
+                unoptimized
+                className="mx-auto block h-auto w-full max-w-2xl rounded-lg border border-[var(--border)] bg-white"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 border-t border-[var(--border)] px-5 py-3">
+              <button
+                type="button"
+                onClick={() => setBgPreview(null)}
+                className="rounded-lg px-3 py-2 text-sm text-[var(--muted)] transition hover:text-white"
+              >
+                Close
+              </button>
+              {(currentBg ?? 'none') === bgPreview.key ? (
+                <span className="text-sm text-[var(--muted)]">Current default</span>
+              ) : (
+                <button
+                  type="button"
+                  disabled={saving || !profileId}
+                  onClick={() => {
+                    void setDefaultBackground(bgPreview.key);
+                    setBgPreview(null);
+                  }}
+                  className="rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--primary-hover)] disabled:opacity-60"
+                >
+                  {saving ? 'Saving…' : 'Use this background'}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
