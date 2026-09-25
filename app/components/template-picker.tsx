@@ -392,7 +392,7 @@ export function TemplatePicker({
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="my-auto w-full max-w-4xl overflow-hidden rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] shadow-2xl"
+            className="m-auto w-full max-w-4xl overflow-hidden rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] shadow-2xl"
           >
             <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] px-5 py-4">
               <div className="min-w-0">
@@ -463,7 +463,7 @@ export function TemplatePicker({
           <div
             // Clicks inside must not fall through to the backdrop's close.
             onClick={(e) => e.stopPropagation()}
-            className="my-auto w-full max-w-5xl overflow-hidden rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] shadow-2xl"
+            className="m-auto w-full max-w-5xl overflow-hidden rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] shadow-2xl"
           >
             <div className="flex items-start justify-between gap-4 border-b border-[var(--border)] px-5 py-4">
               <div className="min-w-0">
