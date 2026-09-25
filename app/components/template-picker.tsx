@@ -249,9 +249,31 @@ export function TemplatePicker({
                       sizes="(max-width: 640px) 50vw, (max-width: 1280px) 25vw, 20vw"
                       className="object-cover object-top"
                     />
-                    <span className="absolute inset-0 flex items-center justify-center bg-black/45 text-sm font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/45 text-sm font-medium text-white opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
                       Preview
                     </span>
+
+                    {!isCurrent && (
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Use ${p.name} for this profile`}
+                        title={`Use ${p.name} for this profile`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!saving && profileId) void setDefault(p.key);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key !== 'Enter' && e.key !== ' ') return;
+                          e.preventDefault();
+                          e.stopPropagation();
+                          if (!saving && profileId) void setDefault(p.key);
+                        }}
+                        className="absolute bottom-2 right-2 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-[var(--border-strong)] bg-[var(--surface)]/95 text-[var(--muted)] shadow-lg transition hover:scale-110 hover:border-[var(--primary)] hover:bg-[var(--primary)] hover:text-white"
+                      >
+                        <IconCheck />
+                      </span>
+                    )}
 
                     {isCurrent && (
                       <span
