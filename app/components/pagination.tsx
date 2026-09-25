@@ -4,6 +4,7 @@ import type { InterviewFilter } from '@/lib/interviews';
 import type { ResumeFilter } from '@/lib/resumes';
 import type { RejectedFilter } from '@/lib/rejections';
 import Link from 'next/link';
+import { PageLinkStatus, PageLinkAnnounce } from './page-link-status';
 import type { Pagination as PaginationInfo } from '@/lib/types';
 import { writePosted, type PostedFilter } from '@/lib/posted';
 
@@ -84,11 +85,11 @@ function pageList(current: number, total: number): (number | 'gap')[] {
 }
 
 const nav =
-  'rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 transition hover:border-[var(--border-strong)] hover:text-white';
+  'relative rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-1.5 transition hover:border-[var(--border-strong)] hover:text-white';
 const navOff =
   'rounded-lg border border-[var(--border)] px-3 py-1.5 text-[var(--muted)] opacity-40';
 const num =
-  'min-w-[36px] rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1.5 text-center transition hover:border-[var(--border-strong)] hover:text-white';
+  'relative min-w-[36px] rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1.5 text-center transition hover:border-[var(--border-strong)] hover:text-white';
 const numOn =
   'min-w-[36px] rounded-lg border border-[var(--primary)] bg-[var(--primary)]/20 px-2.5 py-1.5 text-center font-medium text-white';
 
@@ -129,6 +130,8 @@ export function PageNav({
         {page > 1 ? (
           <Link href={hrefFor(page - 1)} className={nav} aria-label="Previous page">
             ← Prev
+            <PageLinkStatus />
+            <PageLinkAnnounce />
           </Link>
         ) : (
           <span className={navOff}>← Prev</span>
@@ -146,6 +149,7 @@ export function PageNav({
           ) : (
             <Link key={p} href={hrefFor(p)} className={num}>
               {p}
+              <PageLinkStatus />
             </Link>
           ),
         )}
@@ -153,6 +157,8 @@ export function PageNav({
         {page < totalPages ? (
           <Link href={hrefFor(page + 1)} className={nav} aria-label="Next page">
             Next →
+            <PageLinkStatus />
+            <PageLinkAnnounce />
           </Link>
         ) : (
           <span className={navOff}>Next →</span>

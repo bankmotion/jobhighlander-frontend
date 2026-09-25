@@ -30,6 +30,7 @@ import { JobCard } from '@/app/components/job-card';
 import { JobDetailPanelProvider } from '@/app/components/job-detail-panel';
 import { NewJobsBanner } from '@/app/components/new-jobs-banner';
 import { Pagination } from '@/app/components/pagination';
+import { PageLoadingOverlay } from '@/app/components/page-loading-overlay';
 import { AppliedProvider } from '@/app/components/applied-provider';
 import { CoverLetterProvider } from '@/app/components/cover-letter-provider';
 import { DiscardProvider } from '@/app/components/discard-provider';
@@ -208,6 +209,10 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
 
   return (
     <div>
+      {/* Paging only changes search params, so `app/loading.tsx` never fires
+          for it — this covers that gap. */}
+      <PageLoadingOverlay />
+
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="mb-1 text-2xl font-bold tracking-tight text-white">Jobs</h1>
