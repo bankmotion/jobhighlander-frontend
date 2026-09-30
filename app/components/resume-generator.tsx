@@ -237,7 +237,7 @@ export function ResumeGenerator({
       // component loaded with, which is the one the user just changed away
       // from.
       const key = await syncSavedTemplate();
-      // Generation already cost 20-60s; the render adds ~1s and is cached
+      // Generation already cost 20-40s; the render adds ~1s and is cached
       // server-side, so showing the finished document beats making them ask.
       void renderPdf(generated, Number(profileId), key ?? templateKey ?? undefined);
     } catch {
@@ -486,14 +486,14 @@ export function ResumeGenerator({
         >
           {loading ? 'Generating…' : resume ? 'Regenerate' : 'Generate'}
         </button>
-        {loading && <span className="text-sm text-[var(--muted)]">This takes 20–60 seconds.</span>}
+        {loading && <span className="text-sm text-[var(--muted)]">This takes 20–40 seconds.</span>}
       </div>
 
       <GenerateModal
         open={picking}
         busy={loading}
         title={resume ? 'Regenerate this resume?' : 'Generate a tailored resume'}
-        description="This writes the resume and the cover letter together, in one paid call that takes 20–60 seconds."
+        description="This writes the resume and the cover letter together, in one paid call that takes 20–40 seconds."
         warning={
           resume
             ? 'The resume and cover letter already saved for this posting will both be replaced.'

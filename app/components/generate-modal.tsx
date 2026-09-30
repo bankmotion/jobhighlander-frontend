@@ -31,7 +31,7 @@ function pick(list: ProviderInfo[]): AiProvider | null {
 /**
  * Confirm a billable generation, and choose who is billed.
  *
- * Every path into this modal spends real money on a call that takes 20–60
+ * Every path into this modal spends real money on a call that takes 20–40
  * seconds, so the choice and the confirmation are deliberately the same step:
  * a separate "are you sure?" after picking a provider would be two dialogs
  * asking one question.

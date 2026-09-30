@@ -248,7 +248,7 @@ export function CoverLetterProvider({
       <GenerateModal
         open={pending !== null}
         title={pending !== null && status[pending] ? 'Replace this letter?' : 'Write a cover letter'}
-        description="The letter and the tailored resume are written together, in one paid call that takes 20–60 seconds."
+        description="The letter and the tailored resume are written together, in one paid call that takes 20–40 seconds."
         warning={
           pending !== null && status[pending]
             ? 'The saved letter and resume for this posting will both be replaced.'

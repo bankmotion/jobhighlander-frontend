@@ -887,12 +887,12 @@ export function ResumeListProvider({
               className="flex h-[60vh] flex-col items-center justify-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-2)] text-center"
             >
               <Spinner className="h-6 w-6" />
-              <span className="sr-only">Writing a resume. This takes 20 to 60 seconds.</span>
+              <span className="sr-only">Writing a resume. This takes 20 to 40 seconds.</span>
               <p aria-hidden className="text-sm font-medium text-[var(--text)]">
                 Writing a resume for this posting… {formatElapsed(elapsedSince(run, now))}
               </p>
               <p className="max-w-sm text-xs text-[var(--muted)]">
-                This usually takes 20–60 seconds. You can close this — it keeps running and the card
+                This usually takes 20–40 seconds. You can close this — it keeps running and the card
                 updates when it is done.
               </p>
             </div>

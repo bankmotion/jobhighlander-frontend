@@ -90,7 +90,7 @@ export function loadProviders(): Promise<ProviderLoad> {
   return catalogue;
 }
 
-/** "$0.20 / $1.20 per 1M tokens" — what this choice costs, at the point of choosing. */
+/** "$0.10 in / $0.50 out per 1M tokens" — what this choice costs, at the point of choosing. */
 export function priceHint(p: ProviderInfo): string | null {
   if (p.inputPerMTok == null || p.outputPerMTok == null) return null;
   const fmt = (n: number) => (n < 1 ? `$${n.toFixed(2)}` : `$${n}`);

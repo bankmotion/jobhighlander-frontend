@@ -319,7 +319,7 @@ export function ApplicationAction({ jobId, title, company }: ResumeTarget) {
       onClick={() => generateQuiet(target)}
       // Names the job and the cost of waiting: a screen-reader element list
       // would otherwise show twenty identical "Generate" buttons.
-      aria-label={`Write a tailored resume and cover letter for ${where}. Takes 20 to 60 seconds.`}
+      aria-label={`Write a tailored resume and cover letter for ${where}. Takes 20 to 40 seconds.`}
       className={`${BOX} ${TONE.none}`}
     >
       <IconSparkle />
