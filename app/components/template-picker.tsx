@@ -35,13 +35,15 @@ function IconCheck() {
 }
 
 /** Plain first, loudest last -- the same order the generator's picker uses. */
-const BG_GROUPS = ['plain', 'lines', 'dots', 'geometric', 'accent'] as const;
+const BG_GROUPS = ['plain', 'tint', 'lines', 'dots', 'geometric', 'accent', 'dark'] as const;
 const BG_LABEL: Record<string, string> = {
   plain: 'Plain',
+  tint: 'Tinted Paper',
   lines: 'Lines',
   dots: 'Dots',
   geometric: 'Geometric',
   accent: 'Accents',
+  dark: 'Dark',
 };
 
 export function TemplatePicker({

@@ -12,7 +12,14 @@
  * resumes -- which is exactly what the template default exists to prevent.
  */
 
-export type BackgroundCategory = 'plain' | 'dots' | 'geometric' | 'lines' | 'accent';
+export type BackgroundCategory =
+  | 'plain'
+  | 'tint'
+  | 'dots'
+  | 'geometric'
+  | 'lines'
+  | 'accent'
+  | 'dark';
 
 export interface ResumeBackground {
   key: string;
@@ -23,21 +30,28 @@ export interface ResumeBackground {
 
 export const NO_BACKGROUND = 'none';
 
-/** Ordered so the plain option is always first and the loud ones are last. */
+/**
+ * Ordered so the plain option is always first and the loud ones are last.
+ * Dark closes the list: it is the one group that changes the text colour too.
+ */
 export const CATEGORY_ORDER: BackgroundCategory[] = [
   'plain',
+  'tint',
   'lines',
   'dots',
   'geometric',
   'accent',
+  'dark',
 ];
 
 export const CATEGORY_LABEL: Record<BackgroundCategory, string> = {
   plain: 'Plain',
+  tint: 'Tinted Paper',
   lines: 'Lines',
   dots: 'Dots',
   geometric: 'Geometric',
   accent: 'Accents',
+  dark: 'Dark',
 };
 
 /**

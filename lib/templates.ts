@@ -28,7 +28,7 @@ export interface BackgroundDef {
   key: string;
   name: string;
   description: string;
-  category: 'plain' | 'dots' | 'geometric' | 'lines' | 'accent';
+  category: 'plain' | 'tint' | 'dots' | 'geometric' | 'lines' | 'accent' | 'dark';
 }
 
 /**
