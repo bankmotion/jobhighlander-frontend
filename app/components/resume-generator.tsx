@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { ProfileSummary } from '@/lib/types';
-import type { Preset } from '@/lib/templates';
+import { FALLBACK_TEMPLATE_KEY, type Preset } from '@/lib/templates';
 import {
   fetchBackgrounds,
   CATEGORY_ORDER,
@@ -517,7 +517,10 @@ export function ResumeGenerator({
               <label className="flex items-center gap-2 text-sm">
                 <span className="text-[var(--muted)]">Template</span>
                 <select
-                  value={templateKey}
+                  // A key the list does not contain would make the browser show
+                  // its first option, and the first option is a custom template,
+                  // not the default. Show the real fallback instead.
+                  value={presets.some((p) => p.key === templateKey) ? templateKey : FALLBACK_TEMPLATE_KEY}
                   onChange={(e) => selectTemplate(e.target.value)}
                   className="rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-2.5 py-1.5 text-sm text-[var(--text)]"
                 >

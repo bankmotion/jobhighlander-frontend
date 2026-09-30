@@ -11,6 +11,9 @@ const CATEGORY_LABEL: Record<string, string> = {
   modern: 'Modern',
   professional: 'Professional',
   creative: 'Creative',
+  // Templates built to match a specific reference resume. Their keys start
+  // "custom-".
+  custom: 'Custom',
 };
 
 const FONT_LABEL: Record<string, string> = {
@@ -18,6 +21,7 @@ const FONT_LABEL: Record<string, string> = {
   'serif-sans': 'Georgia / Helvetica',
   'sans-modern': 'Helvetica',
   'sans-humanist': 'Segoe UI',
+  'sans-calibri': 'Arial / Calibri',
   'slab-sans': 'Palatino / Helvetica',
 };
 
