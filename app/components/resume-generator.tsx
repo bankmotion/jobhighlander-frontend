@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { ProfileSummary } from '@/lib/types';
-import { FALLBACK_TEMPLATE_KEY, type Preset } from '@/lib/templates';
+import type { Preset } from '@/lib/templates';
+import { FALLBACK_TEMPLATE_KEY } from '@/lib/template-defaults';
 import {
   fetchBackgrounds,
   CATEGORY_ORDER,

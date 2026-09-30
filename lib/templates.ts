@@ -13,16 +13,6 @@ export interface Preset {
   atsSafe: boolean;
 }
 
-/**
- * The template a resume renders with when nothing else is chosen.
- *
- * Mirrors FALLBACK_PRESET in the backend's templates/registry.ts, which is
- * what actually decides it. Kept here only so a control can SHOW the right
- * name: the default is a key, never "whichever preset happens to be listed
- * first", and the custom group now leads the list.
- */
-export const FALLBACK_TEMPLATE_KEY = 'classic-ink';
-
 export async function fetchPresets(): Promise<Preset[]> {
   const token = await getToken();
   const res = await fetch(`${API_URL}/api/resumes/templates`, {
