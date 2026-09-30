@@ -8,6 +8,7 @@ import type { DiscardedFilter } from '@/lib/discards';
 import type { InterviewFilter } from '@/lib/interviews';
 import type { ResumeFilter } from '@/lib/resumes';
 import type { RejectedFilter } from '@/lib/rejections';
+import type { ApplyFilter } from '@/lib/apply-target';
 import { MultiSelect } from './multi-select';
 import { PostedFilterControl } from './posted-filter';
 import { postedActive, writePosted, type PostedFilter } from '@/lib/posted';
@@ -53,6 +54,7 @@ interface Props {
     rejected: RejectedFilter;
     interview: InterviewFilter;
     resume: ResumeFilter;
+    apply: ApplyFilter;
     posted: PostedFilter;
     postedFrom: string;
     postedTo: string;
@@ -103,6 +105,19 @@ const RESUME_TABS: { value: ResumeFilter; label: string; hint: string }[] = [
   { value: 'all', label: 'All', hint: 'Every job, resume or not' },
   { value: 'generated', label: 'Resume ready', hint: 'Only jobs you have generated a resume for' },
   { value: 'notgenerated', label: 'No resume', hint: 'Only jobs you have not generated a resume for' },
+];
+
+// Where the application happens. Easy Apply is a job board (the posting's own
+// site, LinkedIn or Indeed); Apply Now is the employer's own form. Same words as
+// the button on each card, so the filter names what the reader already sees.
+const APPLY_TABS: { value: ApplyFilter; label: string; hint: string }[] = [
+  { value: 'all', label: 'All', hint: 'Every job, however it is applied to' },
+  {
+    value: 'easy',
+    label: 'Easy Apply',
+    hint: "Only jobs applied to on a job board: the posting's own site, LinkedIn or Indeed",
+  },
+  { value: 'now', label: 'Apply Now', hint: "Only jobs applied to on the employer's own site" },
 ];
 
 const APPLIED_TABS: { value: AppliedFilter; label: string }[] = [
@@ -181,6 +196,7 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
     rejected,
     interview,
     resume,
+    apply,
     posted,
     postedFrom,
     postedTo,
@@ -223,6 +239,7 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
     rejected?: RejectedFilter;
     interview?: InterviewFilter;
     resume?: ResumeFilter;
+    apply?: ApplyFilter;
     posted?: PostedFilter;
     postedFrom?: string;
     postedTo?: string;
@@ -248,6 +265,8 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
     if (nextInterview !== 'all') qs.set('interview', nextInterview); // all is the default
     const nextResume = next.resume ?? resume;
     if (nextResume !== 'all') qs.set('resume', nextResume); // all is the default
+    const nextApply = next.apply ?? apply;
+    if (nextApply !== 'all') qs.set('apply', nextApply); // all is the default
     // Switching AWAY from a custom range drops its dates rather than keeping
     // them primed to reappear the next time Custom is clicked.
     const nextPosted = next.posted ?? posted;
@@ -274,6 +293,7 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
   const selectRejected = (next: RejectedFilter) => navigate({ rejected: next });
   const selectInterview = (next: InterviewFilter) => navigate({ interview: next });
   const selectResume = (next: ResumeFilter) => navigate({ resume: next });
+  const selectApply = (next: ApplyFilter) => navigate({ apply: next });
   const toggleRemote = () => navigate({ remote: !remote });
 
   function submit(e: React.FormEvent) {
@@ -303,6 +323,7 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
       rejected !== 'all' ||
       interview !== 'all' ||
       resume !== 'all' ||
+      apply !== 'all' ||
       postedActive(posted, postedFrom, postedTo),
   );
 
@@ -392,6 +413,35 @@ export function FiltersBar({ filters, current, canFilterApplied, canFilterOthers
         </span>
         Remote only
       </button>
+
+      {/* Not gated on a profile, unlike the tabs that follow: how a posting is
+          applied to is a fact about the posting, the same for every candidate. */}
+      <div
+        role="radiogroup"
+        aria-label="How to apply"
+        className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-0.5"
+      >
+        {APPLY_TABS.map((t) => {
+          const on = apply === t.value;
+          return (
+            <button
+              key={t.value}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              title={t.hint}
+              onClick={() => selectApply(t.value)}
+              className={`rounded-md px-2.5 py-1.5 text-sm transition ${
+                on
+                  ? 'bg-[var(--primary)] font-medium text-white'
+                  : 'text-[var(--muted)] hover:text-[var(--text)]'
+              }`}
+            >
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
 
       {canFilterApplied && (
         <div

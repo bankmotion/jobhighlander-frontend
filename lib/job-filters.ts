@@ -11,6 +11,7 @@ import { createLocalStore } from './local-store';
 const FILTER_KEYS = [
   'title', 'company', 'location', 'description',
   'site', 'remote', 'applied', 'othersApplied', 'discarded', 'rejected', 'interview', 'resume',
+  'apply',
   'posted', 'postedFrom', 'postedTo',
 ] as const;
 

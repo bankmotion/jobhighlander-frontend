@@ -5,6 +5,7 @@ import { fetchProfiles } from '@/lib/profiles';
 import { fetchPresets } from '@/lib/templates';
 import { fetchResumeStatus } from '@/lib/resumes';
 import { isResumeFilter, type ResumeFilter } from '@/lib/resumes';
+import { isApplyFilter, type ApplyFilter } from '@/lib/apply-target';
 import {
   fetchAppliedStatus,
   fetchCompanyHistory,
@@ -89,6 +90,10 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   const rejected: RejectedFilter = isRejectedFilter(rejectedParam) ? rejectedParam : 'all';
   const resumeParam = str(sp.resume);
   const resume: ResumeFilter = isResumeFilter(resumeParam) ? resumeParam : 'all';
+  // Easy Apply or Apply Now. A fact about the posting rather than the profile,
+  // so unlike the four above it works with no profile selected.
+  const applyParam = str(sp.apply);
+  const apply: ApplyFilter = isApplyFilter(applyParam) ? applyParam : 'all';
   // The id paging is pinned to. Absent on page 1, which always shows the
   // freshest list; the pagination links add it, so the set freezes the moment
   // someone starts paging and cannot shift beneath them afterwards.
@@ -138,6 +143,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
     rejected,
     interview,
     resume,
+    apply,
     snapshotId,
     posted,
     postedFrom,
@@ -173,6 +179,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
       rejected,
       interview,
       resume,
+      apply,
       snapshotId,
       posted,
       postedFrom,
@@ -336,6 +343,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                     ...(othersApplied !== 'all' ? { othersApplied } : {}),
                     ...(discarded !== 'all' ? { discarded } : {}),
                     ...(interview !== 'all' ? { interview } : {}),
+                    ...(apply !== 'all' ? { apply } : {}),
                     // The banner counts jobs newer than the list; it must count
                     // them under the same window the list is showing.
                     ...(posted !== 'all' ? { posted } : {}),

@@ -4,6 +4,7 @@ import type { DiscardedFilter } from './discards';
 import type { InterviewFilter } from './interviews';
 import type { ResumeFilter } from './resumes';
 import type { RejectedFilter } from './rejections';
+import type { ApplyFilter } from './apply-target';
 import { getToken } from './auth';
 import { writePosted, type PostedFilter } from './posted';
 import { displayZone } from './zone.server';
@@ -24,6 +25,7 @@ export interface JobQuery {
   rejected?: RejectedFilter;
   interview?: InterviewFilter;
   resume?: ResumeFilter;
+  apply?: ApplyFilter;
   snapshotId?: number;
   profileId?: number | null;
   posted?: PostedFilter;
@@ -56,6 +58,7 @@ export async function fetchJobs(query: JobQuery = {}): Promise<Paginated<Job>> {
   if (query.rejected && query.rejected !== 'all') qs.set('rejected', query.rejected);
   if (query.interview && query.interview !== 'all') qs.set('interview', query.interview);
   if (query.resume && query.resume !== 'all') qs.set('resume', query.resume);
+  if (query.apply && query.apply !== 'all') qs.set('apply', query.apply);
   if (query.snapshotId) qs.set('snapshotId', String(query.snapshotId));
   if (query.profileId) qs.set('profileId', String(query.profileId));
   // Posted-date window. 'custom' without either end is dropped by `writePosted`

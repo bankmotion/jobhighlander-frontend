@@ -21,6 +21,13 @@ export interface Job {
    * that never checked would be an invented fact.
    */
   onLinkedin?: boolean | null;
+  /**
+   * "Easy Apply" (true) or "Apply Now" (false), computed by the database from
+   * the two links: the apply link is on the posting's own site, or on LinkedIn
+   * or Indeed. Optional because not every endpoint's job object carries it;
+   * `applyTarget` works it out from the links when it is missing.
+   */
+  easyApply?: boolean | null;
   location: string | null;
   salary: string | null;
   postedAt: string | null;

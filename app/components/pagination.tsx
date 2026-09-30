@@ -1,6 +1,7 @@
 import type { AppliedFilter, OthersAppliedFilter } from '@/lib/applications';
 import type { DiscardedFilter } from '@/lib/discards';
 import type { InterviewFilter } from '@/lib/interviews';
+import type { ApplyFilter } from '@/lib/apply-target';
 import type { ResumeFilter } from '@/lib/resumes';
 import type { RejectedFilter } from '@/lib/rejections';
 import Link from 'next/link';
@@ -24,6 +25,7 @@ interface Props {
     rejected?: RejectedFilter;
     interview?: InterviewFilter;
     resume?: ResumeFilter;
+    apply?: ApplyFilter;
     snapshotId?: number;
     posted?: PostedFilter;
     postedFrom?: string;
@@ -56,6 +58,7 @@ function href(page: number, query: Props['query']): string {
   // list, which read as page 2 containing jobs page 1 had excluded.
   if (query.interview && query.interview !== 'all') qs.set('interview', query.interview);
   if (query.resume && query.resume !== 'all') qs.set('resume', query.resume);
+  if (query.apply && query.apply !== 'all') qs.set('apply', query.apply);
   // Pins the set being paged. Without it, a job scraped while someone reads
   // page 3 pushes the list down and page 4 repeats rows they have already seen
   // — the deeper the page, the worse the drift.

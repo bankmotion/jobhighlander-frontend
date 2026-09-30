@@ -13,7 +13,7 @@ export function ApplyButton({
   job,
   className = '',
 }: {
-  job: { jobUrl: string; applyUrl: string | null; site: string };
+  job: { jobUrl: string; applyUrl: string | null; site: string; easyApply?: boolean | null };
   className?: string;
 }) {
   const apply = applyTarget(job);
@@ -30,7 +30,7 @@ export function ApplyButton({
         // An in-platform application is the easier one, so it gets the
         // emphasis. Both stay solid buttons — this ranks them, it does not
         // demote either.
-        apply.mode === 'onsite'
+        apply.easy
           ? 'bg-emerald-600 hover:bg-emerald-500'
           : 'bg-[var(--primary)] hover:bg-[var(--primary-hover)]'
       } ${className}`}
