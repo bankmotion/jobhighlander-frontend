@@ -32,6 +32,8 @@ export interface TailoredResume {
     period: string;
     location: string;
     bullets: Flagged[];
+    /** What this role was built with. Absent on resumes saved before the field existed. */
+    skills?: string[];
   }[];
   education: { institution: string; degree: string; period: string }[];
   gaps: string[];
@@ -673,6 +675,12 @@ export function ResumeGenerator({
                   </li>
                 ))}
               </ul>
+              {e.skills && e.skills.length > 0 && (
+                <p className="mt-1.5 text-xs text-[var(--muted)]">
+                  <span className="font-medium text-[var(--text)]/80">Skills:</span>{' '}
+                  {e.skills.join(', ')}
+                </p>
+              )}
             </div>
           ))}
 
