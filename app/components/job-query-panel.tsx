@@ -1,17 +1,22 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import { ConfirmModal } from './confirm-modal';
 import { CopyTextButton } from './copy-text-button';
 import { GenerateModal, ProviderBadge } from './generate-modal';
 import { stampLabel, type AiProvider } from '@/lib/ai-providers';
 import { useDisplayZone } from '@/lib/display-zone';
 import {
+  MAX_SCREENSHOTS,
   QUESTION_MAX_CHARS,
+  REMEMBERED_QUESTIONS,
   SUGGESTED_QUESTIONS,
   type JobQuery,
+  type QueryAttachment,
   type QueryContext,
 } from '@/lib/job-queries';
+import { shrinkImage, type PastedImage } from '@/lib/paste-image';
 
 export function JobQueryPanel({
   jobId,
@@ -36,7 +41,44 @@ export function JobQueryPanel({
   const [error, setError] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
   const [picking, setPicking] = useState(false);
+  // Screenshots pasted into the box, already shrunk, waiting to go with the
+  // next question.
+  const [shots, setShots] = useState<(PastedImage & { key: number })[]>([]);
+  const [reading, setReading] = useState(false);
+  const shotKey = useRef(0);
   const boxRef = useRef<HTMLTextAreaElement>(null);
+  // A screenshot can BE the question ("what do I put in this field?"), so
+  // either one is enough to ask.
+  const canAsk = Boolean(question.trim()) || shots.length > 0;
+
+  async function onPaste(e: React.ClipboardEvent<HTMLTextAreaElement>) {
+    const files = Array.from(e.clipboardData.items)
+      .filter((item) => item.kind === 'file' && item.type.startsWith('image/'))
+      .map((item) => item.getAsFile())
+      .filter((f): f is File => f !== null);
+    // No image on the clipboard: an ordinary text paste, left alone.
+    if (files.length === 0) return;
+    e.preventDefault();
+    const room = MAX_SCREENSHOTS - shots.length;
+    if (room <= 0) {
+      setError(`At most ${MAX_SCREENSHOTS} screenshots per question`);
+      return;
+    }
+    setError(null);
+    setReading(true);
+    try {
+      for (const file of files.slice(0, room)) {
+        const shot = await shrinkImage(file);
+        const key = ++shotKey.current;
+        setShots((prev) => [...prev, { ...shot, key }].slice(0, MAX_SCREENSHOTS));
+      }
+      if (files.length > room) setError(`At most ${MAX_SCREENSHOTS} screenshots per question`);
+    } catch {
+      setError('That image could not be read. Try copying it again.');
+    } finally {
+      setReading(false);
+    }
+  }
 
   // Only when the host could not fetch it. Not a state sync — the fetch is the
   // external system this effect exists to talk to.
@@ -63,7 +105,7 @@ export function JobQueryPanel({
 
   async function ask(provider: AiProvider) {
     const q = question.trim();
-    if (!q || !profileId) return;
+    if ((!q && shots.length === 0) || !profileId) return;
     setPicking(false);
     setBusy(true);
     setError(null);
@@ -71,7 +113,13 @@ export function JobQueryPanel({
       const res = await fetch('/api/job-queries', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ jobId, profileId, question: q, provider }),
+        body: JSON.stringify({
+          jobId,
+          profileId,
+          question: q,
+          provider,
+          images: shots.map((s) => s.dataUrl),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -84,6 +132,7 @@ export function JobQueryPanel({
       // Newest first, matching the API's own ordering.
       setLog((prev) => [data as JobQuery, ...prev]);
       setQuestion('');
+      setShots([]);
     } catch {
       setError('Could not reach the server');
     } finally {
@@ -121,10 +170,11 @@ export function JobQueryPanel({
           ref={boxRef}
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
+          onPaste={onPaste}
           onKeyDown={(e) => {
             // Ctrl/Cmd+Enter submits. A bare Enter must stay a newline: these
             // questions run to several sentences.
-            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && question.trim()) {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && canAsk && !reading) {
               e.preventDefault();
               setPicking(true);
             }
@@ -132,22 +182,55 @@ export function JobQueryPanel({
           maxLength={QUESTION_MAX_CHARS}
           rows={compact ? 4 : 5}
           disabled={busy}
-          placeholder="Paste an application question to get a pasteable answer, or ask for advice — gaps, what to ask them, whether to apply…"
+          placeholder="Paste an application question to get a pasteable answer, or ask for advice — gaps, what to ask them, whether to apply… Paste a screenshot with Ctrl+V."
           className="w-full resize-y rounded-lg border border-[var(--border)] bg-[var(--surface-2)] px-3 py-2 text-sm text-[var(--text)] placeholder-[var(--muted)] outline-none transition focus:border-[var(--primary)] disabled:opacity-60"
         />
+
+        {(shots.length > 0 || reading) && (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {shots.map((s, i) => (
+              <div key={s.key} className="relative">
+                <Image
+                  src={s.dataUrl}
+                  alt={`Screenshot ${i + 1}`}
+                  width={96}
+                  height={64}
+                  unoptimized
+                  className="h-16 w-auto max-w-40 rounded-md border border-[var(--border)] object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShots((prev) => prev.filter((x) => x.key !== s.key))}
+                  disabled={busy}
+                  aria-label={`Remove screenshot ${i + 1}`}
+                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--muted)] transition hover:text-red-300 disabled:opacity-50"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+            {reading && <span className="text-xs text-[var(--muted)]">Reading screenshot…</span>}
+            {!reading && shots.length < MAX_SCREENSHOTS && (
+              <span className="text-xs text-[var(--muted)]">
+                {shots.length} of {MAX_SCREENSHOTS} — paste another with Ctrl+V
+              </span>
+            )}
+          </div>
+        )}
 
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setPicking(true)}
-            disabled={busy || !question.trim()}
+            disabled={busy || reading || !canAsk}
             className="rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-medium text-white transition hover:bg-[var(--primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {busy ? 'Thinking…' : 'Generate'}
           </button>
           <span className="text-xs text-[var(--muted)]">
-            Sends your profile, resume and cover letter. Application questions come
-            back in first person, ready to paste.
+            Sends your profile, resume and cover letter, and your last {REMEMBERED_QUESTIONS}{' '}
+            questions on this job so you can follow up. Paste up to {MAX_SCREENSHOTS} screenshots
+            with Ctrl+V. Application questions come back in first person, ready to paste.
           </span>
           {question.length > QUESTION_MAX_CHARS * 0.75 && (
             <span className="ml-auto text-xs text-[var(--muted)]">
@@ -157,7 +240,7 @@ export function JobQueryPanel({
         </div>
       </div>
 
-      {log.length === 0 && !question && !busy && (
+      {log.length === 0 && !question && shots.length === 0 && !busy && (
         <div className="flex flex-wrap gap-1.5">
           {SUGGESTED_QUESTIONS.map((s) => (
             <button
@@ -209,7 +292,7 @@ export function JobQueryPanel({
         open={picking}
         busy={busy}
         title="Ask about this job"
-        description="Your profile, and any resume and cover letter already written for this posting, are sent with the question. This is a paid call."
+        description="Your profile, any resume and cover letter already written for this posting, your last few questions on it, and any pasted screenshots are sent with the question. This is a paid call."
         confirmLabel="Ask"
         onCancel={() => setPicking(false)}
         onConfirm={ask}
@@ -278,6 +361,9 @@ function QueryCard({
 
       {open && (
         <div className="border-t border-[var(--border)] px-3 py-2.5">
+          {row.attachments && row.attachments.length > 0 && (
+            <Screenshots items={row.attachments} />
+          )}
           <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--text)]/90">
             {row.answer}
           </p>
@@ -308,7 +394,33 @@ function ContextNote({ context }: { context: QueryContext }) {
     <span title={missing.length ? `No ${missing.join(' or ')} existed when this was asked` : undefined}>
       saw {had.join(' + ')}
       {missing.length > 0 && <span className="text-amber-400/80"> (no {missing.join(', ')})</span>}
+      {context.earlier ? ` + ${context.earlier} earlier question${context.earlier === 1 ? '' : 's'}` : ''}
     </span>
+  );
+}
+
+/** The screenshots a question was asked about. Each opens full size in a new tab. */
+function Screenshots({ items }: { items: QueryAttachment[] }) {
+  return (
+    <div className="mb-2 flex flex-wrap gap-2">
+      {items.map((a, i) => {
+        const src = `/api/job-queries/attachments/${a.id}`;
+        return (
+          <a key={a.id} href={src} target="_blank" rel="noopener noreferrer" title="Open full size">
+            {/* Unoptimized: the image is behind the session cookie, which the
+                Next image optimizer would not send. */}
+            <Image
+              src={src}
+              alt={`Screenshot ${i + 1}`}
+              width={96}
+              height={64}
+              unoptimized
+              className="h-16 w-auto max-w-40 rounded-md border border-[var(--border)] object-cover transition hover:border-[var(--primary)]"
+            />
+          </a>
+        );
+      })}
+    </div>
   );
 }
 
